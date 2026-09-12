@@ -1,0 +1,57 @@
+# JTAS local development stack.
+# App and worker run on the host during development (pnpm dev / pnpm worker);
+# only the stateful services live here. See SDD section 10.1.
+
+services:
+  db:
+    image: postgres:16
+    container_name: jtas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jtas
+      POSTGRES_PASSWORD: jtas
+      POSTGRES_DB: jtas
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - '5432:5432'
+    volumes:
+      - jtas-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U jtas -d jtas']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: jtas-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - jtas-redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Captures every outbound mail in development so nothing reaches a real
+  # inbox. UI at http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: jtas-mailpit
+    restart: unless-stopped
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+volumes:
+  jtas-db-data:
+  jtas-redis-data:

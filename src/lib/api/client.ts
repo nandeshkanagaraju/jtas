@@ -12,13 +12,21 @@ import type { ErrorBody, ErrorCode } from '@/lib/errors';
 export class ApiError extends Error {
   readonly code: ErrorCode;
   readonly status: number;
+  /** Field-level messages, when the server supplied them. */
   readonly fields?: Record<string, string[]>;
+  /**
+   * The whole `details` object. Some errors carry more than field messages —
+   * a deactivation CONFLICT lists the open subtasks blocking it — and the
+   * dialog rendering that needs the structured value, not a sentence.
+   */
+  readonly details?: Record<string, unknown>;
 
   constructor(status: number, body: ErrorBody['error']) {
     super(body.message);
     this.name = 'ApiError';
     this.code = body.code;
     this.status = status;
+    this.details = body.details;
     const fields = body.details?.fields;
     this.fields = isFieldMap(fields) ? fields : undefined;
   }

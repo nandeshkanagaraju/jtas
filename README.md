@@ -184,6 +184,7 @@ src/lib/auth/            session, JWT, password, policy
 src/lib/db/              Prisma client singleton
 src/lib/domain/          pure business rules (state machine, status derivation)
 src/lib/services/        orchestration: transactions, audit, notifications
+src/lib/security/        CSP and other per-request security headers
 src/lib/notifications/   templates, channels, scheduling
 src/lib/validation/      shared Zod schemas
 src/lib/utils/           time, logging, env, class names

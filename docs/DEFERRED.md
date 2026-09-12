@@ -5,6 +5,59 @@ One section per module, newest first.
 
 ---
 
+## M2 — Directory: users and departments
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| Server-side pagination controls in the UI | The API paginates properly (`page`, `pageSize`, `total`); the screen requests `pageSize=100` and renders everything. At 25 named users — 100 with headroom — one request is correct. | None until the directory passes ~100 rows, at which point the page control is a small addition to an API that already supports it. |
+| Sortable column headers | The API accepts `sort` and `direction`; no header is wired to them. | None. Search and the three filters cover the real questions. |
+| Bulk actions | No multi-select. Deactivation is a per-person decision with a hand-over plan attached. | None. |
+| Department CRUD | Departments are reference data, seeded once and never created through the UI (SDD §6.2 exposes `GET` only). Adding a ninth is a migration. | The MD cannot add a department without a developer. Correct for Phase 1. |
+| Reassigning to somebody in a *different* department | The target must share the leaver's department. A cross-department hand-over needs an MD decision per subtask, which is M4's reassign endpoint. | The MD must move those subtasks individually after deactivating. |
+| `Idempotency-Key` on user mutations | Still outstanding from M1 (SDD §6.1). A double-submitted create returns `CONFLICT` on the duplicate email, so the damage is already bounded. | A retried create over flaky 4G shows a confusing conflict rather than succeeding idempotently. |
+| Playwright specs committed for these flows | Verified in a real browser during the module (login → create → one-time password → search, plus the blocked-deactivation dialog), but as throwaway scripts. The committed suite lands in M11. | Regressions in the UI flow are caught by hand, not by CI. |
+
+### Decisions and ambiguities resolved in M2
+
+- **File named `user-service.ts` → `src/lib/services/users/`.** The build spec says
+  `userService.ts`; the codebase is kebab-case, and the service grew past the ~300-line
+  rule, so it is a directory split by responsibility (`queries`, `mutations`,
+  `lifecycle`, `invariants`, `types`) behind a barrel.
+- **A reassignment target may not be an ADMIN.** The spec says "active and in the same
+  department". An administrator satisfies both but `can()` refuses them
+  `subtask:updateStatus`, so a subtask handed to one could never be completed by anybody.
+- **"Same department" includes *no* department.** An MD or Deputy has none, so their work
+  hands over to another user with none — a peer, not a shop-floor member. That falls out
+  of the rule rather than needing a special case.
+- **Last-active-MD guard added.** Not in the spec. The MD is the only role that can create
+  or publish a job (SDD §6.3); demoting or deactivating the last one would leave a running
+  factory unable to issue work, with no route back through the UI.
+- **Self-deactivation refused.** It would lock the actor out of the screen they are on.
+- **`POST /api/users/:id/reactivate` added** to the §6.2 table. FR-70 forbids hard
+  deletes, so without a way back a mistaken deactivation would need a database edit.
+- **`DELETE` carries a body.** Unusual for the verb, but deactivation genuinely needs a
+  hand-over plan and the SDD assigns the operation to `DELETE`.
+
+### Fixed during M2
+
+- **CSP blocked React hydration in production.** `script-src 'self'` (added in M1) blocked
+  the App Router's inline bootstrap scripts. Every page server-rendered and looked
+  correct, but React never hydrated — no button, form or dialog worked. `curl` could not
+  see it because the HTML was fine; the first real browser run found it immediately. The
+  CSP is now built per request in `src/lib/security/csp.ts` with a fresh nonce and
+  `'strict-dynamic'`, applied by middleware to both the request (so Next stamps the nonce
+  onto its script tags) and the response.
+- **`auth-service.ts` split.** 481 lines, over the ~300 rule since M1; now
+  `src/lib/services/auth/{tokens,login,password}.ts` behind a barrel.
+
+### Known rule-9 exception
+
+`src/lib/auth/policy.ts` is 423 lines and stays that way. It is a single exhaustive
+`switch` over the `Action` union; splitting it would break the `never` guard that makes a
+forgotten action a compile error, which is the whole point of the file.
+
+---
+
 ## Hardening pass — database reset, seed credentials, test isolation
 
 Three corrections applied after M1, before M2.

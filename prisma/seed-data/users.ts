@@ -1,10 +1,12 @@
 /**
- * Go-live accounts (SDD section 10.5): the MD plus one member per department.
- * Everyone starts with `mustChangePassword = true`, so this password is only
- * ever valid for a single login.
+ * Go-live accounts (SDD section 10.5): the MD, an administrator, and one member
+ * per department.
+ *
+ * There is deliberately no shared password here. Each account gets its own
+ * random temporary password at seed time, printed once and never stored in
+ * plain text — a constant in a file that ships with the repository and appears
+ * in design documents is a published credential.
  */
-export const TEMP_PASSWORD = 'Jaraa@2026';
-
 export interface SeedUser {
   name: string;
   email: string;

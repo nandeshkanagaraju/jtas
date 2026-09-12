@@ -5,6 +5,55 @@ One section per module, newest first.
 
 ---
 
+## M3 — Jobs
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| Job templates (FR-11, `POST /api/jobs/from-template`) | The `JobTemplate` and `JobTemplateItem` rows are seeded and the "Standard CNC Job" template exists, but creating a job from one needs subtasks, which is M4. | **Adoption risk** (PDD I-03): creating eight subtasks by hand for every order is what kills usage. Must land with or immediately after M4. |
+| Subtask timeline and activity feed on `/jobs/[id]` | Placeholder cards naming M4 and M9. | The MD cannot see where a job actually stands from the detail page — the core of FR-61. |
+| Wizard steps 2 and 3 | Step 1 saves a `DRAFT` and routes to the detail page. Steps 2 (subtasks) and 3 (review/publish) need M4. | The MD creates a draft and then has no way to add subtasks, so no job can be published yet. Expected at this point in the build. |
+| Attachments on a job (FR-10) | `Attachment` rows exist; upload is M10. | Drawings and POs stay in email. |
+| Changing the overall deadline after publish | The build spec freezes it, and this implementation follows that. FR-12 says deadline changes are "logged and notified", which reads as the *subtask* deadline flow in M4. | **The MD should confirm.** A customer moving a delivery date currently means cancelling and re-creating the job. If that is wrong, the fix is a deadline-change endpoint with a reason and a notification, mirroring the subtask one. |
+| `Idempotency-Key` on job mutations | Still outstanding from M1 (SDD §6.1). A double-submitted create now produces **two jobs with two codes**, which is worse than the user case — a duplicate email just conflicted. | A retried create over flaky 4G silently produces a duplicate job. This is the most concrete gap left; it should land with M4. |
+| Playwright specs committed | Verified in a real browser during the module (list, filters, wizard with the IST picker, create, publish-blocked, mobile) but as throwaway scripts. The committed suite is M11. | Regressions caught by hand, not CI. |
+
+### Decisions and ambiguities resolved in M3
+
+- **SDD §4.2 line 1 is garbled.** It reads "if any subtask CANCELLED-all -> CANCELLED". Read
+  here as **all** subtasks cancelled. The other reading — one cancelled subtask cancels the
+  job — would silently kill a live order the moment one department's task was dropped.
+  **The MD should confirm.**
+- **`DRAFT`, `ON_HOLD` and `CANCELLED` are never overwritten by the ladder.** The SDD's
+  pseudocode does not mention them, but FR-14 says a held job's timers pause; without this,
+  an overdue subtask would flip a deliberately held job to `DELAYED` and the hold would
+  achieve nothing.
+- **Unhold recomputes rather than restores.** Time passed while the job was paused, so the
+  honest answer may now be `DELAYED`.
+- **Cancelling a job cancels its open subtasks.** Otherwise the M7 sweeper would keep
+  chasing people for work that has been called off — the exact credibility failure
+  improvement I-05 exists to prevent.
+- **Job codes use the IST calendar year.** A job created at 02:00 IST on 1 January is
+  20:30 UTC on 31 December; numbering it from the UTC year would put it in the wrong year's
+  sequence and the wrong year's reports (rule 1).
+- **Allocation is one `INSERT … ON CONFLICT DO UPDATE … RETURNING`,** not `SELECT … FOR
+  UPDATE` then `UPDATE`. Same row lock, one round trip, and no window between read and
+  write. Proved with 20 concurrent transactions and again with 20 concurrent HTTP requests.
+- **A member gets `NOT_FOUND`, not `FORBIDDEN`,** for a job they cannot see. Confirming a
+  job code exists is itself information.
+- **Deadlines cross the wire as naive IST wall-clock strings** (`2027-06-15T16:30`), never
+  as instants. The browser may be in any timezone; converting once on the server with
+  `fromISTInput` is the only arrangement where what the MD typed is what the scheduler uses.
+- **`POST /api/jobs/:id/unhold` added** to the §6.2 table — §6.2 lists `/hold` but nothing
+  to reverse it.
+
+### Where M4 plugs in
+
+`publishJob` in `src/lib/services/jobs/lifecycle.ts` carries a marked point inside its
+transaction where M4/M7 schedule `SUBTASK_ASSIGNED` and the `DEADLINE_REMINDER` rows, so a
+published job and its notifications commit together or not at all.
+
+---
+
 ## M2 — Directory: users and departments
 
 | Deferred | Why | Production risk if never done |

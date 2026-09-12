@@ -9,7 +9,7 @@ import {
   login,
   logout,
   rotateRefreshToken,
-} from '@/lib/services/auth-service';
+} from '@/lib/services/auth';
 import type { AppError } from '@/lib/errors';
 
 import { auditActionsFor, createTestUser, resetAuthTables, testDb } from './helpers/db';

@@ -15,7 +15,7 @@ import { cookies } from 'next/headers';
 
 import { REFRESH_COOKIE, clearSessionCookies, setSessionCookies } from '@/lib/auth/cookies';
 import { handler } from '@/lib/api/respond';
-import { rotateRefreshToken } from '@/lib/services/auth-service';
+import { rotateRefreshToken } from '@/lib/services/auth';
 import { unauthenticated } from '@/lib/errors';
 import { clientIp } from '@/lib/utils/request';
 

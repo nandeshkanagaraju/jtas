@@ -10,7 +10,7 @@ import { setSessionCookies } from '@/lib/auth/cookies';
 import { guardAuthRate } from '@/lib/api/rate-limit-guard';
 import { handler, parseJson } from '@/lib/api/respond';
 import { requireAuth } from '@/lib/auth/session';
-import { changePassword } from '@/lib/services/auth-service';
+import { changePassword } from '@/lib/services/auth';
 import { changePasswordSchema } from '@/lib/validation/auth';
 
 export const runtime = 'nodejs';

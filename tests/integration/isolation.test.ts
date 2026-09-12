@@ -1,7 +1,7 @@
 import { Client } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { login } from '@/lib/services/auth-service';
+import { login } from '@/lib/services/auth';
 
 import { workerSchemaName } from './setup';
 import { auditActionsFor, createTestUser, resetAuthTables, testDb } from './helpers/db';

@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server';
 
 import { REFRESH_COOKIE, clearSessionCookies } from '@/lib/auth/cookies';
 import { handler } from '@/lib/api/respond';
-import { logout } from '@/lib/services/auth-service';
+import { logout } from '@/lib/services/auth';
 import { clientIp } from '@/lib/utils/request';
 
 export const runtime = 'nodejs';

@@ -10,7 +10,7 @@ import { setSessionCookies } from '@/lib/auth/cookies';
 import { guardAuthRate } from '@/lib/api/rate-limit-guard';
 import { handler, parseJson } from '@/lib/api/respond';
 import { rateLimiter } from '@/lib/auth/rate-limit';
-import { login } from '@/lib/services/auth-service';
+import { login } from '@/lib/services/auth';
 import { loginSchema } from '@/lib/validation/auth';
 
 // bcrypt and Prisma both need Node APIs, so this cannot run on the edge.

@@ -1,14 +1,24 @@
 /**
- * Integration-test environment.
+ * Integration-test isolation.
  *
- * Redirects `DATABASE_URL` to a sibling `_test` database before any Prisma
- * client is constructed. These suites truncate tables between cases, and
- * pointing them at the development database would silently delete the seeded
- * users a developer is working with.
+ * Two layers, because the earlier arrangement silently deleted a developer's
+ * seeded data on its first run:
  *
- * Create and migrate it once with `pnpm db:test:setup`.
+ *   1. A separate `_test` database, never the `_dev` one.
+ *   2. Inside it, a schema per Vitest worker. Tables live in
+ *      `jtas_test_w1`, `jtas_test_w2`, … and never in `public`.
+ *
+ * The second layer is what makes the suite independent of ambient state. Junk
+ * left in `public` by a previous run, a manual experiment, or an interrupted
+ * acceptance test is in a different namespace and simply invisible — so the
+ * tests pass identically against a freshly reset database and a dirty one.
  */
+import { execFileSync } from 'node:child_process';
+
 import { config } from 'dotenv';
+import { Client } from 'pg';
+
+import { toTestDatabaseUrl, withSchema } from '../../scripts/lib/database-url';
 
 config({ path: '.env', quiet: true });
 
@@ -20,16 +30,69 @@ if (!configured) {
   );
 }
 
-/** Appends `_test` to the database name, leaving credentials and params intact. */
-export function toTestDatabaseUrl(url: string): string {
-  const parsed = new URL(url);
-  const name = parsed.pathname.replace(/^\//, '');
-
-  if (!name) throw new Error(`DATABASE_URL has no database name: ${url}`);
-  if (name.endsWith('_test')) return url;
-
-  parsed.pathname = `/${name}_test`;
-  return parsed.toString();
+/** One schema per worker, so enabling file parallelism stays safe. */
+export function workerSchemaName(): string {
+  const worker = process.env.VITEST_WORKER_ID ?? '1';
+  return `jtas_test_w${worker}`;
 }
 
-process.env.DATABASE_URL = toTestDatabaseUrl(configured);
+const testDatabaseUrl = toTestDatabaseUrl(configured);
+const schema = workerSchemaName();
+const schemaUrl = withSchema(testDatabaseUrl, schema);
+
+/**
+ * Creates the worker's schema and applies migrations into it.
+ *
+ * Skipped when the schema already carries every migration, which keeps repeat
+ * runs fast — the check is one query against `_prisma_migrations`.
+ */
+async function ensureWorkerSchema(): Promise<void> {
+  const client = new Client({ connectionString: testDatabaseUrl });
+  await client.connect();
+
+  try {
+    await client.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+
+    const applied = await client
+      .query<{ count: string }>(
+        `SELECT count(*)::text AS count
+           FROM "${schema}"."_prisma_migrations"
+          WHERE finished_at IS NOT NULL`,
+      )
+      .catch(() => null);
+
+    if (applied && Number(applied.rows[0]?.count ?? 0) > 0) return;
+  } finally {
+    await client.end();
+  }
+
+  execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
+    env: { ...process.env, DATABASE_URL: schemaUrl },
+    stdio: 'pipe',
+  });
+}
+
+/** Ensures the `_test` database itself exists before a schema is added to it. */
+async function ensureTestDatabase(): Promise<void> {
+  const admin = new URL(testDatabaseUrl);
+  const name = decodeURIComponent(admin.pathname.replace(/^\//, ''));
+  admin.pathname = '/postgres';
+
+  const client = new Client({ connectionString: admin.toString() });
+  await client.connect();
+
+  try {
+    const { rowCount } = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [name]);
+    // Identifier cannot be parameterised; `name` is derived from our own
+    // DATABASE_URL, not from user input.
+    if (rowCount === 0) await client.query(`CREATE DATABASE "${name}"`);
+  } finally {
+    await client.end();
+  }
+}
+
+await ensureTestDatabase();
+await ensureWorkerSchema();
+
+// Every Prisma client constructed from here on lands in the worker's schema.
+process.env.DATABASE_URL = schemaUrl;

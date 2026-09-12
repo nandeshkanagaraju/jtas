@@ -1,0 +1,131 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * JTAS design system — SDD section 7.4.
+ * Neutral slate base. Semantic colour is reserved for subtask state so that a
+ * red row on the shop floor always means the same thing:
+ *   emerald = complete, amber = problem / at risk, rose = overdue,
+ *   sky = in progress, slate = pending.
+ * Dark mode is not a Phase 1 requirement; the tokens exist so enabling it later
+ * is a stylesheet change rather than a component rewrite.
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Subtask state palette */
+  --color-state-pending: var(--state-pending);
+  --color-state-blocked: var(--state-blocked);
+  --color-state-progress: var(--state-progress);
+  --color-state-problem: var(--state-problem);
+  --color-state-complete: var(--state-complete);
+  --color-state-overdue: var(--state-overdue);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.208 0.042 265.755); /* slate-900 */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.208 0.042 265.755);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.208 0.042 265.755);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896); /* slate-100 */
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417); /* slate-500 */
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325); /* rose-600 */
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.929 0.013 255.508); /* slate-200 */
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.704 0.04 256.788);
+
+  --state-pending: oklch(0.554 0.046 257.417); /* slate-500  */
+  --state-blocked: oklch(0.554 0.046 257.417); /* slate-500  */
+  --state-progress: oklch(0.588 0.158 241.966); /* sky-600    */
+  --state-problem: oklch(0.666 0.179 58.318); /* amber-600  */
+  --state-complete: oklch(0.596 0.145 163.225); /* emerald-600 */
+  --state-overdue: oklch(0.586 0.253 17.585); /* rose-600   */
+}
+
+.dark {
+  --background: oklch(0.208 0.042 265.755);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.279 0.041 260.031);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.279 0.041 260.031);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.984 0.003 247.858);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.637 0.237 25.331);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.279 0.041 260.031);
+  --input: oklch(0.279 0.041 260.031);
+  --ring: oklch(0.446 0.043 257.281);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* SDD section 9: minimum 14 px body text for shop-floor readability. */
+    font-size: 0.9375rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Deadlines and counters must align in columns. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* SDD section 7.4: minimum 44 px touch targets on coarse pointers. */
+  @media (pointer: coarse) {
+    button,
+    [role='button'],
+    a[data-touch-target] {
+      min-height: 44px;
+    }
+  }
+}

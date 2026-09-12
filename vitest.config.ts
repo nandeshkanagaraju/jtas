@@ -15,6 +15,10 @@ export default defineConfig({
     // different local timezone cannot get a green run that CI would fail.
     env: { TZ: 'UTC' },
     include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    setupFiles: ['tests/integration/setup.ts'],
+    // Integration tests share one database; running files in parallel would
+    // let one suite truncate a table another is mid-way through using.
+    fileParallelism: false,
     exclude: ['tests/e2e/**'],
     coverage: {
       provider: 'v8',

@@ -30,6 +30,7 @@ export type AuditAction =
   | 'USER_CREATED'
   | 'USER_UPDATED'
   | 'USER_DEACTIVATED'
+  | 'USER_REASSIGNED'
   | 'PASSWORD_RESET';
 
 export type AuditEntityType = 'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION';

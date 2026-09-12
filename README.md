@@ -115,6 +115,12 @@ These are enforced in review; breaking one is a defect, not a style preference.
 8. **Tests** ship with the module. `src/lib/domain` and `src/lib/notifications` hold an
    85% coverage floor.
 
+### Testing
+
+Unit tests are pure and run anywhere. Integration tests need Postgres and use a separate
+`jtas_test` database so they cannot delete your seeded development data — `pnpm test`
+creates and migrates it for you.
+
 ---
 
 ## Layout

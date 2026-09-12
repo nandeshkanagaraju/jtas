@@ -25,7 +25,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset --force",
+    "db:reset": "tsx --env-file-if-exists=.env scripts/db-reset.ts",
     "seed": "prisma db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

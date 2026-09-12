@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_USER: jtas
       POSTGRES_PASSWORD: jtas
-      POSTGRES_DB: jtas
+      POSTGRES_DB: jtas_dev
       TZ: UTC
       PGTZ: UTC
     ports:
@@ -18,7 +18,7 @@ services:
     volumes:
       - jtas-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U jtas -d jtas']
+      test: ['CMD-SHELL', 'pg_isready -U jtas -d jtas_dev']
       interval: 5s
       timeout: 5s
       retries: 10

@@ -1,55 +1,44 @@
 /**
- * Creates and migrates the integration-test database.
+ * Creates the integration-test database if it is missing.
  *
- * Idempotent, so `pnpm test` can call it on every run: creating the database is
- * skipped when it already exists, and `prisma migrate deploy` is a no-op when
- * the schema is current.
+ * Per-worker schemas and their migrations are handled by
+ * `tests/integration/setup.ts`, which runs inside Vitest and knows the worker
+ * id. This script exists so `pnpm test` works on a clean machine where the
+ * database itself does not exist yet.
+ *
+ * Idempotent — safe to run on every `pnpm test`.
  */
-import { execFileSync } from 'node:child_process';
-
 import { Client } from 'pg';
 
-function testDatabaseUrl(): { url: string; name: string; adminUrl: string } {
+import { toTestDatabaseUrl } from './lib/database-url';
+
+async function main() {
   const configured = process.env.DATABASE_URL;
   if (!configured) throw new Error('DATABASE_URL is not set. Copy .env.example to .env.');
 
-  const parsed = new URL(configured);
-  const baseName = parsed.pathname.replace(/^\//, '');
-  const name = baseName.endsWith('_test') ? baseName : `${baseName}_test`;
+  const testUrl = new URL(toTestDatabaseUrl(configured));
+  const name = decodeURIComponent(testUrl.pathname.replace(/^\//, ''));
 
-  parsed.pathname = `/${name}`;
-  const url = parsed.toString();
-
-  // Connect to the default `postgres` database to issue CREATE DATABASE.
-  const admin = new URL(configured);
+  const admin = new URL(testUrl);
   admin.pathname = '/postgres';
 
-  return { url, name, adminUrl: admin.toString() };
-}
-
-async function main() {
-  const { url, name, adminUrl } = testDatabaseUrl();
-
-  const client = new Client({ connectionString: adminUrl });
+  const client = new Client({ connectionString: admin.toString() });
   await client.connect();
 
   try {
     const { rowCount } = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [name]);
 
     if (rowCount === 0) {
-      // Identifier cannot be parameterised; `name` is derived from our own
+      // Identifier cannot be parameterised; `name` comes from our own
       // DATABASE_URL, not from user input.
       await client.query(`CREATE DATABASE "${name}"`);
       console.log(`Created test database "${name}".`);
+    } else {
+      console.log(`Test database "${name}" already exists.`);
     }
   } finally {
     await client.end();
   }
-
-  execFileSync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
-    env: { ...process.env, DATABASE_URL: url },
-    stdio: 'inherit',
-  });
 }
 
 main().catch((error) => {

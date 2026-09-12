@@ -49,6 +49,8 @@ pnpm docker:up
 # 4. Create the schema and seed reference data
 pnpm db:migrate
 pnpm seed
+#    The seed prints a unique temporary password for each account, once.
+#    It also writes them to .seed-credentials.txt (mode 0600, git-ignored).
 
 # 5. Run the app and the background worker in two terminals
 pnpm dev       # http://localhost:3000
@@ -60,14 +62,37 @@ Its UI is at **http://localhost:8025**.
 
 ### Seeded accounts
 
-All seeded users share the temporary password **`Jaraa@2026`** and are forced to change
-it at first login.
+The seed creates the MD, an administrator, and one member per department:
 
 | Email                                                                                                                   | Role                       |
 | ----------------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | `md@jaraaglobal.com`                                                                                                    | MD                         |
 | `admin@jaraaglobal.com`                                                                                                 | ADMIN                      |
 | `planning@` · `purchase@` · `store@` · `production@` · `quality@` · `dispatch@` · `accounts@` · `hr@` `jaraaglobal.com` | MEMBER, one per department |
+
+**There is no shared password.** Each account gets its own 16-character random
+temporary password, generated at seed time and printed **once**:
+
+```
+============================================================
+ONE-TIME TEMPORARY PASSWORDS
+============================================================
+EMAIL                       TEMPORARY PASSWORD
+----------------------------------------------
+md@jaraaglobal.com          TmGDWt7BDs382p8z
+...
+```
+
+Only a bcrypt hash is stored, so a lost password cannot be recovered — reset it from the
+Users screen, or re-run `pnpm db:reset`. Every account must change its password at first
+sign-in.
+
+The same table is written to **`.seed-credentials.txt`** with mode `0600`. That file is
+git-ignored; delete it once the passwords have been handed out. Set
+`SEED_CREDENTIALS_FILE=none` to print only and write nothing to disk.
+
+A re-seed never regenerates a password for an account that already exists — that would
+lock out whoever is using it — so it reports "no new accounts" instead.
 
 ---
 
@@ -115,11 +140,37 @@ These are enforced in review; breaking one is a defect, not a style preference.
 8. **Tests** ship with the module. `src/lib/domain` and `src/lib/notifications` hold an
    85% coverage floor.
 
+### Resetting the database
+
+`pnpm db:reset` drops every table, re-applies migrations and re-seeds. It refuses to run
+unless **both** hold:
+
+- the host is `localhost`, `127.0.0.1` or `db` (the compose service name), and
+- the database name ends in `_dev` or `_test`.
+
+There is no override flag and no environment escape hatch. On refusal it exits 1 and
+prints the host, the database name and the rule that failed. Without `--yes` it also asks
+you to type the database name back.
+
+If you genuinely need to reset something else, run `pnpm exec prisma migrate reset
+--force` directly and own that decision.
+
 ### Testing
 
-Unit tests are pure and run anywhere. Integration tests need Postgres and use a separate
-`jtas_test` database so they cannot delete your seeded development data — `pnpm test`
-creates and migrates it for you.
+Two projects:
+
+| Command                 | Needs a database? | Covers                                      |
+| ----------------------- | ----------------- | ------------------------------------------- |
+| `pnpm test:unit`        | no                | pure logic — time, policy, password, tokens |
+| `pnpm test:integration` | yes               | services against real PostgreSQL            |
+| `pnpm test`             | yes               | both                                        |
+
+Integration tests never touch your development database. They run in a separate
+`jtas_test` database, and inside it each Vitest worker gets its own schema
+(`jtas_test_w1`, `jtas_test_w2`, …). Rows sitting in `public` — or anywhere else — are in
+a different namespace and are invisible to the suite, so the same run passes against a
+freshly reset database and a dirty one. `tests/integration/isolation.test.ts` proves this
+by deliberately polluting the database first.
 
 ---
 

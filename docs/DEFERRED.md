@@ -5,6 +5,28 @@ One section per module, newest first.
 
 ---
 
+## Hardening pass — database reset, seed credentials, test isolation
+
+Three corrections applied after M1, before M2.
+
+| Change | Why |
+|---|---|
+| `scripts/db-reset.ts` replaces the bare `prisma migrate reset` | The old `db:reset` script would have run against whatever `DATABASE_URL` happened to hold. The new one refuses unless the host is `localhost`/`127.0.0.1`/`db` **and** the database name ends in `_dev` or `_test`. No override flag, no env escape hatch. |
+| Development database renamed `jtas` → `jtas_dev` | Required by the guard above, and it makes the database self-describing. `docker-compose.yml`, `.env.example` and `.env` all updated; the existing volume was renamed in place with `ALTER DATABASE`, so no data was lost. |
+| Per-user random seed passwords | `Jaraa@2026` was a constant in a document that ships to the client, so it was effectively a published credential. Each account now gets a 16-character base58 password from `crypto.randomBytes`, shown once. |
+| Integration tests moved to a per-worker schema | They previously truncated the development database. Now they run in `jtas_test.jtas_test_w{N}`, so ambient rows in `public` — or in the dev database — are in a different namespace and invisible. |
+
+### Deferred from this pass
+
+| Deferred | Why | Risk |
+|---|---|---|
+| Automatic cleanup of `.seed-credentials.txt` | The file is 0600 and git-ignored, and the seed tells you to delete it once the passwords are handed out. Deleting it automatically would defeat its purpose. | A plain-text password file lingers on a developer machine. Mitigated by mode 0600 and the printed warning. |
+| Rotating the credentials file per run | Each seed overwrites it. A run that creates no new accounts leaves the previous file untouched, which is correct but could be mistaken for current. | Low — the file carries its generation timestamp. |
+| Schema cleanup for retired workers | `jtas_test_w{N}` schemas accumulate if the worker count ever drops. | Negligible: they live only in the test database, and `pnpm db:reset` against `jtas_test` clears them. |
+| Parallel integration files | Each worker has its own schema, so it would be safe, but each new worker pays a `prisma migrate deploy`. Serialised until the suite is slow enough to matter. | None. |
+
+---
+
 ## M1 — Authentication and RBAC
 
 | Deferred | Why | Production risk if never done |
@@ -43,9 +65,13 @@ One section per module, newest first.
 - **Integration tests run against a separate `jtas_test` database.** They truncate tables
   between cases; pointed at the development database they would delete the seeded users.
   `pnpm test` creates and migrates it automatically.
-- **`pnpm db:reset` cannot be run by an AI agent.** Prisma refuses destructive migrate
-  commands invoked by an agent without explicit human consent. Run it yourself when you
-  want a clean database.
+- **Prisma 6.19 refuses `migrate reset` when an agent runs it.** Verified in
+  `node_modules/prisma/build/index.js`: it checks `CLAUDECODE`, `GEMINI_CLI`,
+  `CURSOR_AGENT`, `OR_APP_NAME`, `REPLIT_CLI` and `CODEX_SANDBOX`, and `--force` does
+  **not** bypass it — only `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` does. This is
+  a Prisma feature, not a Claude Code permission rule; there are no deny rules or hooks
+  configured in this repository. It affects agents only: `CLAUDECODE` is unset in a
+  normal terminal, so `pnpm db:reset` runs uninterrupted for a human developer.
 
 ---
 

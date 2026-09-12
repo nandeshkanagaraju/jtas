@@ -1,0 +1,387 @@
+// JTAS — Jaraa Task & Accountability System
+// Authoritative schema: SDD section 3.3. Every DateTime is stored in UTC.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enumerations — SDD section 3.2
+// ---------------------------------------------------------------------------
+
+enum Role {
+  MD
+  DEPUTY_MD
+  ADMIN
+  MEMBER
+}
+
+enum JobStatus {
+  DRAFT
+  IN_PROGRESS
+  AT_RISK
+  DELAYED
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SubtaskStatus {
+  PENDING
+  BLOCKED
+  IN_PROGRESS
+  PROBLEM
+  AWAITING_APPROVAL
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum ProblemSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  BLOCKER
+}
+
+enum ProblemStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  REJECTED
+}
+
+enum NotifType {
+  SUBTASK_ASSIGNED
+  SUBTASK_REASSIGNED
+  DEADLINE_REMINDER
+  OVERDUE_MEMBER
+  OVERDUE_MD
+  PROBLEM_RAISED
+  PROBLEM_RESOLVED
+  DEADLINE_CHANGED
+  EXTENSION_REQUESTED
+  APPROVAL_REQUIRED
+  JOB_COMPLETED
+  DAILY_DIGEST_MD
+}
+
+enum NotifChannel {
+  EMAIL
+  IN_APP
+  WHATSAPP
+  SMS
+}
+
+enum NotifStatus {
+  PENDING
+  SENT
+  FAILED
+  SUPPRESSED
+}
+
+// ---------------------------------------------------------------------------
+// Core directory
+// ---------------------------------------------------------------------------
+
+model Department {
+  id            String    @id @default(cuid())
+  code          String    @unique // PLANNING, PURCHASE, ...
+  name          String
+  sequenceOrder Int // 1..8, the default CNC flow order
+  isActive      Boolean   @default(true)
+  users         User[]
+  subtasks      Subtask[]
+}
+
+model User {
+  id                 String      @id @default(cuid())
+  name               String
+  email              String      @unique
+  phone              String?
+  passwordHash       String
+  role               Role
+  departmentId       String?
+  department         Department? @relation(fields: [departmentId], references: [id])
+  isActive           Boolean     @default(true)
+  mustChangePassword Boolean     @default(true)
+  failedLoginCount   Int         @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  createdJobs      Job[]          @relation("JobCreator")
+  assignedSubtasks Subtask[]      @relation("SubtaskAssignee")
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  refreshTokens    RefreshToken[]
+
+  @@index([role, isActive])
+}
+
+/// Refresh-token families (SDD section 8.2). Rotation on use; reuse of a
+/// consumed token invalidates the whole family. Added in M1.
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  familyId   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, familyId])
+  @@index([familyId])
+}
+
+// ---------------------------------------------------------------------------
+// Work
+// ---------------------------------------------------------------------------
+
+model Job {
+  id              String    @id @default(cuid())
+  jobCode         String    @unique // JGE-2026-0001
+  title           String
+  customerName    String?
+  partNumber      String?
+  drawingNumber   String?
+  quantity        Int?
+  priority        Priority  @default(NORMAL)
+  description     String?
+  overallDeadline DateTime // stored UTC
+  status          JobStatus @default(DRAFT)
+  publishedAt     DateTime?
+  completedAt     DateTime?
+  createdById     String
+  createdBy       User      @relation("JobCreator", fields: [createdById], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  subtasks    Subtask[]
+  attachments Attachment[]
+
+  @@index([status, overallDeadline])
+  @@index([jobCode])
+}
+
+/// Per-calendar-year counter backing job-code generation (SDD 4.1).
+/// Incremented with SELECT ... FOR UPDATE inside the job-insert transaction.
+model JobCodeCounter {
+  year Int @id
+  last Int @default(0)
+}
+
+model Subtask {
+  id           String     @id @default(cuid())
+  jobId        String
+  job          Job        @relation(fields: [jobId], references: [id])
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  assigneeId   String
+  assignee     User       @relation("SubtaskAssignee", fields: [assigneeId], references: [id])
+
+  title               String
+  description         String?
+  deadline            DateTime // UTC
+  reminderLeadMinutes Int       @default(360) // 6 hours
+  requiresApproval    Boolean   @default(false)
+  dependsOnId         String?
+  dependsOn           Subtask?  @relation("Dep", fields: [dependsOnId], references: [id])
+  dependents          Subtask[] @relation("Dep")
+
+  status          SubtaskStatus @default(PENDING)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  completionNote  String?
+  escalationCount Int           @default(0)
+  lastEscalatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  problems          Problem[]
+  comments          Comment[]
+  attachments       Attachment[]
+  deadlineChanges   DeadlineChange[]
+  extensionRequests ExtensionRequest[]
+
+  @@index([assigneeId, status, deadline])
+  @@index([status, deadline]) // the scheduler's hot index
+  @@index([jobId])
+}
+
+model Problem {
+  id             String          @id @default(cuid())
+  subtaskId      String
+  subtask        Subtask         @relation(fields: [subtaskId], references: [id])
+  raisedById     String
+  description    String // min 20 chars enforced in service
+  severity       ProblemSeverity @default(MEDIUM)
+  status         ProblemStatus   @default(OPEN)
+  acknowledgedAt DateTime?
+  mdActionNote   String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime        @default(now())
+
+  @@index([status, createdAt])
+  @@index([subtaskId])
+}
+
+model DeadlineChange {
+  id          String   @id @default(cuid())
+  subtaskId   String
+  subtask     Subtask  @relation(fields: [subtaskId], references: [id])
+  oldDeadline DateTime
+  newDeadline DateTime
+  reason      String
+  changedById String
+  createdAt   DateTime @default(now())
+
+  @@index([subtaskId])
+}
+
+model ExtensionRequest {
+  id                String    @id @default(cuid())
+  subtaskId         String
+  subtask           Subtask   @relation(fields: [subtaskId], references: [id])
+  requestedById     String
+  requestedDeadline DateTime
+  reason            String
+  status            String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  decidedById       String?
+  decidedAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([subtaskId])
+  @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Collaboration
+// ---------------------------------------------------------------------------
+
+model Comment {
+  id        String   @id @default(cuid())
+  subtaskId String
+  subtask   Subtask  @relation(fields: [subtaskId], references: [id])
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([subtaskId, createdAt])
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  jobId        String?
+  job          Job?     @relation(fields: [jobId], references: [id])
+  subtaskId    String?
+  subtask      Subtask? @relation(fields: [subtaskId], references: [id])
+  fileName     String
+  storageKey   String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  @@index([jobId])
+  @@index([subtaskId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications and governance
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
+  type         NotifType
+  channel      NotifChannel
+  subject      String
+  body         String
+  entityType   String // 'SUBTASK' | 'JOB' | 'PROBLEM'
+  entityId     String
+  dedupeKey    String       @unique // idempotency guarantee
+  scheduledFor DateTime
+  sentAt       DateTime?
+  status       NotifStatus  @default(PENDING)
+  attemptCount Int          @default(0)
+  lastError    String?
+  readAt       DateTime?
+  createdAt    DateTime     @default(now())
+
+  @@index([status, scheduledFor])
+  @@index([userId, readAt])
+  @@index([entityType, entityId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String // SUBTASK_COMPLETED, DEADLINE_EXTENDED...
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  onBehalfOf String? // set when DEPUTY_MD acts for MD
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+}
+
+model Holiday {
+  id   String   @id @default(cuid())
+  date DateTime @unique // date only, IST
+  name String
+}
+
+model Setting {
+  key   String @id
+  value Json
+}
+
+// ---------------------------------------------------------------------------
+// Templates
+// ---------------------------------------------------------------------------
+
+model JobTemplate {
+  id       String            @id @default(cuid())
+  name     String
+  isActive Boolean           @default(true)
+  items    JobTemplateItem[]
+}
+
+model JobTemplateItem {
+  id                   String      @id @default(cuid())
+  templateId           String
+  template             JobTemplate @relation(fields: [templateId], references: [id])
+  departmentId         String
+  title                String
+  offsetHoursBeforeDue Int // 240 = 10 days before job deadline
+  reminderLeadMinutes  Int         @default(360)
+  dependsOnItemOrder   Int?
+  order                Int
+
+  @@index([templateId, order])
+}

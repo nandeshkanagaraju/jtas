@@ -1,31 +1,13 @@
 import type { NextConfig } from 'next';
 
 /**
- * Security headers (SDD section 8.8). `frame-ancestors 'none'` and
- * `X-Frame-Options` together stop JTAS being framed, which matters because the
- * session lives in a `SameSite=Lax` cookie.
+ * Static security headers (SDD section 8.8).
  *
- * The CSP allows `'unsafe-inline'` for styles only: Next injects critical CSS
- * inline, and Tailwind v4 emits inline custom properties. Scripts are not
- * granted it — `'strict-dynamic'` would be the next step once a nonce pipeline
- * is in place, noted in docs/DEFERRED.md.
+ * The Content-Security-Policy is deliberately NOT here — it needs a per-request
+ * nonce, so it is built in `src/lib/security/csp.ts` and applied by middleware.
+ * A static `script-src 'self'` blocks the App Router's inline bootstrap scripts
+ * and leaves every page rendered but unhydrated.
  */
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  // Next's runtime needs eval in development only.
-  process.env.NODE_ENV === 'production'
-    ? "script-src 'self'"
-    : "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob:",
-  "connect-src 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "object-src 'none'",
-].join('; ');
-
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -44,7 +26,6 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
-          { key: 'Content-Security-Policy', value: CONTENT_SECURITY_POLICY },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

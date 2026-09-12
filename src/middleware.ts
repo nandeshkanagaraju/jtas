@@ -16,6 +16,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/auth/cookies';
 import { verifyAccessToken, type AccessClaims } from '@/lib/auth/jwt';
+import { buildContentSecurityPolicy, generateNonce } from '@/lib/security/csp';
 
 /** Reachable without a session. */
 const PUBLIC_PATHS = new Set(['/login']);
@@ -43,6 +44,27 @@ function redirect(request: NextRequest, path: string): NextResponse {
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  /*
+   * The nonce has to reach two places: the *request*, where Next reads it and
+   * stamps it onto every script tag it emits, and the *response*, where the
+   * browser reads it back to decide which scripts may run. Miss either and the
+   * page renders but never hydrates.
+   */
+  const nonce = generateNonce();
+  const csp = buildContentSecurityPolicy(nonce);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+
+  /** Attaches the policy to whatever response this request produces. */
+  const withCsp = (response: NextResponse): NextResponse => {
+    response.headers.set('Content-Security-Policy', csp);
+    return response;
+  };
+
+  const proceed = () => withCsp(NextResponse.next({ request: { headers: requestHeaders } }));
+
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
   const claims = accessToken ? await verifyAccessToken(accessToken) : null;
 
@@ -50,12 +72,14 @@ export async function middleware(request: NextRequest) {
   if (PUBLIC_PATHS.has(pathname)) {
     // Someone already signed in has no use for the login screen.
     if (claims) {
-      return redirect(
-        request,
-        claims.mustChangePassword ? CHANGE_PASSWORD_PATH : landingPath(claims.role),
+      return withCsp(
+        redirect(
+          request,
+          claims.mustChangePassword ? CHANGE_PASSWORD_PATH : landingPath(claims.role),
+        ),
       );
     }
-    return NextResponse.next();
+    return proceed();
   }
 
   // --- No usable access token --------------------------------------------
@@ -67,27 +91,27 @@ export async function middleware(request: NextRequest) {
     if (request.cookies.has(REFRESH_COOKIE)) {
       const target = new URL('/api/auth/refresh', request.nextUrl.origin);
       target.searchParams.set('next', `${pathname}${search}`);
-      return NextResponse.redirect(target);
+      return withCsp(NextResponse.redirect(target));
     }
 
     const login = new URL('/login', request.nextUrl.origin);
     // Remember where they were headed, so the deep link from a notification
     // email survives the detour (improvement I-14).
     if (pathname !== '/') login.searchParams.set('next', `${pathname}${search}`);
-    return NextResponse.redirect(login);
+    return withCsp(NextResponse.redirect(login));
   }
 
   // --- Forced password change (FR-03) ------------------------------------
   if (claims.mustChangePassword && pathname !== CHANGE_PASSWORD_PATH) {
-    return redirect(request, CHANGE_PASSWORD_PATH);
+    return withCsp(redirect(request, CHANGE_PASSWORD_PATH));
   }
 
   // --- Role landing -------------------------------------------------------
   if (pathname === '/') {
-    return redirect(request, landingPath(claims.role));
+    return withCsp(redirect(request, landingPath(claims.role)));
   }
 
-  return NextResponse.next();
+  return proceed();
 }
 
 export const config = {

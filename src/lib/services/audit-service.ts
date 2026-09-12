@@ -31,7 +31,15 @@ export type AuditAction =
   | 'USER_UPDATED'
   | 'USER_DEACTIVATED'
   | 'USER_REASSIGNED'
-  | 'PASSWORD_RESET';
+  | 'PASSWORD_RESET'
+  // M3 — jobs
+  | 'JOB_CREATED'
+  | 'JOB_UPDATED'
+  | 'JOB_PUBLISHED'
+  | 'JOB_HELD'
+  | 'JOB_UNHELD'
+  | 'JOB_CANCELLED'
+  | 'JOB_STATUS_RECOMPUTED';
 
 export type AuditEntityType = 'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION';
 

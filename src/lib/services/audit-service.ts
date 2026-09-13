@@ -60,9 +60,18 @@ export type AuditAction =
   // M7 — the notification engine. Written by the sweeper, which has no human
   // actor, so these rows carry a null actorId.
   | 'SUBTASK_OVERDUE_ESCALATED'
-  | 'DIGEST_SENT';
+  | 'DIGEST_SENT'
+  // M9 — governance. The settings row carries every key changed together, so
+  // the record shows the decision rather than one key of it.
+  | 'SETTINGS_UPDATED'
+  | 'HOLIDAY_ADDED'
+  | 'HOLIDAY_REMOVED'
+  | 'TEMPLATE_CREATED'
+  | 'TEMPLATE_UPDATED'
+  | 'TEMPLATE_ARCHIVED';
 
-export type AuditEntityType = 'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION';
+export type AuditEntityType =
+  'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION' | 'HOLIDAY' | 'TEMPLATE';
 
 export interface AuditInput {
   /** Null for a failed login, where the actor is not yet identified. */

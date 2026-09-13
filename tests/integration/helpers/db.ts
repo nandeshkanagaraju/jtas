@@ -10,6 +10,7 @@
 import { PrismaClient, type Role } from '@prisma/client';
 
 import { hashPassword } from '@/lib/auth/password';
+import { invalidateSettings } from '@/lib/services/settings';
 import { generateTempPassword } from '@/lib/auth/temp-password';
 
 export const testDb = new PrismaClient();
@@ -26,6 +27,13 @@ export const testDb = new PrismaClient();
  *    each other.
  */
 export async function resetAuthTables(): Promise<void> {
+  /*
+   * The settings cache holds values for 60 seconds. A test that writes the
+   * Setting table directly — which every test that needs a non-default value
+   * does — would otherwise be read through the previous test's cache.
+   */
+  invalidateSettings();
+
   await testDb.auditLog.deleteMany();
   await testDb.notification.deleteMany();
   await testDb.refreshToken.deleteMany();

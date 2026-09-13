@@ -11,6 +11,7 @@ import { queueDailyDigest } from '@/lib/notifications/digest';
 import { dispatchDue, escalateOverdue, runSweep, MAX_ATTEMPTS } from '@/lib/notifications/sweeper';
 import { createJob, publishJob } from '@/lib/services/jobs';
 import { bulkCreateSubtasks, changeDeadline, changeStatus } from '@/lib/services/subtasks';
+import { invalidateSettings } from '@/lib/services/settings';
 import { fromISTInput } from '@/lib/utils/time';
 
 import { createTestDepartment, createTestUser, resetAuthTables, testDb } from './helpers/db';
@@ -60,6 +61,10 @@ afterAll(async () => {
 });
 
 async function setSettings(values: Record<string, unknown>) {
+  // Written straight to the table rather than through updateSettings, so the
+  // cache has to be told.
+  invalidateSettings();
+
   for (const [key, value] of Object.entries(values)) {
     await testDb.setting.upsert({
       where: { key },
@@ -67,6 +72,8 @@ async function setSettings(values: Record<string, unknown>) {
       update: { value: value as never },
     });
   }
+
+  invalidateSettings();
 }
 
 async function publishedSubtask(deadline = '2027-06-10T18:00') {

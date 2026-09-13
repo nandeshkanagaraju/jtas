@@ -548,7 +548,98 @@ describe('departmentScorecards', () => {
     // Raising a problem is not a fault. Blocking the next bench is the number
     // that separates a hard job from a bottleneck.
     expect(prod.problemsRaised).toBe(2);
-    expect(prod.problemsAsRootCause).toBe(1);
+    expect(prod.problemsWhereThisDepartmentWasTheRootCause).toBe(1);
+  });
+
+  it('does not count a problem on a subtask nothing depends on', async () => {
+    const job = await makeJob();
+
+    // The boundary: a real, open problem, on a real subtask, that blocked
+    // nobody. It is a problem raised, not a root cause — the difference
+    // between a department with a hard job and one that holds up the shop.
+    const isolated = await makeSubtask({ jobId: job.id, deadline: '2026-09-10T18:00' });
+
+    await testDb.problem.create({
+      data: {
+        subtaskId: isolated.id,
+        raisedById: memberA.id,
+        description: 'Coolant pump failed; queued on the second machine.',
+        severity: 'BLOCKER',
+        status: 'OPEN',
+        createdAt: fromISTInput('2026-09-10T10:00'),
+      },
+    });
+
+    const prod = (await departmentScorecards(MONTH)).find((c) => c.code === 'PRODUCTION')!;
+
+    expect(prod.problemsRaised).toBe(1);
+    expect(prod.problemsWhereThisDepartmentWasTheRootCause).toBe(0);
+  });
+
+  it('counts a problem once however many subtasks were waiting on it', async () => {
+    const job = await makeJob();
+    const blocking = await makeSubtask({ jobId: job.id, deadline: '2026-09-10T18:00' });
+
+    for (const title of ['Inspection', 'Packing', 'Invoice']) {
+      await makeSubtask({
+        jobId: job.id,
+        deadline: '2026-09-12T18:00',
+        title,
+        departmentId: quality.id,
+        assigneeId: memberB.id,
+        dependsOnId: blocking.id,
+      });
+    }
+
+    await testDb.problem.create({
+      data: {
+        subtaskId: blocking.id,
+        raisedById: memberA.id,
+        description: 'Material short by twelve bars; supplier unconfirmed.',
+        status: 'OPEN',
+        createdAt: fromISTInput('2026-09-10T10:00'),
+      },
+    });
+
+    const prod = (await departmentScorecards(MONTH)).find((c) => c.code === 'PRODUCTION')!;
+
+    // One problem, three dependents. COUNT(DISTINCT p.id) — without it the
+    // join would triple it and a single blocker would read as three.
+    expect(prod.problemsWhereThisDepartmentWasTheRootCause).toBe(1);
+  });
+
+  it.each([
+    ['OPEN', 1],
+    ['ACKNOWLEDGED', 1],
+    ['RESOLVED', 1],
+    ['REJECTED', 0],
+  ])('counts a %s blocking problem as %i', async (status, expected) => {
+    const job = await makeJob();
+    const blocking = await makeSubtask({ jobId: job.id, deadline: '2026-09-10T18:00' });
+    await makeSubtask({
+      jobId: job.id,
+      deadline: '2026-09-12T18:00',
+      title: 'Inspection',
+      departmentId: quality.id,
+      assigneeId: memberB.id,
+      dependsOnId: blocking.id,
+    });
+
+    await testDb.problem.create({
+      data: {
+        subtaskId: blocking.id,
+        raisedById: memberA.id,
+        description: 'Material short by twelve bars; supplier unconfirmed.',
+        status: status as never,
+        createdAt: fromISTInput('2026-09-10T10:00'),
+      },
+    });
+
+    const prod = (await departmentScorecards(MONTH)).find((c) => c.code === 'PRODUCTION')!;
+
+    // The spec says "an open or resolved problem". ACKNOWLEDGED is open —
+    // seen, not dealt with. REJECTED was thrown out, so it caused nothing.
+    expect(prod.problemsWhereThisDepartmentWasTheRootCause).toBe(expected);
   });
 
   it('counts deadline moves, so an extension cannot launder a delay', async () => {

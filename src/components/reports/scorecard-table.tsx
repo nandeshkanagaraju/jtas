@@ -22,7 +22,7 @@ type SortKey = keyof Pick<
   | 'subtasksCompleted'
   | 'currentOpen'
   | 'problemsRaised'
-  | 'problemsAsRootCause'
+  | 'problemsWhereThisDepartmentWasTheRootCause'
   | 'extensionCount'
 >;
 
@@ -40,13 +40,19 @@ const COLUMNS: ColumnDef[] = [
   { key: 'averageDelayHours', label: 'Avg delay', short: 'Delay', numeric: true },
   { key: 'subtasksCompleted', label: 'Completed', numeric: true },
   { key: 'currentOpen', label: 'Open now', short: 'Open', numeric: true },
-  { key: 'problemsRaised', label: 'Problems', numeric: true },
   {
-    key: 'problemsAsRootCause',
+    key: 'problemsRaised',
+    label: 'Problems raised',
+    short: 'Raised',
+    numeric: true,
+    help: 'Every problem reported on this department’s subtasks — not a fault in itself',
+  },
+  {
+    key: 'problemsWhereThisDepartmentWasTheRootCause',
     label: 'Blocked others',
     short: 'Blocked',
     numeric: true,
-    help: 'Problems on a subtask another subtask was waiting on',
+    help: 'Of those, the ones on a subtask another subtask was waiting on — where the delay spread',
   },
   {
     key: 'extensionCount',
@@ -161,10 +167,19 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
               <td
                 className={cn(
                   'tabular px-3 py-2.5 text-right',
-                  row.problemsAsRootCause > 0 && 'text-state-problem font-medium',
+                  row.problemsWhereThisDepartmentWasTheRootCause > 0 &&
+                    'text-state-problem font-medium',
                 )}
               >
-                {row.problemsAsRootCause}
+                {row.problemsWhereThisDepartmentWasTheRootCause}
+                {/* The denominator, so the two columns read as a subset rather
+                    than two unrelated counts. Raising problems is not a fault;
+                    blocking the next bench is the number that matters. */}
+                {row.problemsRaised > 0 ? (
+                  <span className="text-muted-foreground ml-1 text-xs font-normal">
+                    /{row.problemsRaised}
+                  </span>
+                ) : null}
               </td>
               <td
                 className={cn(

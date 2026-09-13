@@ -75,7 +75,7 @@ export async function departmentScorecards(dateRange: DateRange): Promise<Depart
       late: completed - onTime,
       currentOpen: open.get(department.id) ?? 0,
       problemsRaised: problems.get(department.id) ?? 0,
-      problemsAsRootCause: rootCause.get(department.id) ?? 0,
+      problemsWhereThisDepartmentWasTheRootCause: rootCause.get(department.id) ?? 0,
       extensionCount: extensions.get(department.id) ?? 0,
     };
   });
@@ -160,11 +160,13 @@ async function rootCauseByDepartment(dateRange: DateRange): Promise<Map<string, 
 }
 
 /**
- * Deadline moves, per department (improvement I-11).
+ * Deadline moves, per department.
  *
  * Reported next to the on-time rate so an extension cannot quietly launder a
  * delay: a department at 100% having moved nine deadlines is a different story
- * from one at 100% having moved none.
+ * from one at 100% having moved none. That pairing is a judgement of mine —
+ * improvement I-11 creates the extension request flow, and says nothing about
+ * how the result should be measured.
  */
 async function extensionsByDepartment(dateRange: DateRange): Promise<Map<string, number>> {
   const rows = await prisma.$queryRaw<CountRow[]>`

@@ -92,9 +92,14 @@ export interface DepartmentScorecard {
   /**
    * Problems on a subtask that at least one other subtask was waiting on —
    * where this department's trouble became somebody else's delay.
+   *
+   * The long name is the build spec's (M8.2), kept verbatim because it is the
+   * field an API consumer reads. PDD FR-62 calls the same figure "problems
+   * caused". REJECTED problems are excluded: a problem the MD threw out was
+   * not a root cause of anything.
    */
-  problemsAsRootCause: number;
-  /** Times a deadline in this department was moved (improvement I-11). */
+  problemsWhereThisDepartmentWasTheRootCause: number;
+  /** Times a deadline in this department was moved. */
   extensionCount: number;
 }
 

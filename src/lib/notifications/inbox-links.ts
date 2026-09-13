@@ -11,7 +11,13 @@ export interface LinkableNotification {
   entityId: string;
 }
 
-/** The destination for one notification (improvement I-14). */
+/**
+ * The destination for one notification.
+ *
+ * The same idea as improvement I-14, which is specifically about deep links
+ * *from email* into the exact action — this applies it to the in-app inbox,
+ * which the documents do not cover.
+ */
 export function inboxLinkFor(item: LinkableNotification): string {
   /*
    * Type wins over entity for anything that is not about a single record. The

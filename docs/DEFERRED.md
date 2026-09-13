@@ -5,14 +5,59 @@ One section per module, newest first.
 
 ---
 
+## Citation audit (2026-09-14)
+
+A claim in the M8 notes attributed a design decision to "PDD §12", which does not
+contain it. §12 is *Risks and mitigations* — six rows, on WhatsApp bypass, mail in
+spam, an uncleared problem inbox, alarm fatigue, orphaned subtasks and a dead
+scheduler. Nothing about individual scorecards. I then checked every document
+reference I had written into this file, into code comments and into commit messages.
+
+### Wrong, now corrected
+
+| Claim | What the document actually says |
+|---|---|
+| "PDD §12 warns that individual league tables turn an accountability system into a blame system" | Nothing of the kind appears in §12 or anywhere else. **Invented.** The design call is mine and is now stated as mine. |
+| "SDD §5.4 specifies exactly these three lists" (digest body) | §5.4 specifies four email templates — `OVERDUE_MD`, `OVERDUE_MEMBER`, `DEADLINE_REMINDER`, `PROBLEM_RAISED`. The three digest lists come from the **M7 build spec**: "overdue, what is due today, problems with their age, to MD and deputies". |
+| "SDD §5.4 covers the daily digest" | As above. §5.4 mentions `DAILY_DIGEST_MD` only in the working-hours list in §5.3. |
+| "SDD §7 scores departments" | §7 is *Frontend design*; it lists a `/(md)/reports` route and nothing more. The real authority is **PDD §7.7, FR-62**: "Department scorecard: on-time %, average delay, problems raised, problems caused." |
+| "Extensions reported beside the rate (improvement I-11)" — in `lib/domain/metrics.ts` and `analytics/departments.ts` | I-11 is "Extension request flow — gives the honest member a legitimate path instead of silence". It says nothing about metrics. The pairing is my judgement and now says so. |
+| "(improvement I-14)" on the in-app inbox router | I-14 is "Deep links from **email** into the exact action". Applying it to in-app routing is an extension of the idea, not the idea; the comment now says that. |
+| "Dark mode explicitly out of scope (SDD §7.4)" | §7.4 says "Dark mode not required in Phase 1". Not required, not forbidden — and PDD §5.2's out-of-scope list does not mention it. |
+| `STALE_PROBLEM_HOURS` comment attributing the two-hour median to §12 | The 24 hours is §12; the two-hour median is §10's success metrics table. Split apart. |
+
+### Loose notation, substantively correct
+
+- **`SDD section 8.1 / 8.2 / 8.7`** — §8 *Security design* is a numbered list, not numbered
+  subsections. Items 1, 2 and 7 do say what was claimed: bcrypt cost 12; 15-minute access
+  JWT with a 30-day rotating refresh whose reuse invalidates the family; 10 login
+  attempts/minute/IP with lockout after 5 failures.
+- **`improvement I-14`** in `middleware.ts`, for preserving `?next=` through a login
+  redirect. Not what I-14 describes, but squarely in service of it — a deep link that
+  dumps the reader on a dashboard instead of the task is a broken deep link.
+
+### Checked and correct
+
+PDD §12's graveyard row (quoted verbatim in `problem-triage.ts` and `main-nav.tsx`);
+SDD §10.4 "alert if heartbeat > 20 minutes"; SDD §4.5 "resets `escalationCount` to 0";
+SDD §5.3's suppressible-type list, which matches `SUPPRESSIBLE_TYPES` exactly; SDD §5.1
+dedupe keys; improvements I-02, I-05, I-08, I-10, I-15; PDD §10's two-hour median;
+PDD FR-62.
+
+**Rule going forward:** a section number in a comment means I have opened the section.
+Where the reasoning is mine, it is labelled as mine — that is worth more than a
+borrowed citation, because a reader can then argue with it.
+
+---
+
 ## M8 — Dashboards, scorecards and exports
 
 | Deferred | Why | Production risk if never done |
 |---|---|---|
 | PDF for list exports | `type=jobs\|subtasks\|problems` are Excel only. A PDF of two thousand subtask rows is not a document anybody reads, and generating one would be the slowest thing in the application. PDF is offered where it makes sense — a single job report, which is the thing that gets printed and filed. | None. The route says so in its refusal rather than silently producing a 400-page file. |
-| Scheduled report delivery | SDD §5.4 covers the daily digest; nothing in the spec asks for a monthly scorecard by email. | The MD has to open the page. They already do, for the problem inbox. |
+| Scheduled report delivery | The M7 build spec defines the daily digest and nothing asks for a monthly scorecard by email. (Earlier this cited SDD §5.4, which specifies four email templates — `OVERDUE_MD`, `OVERDUE_MEMBER`, `DEADLINE_REMINDER`, `PROBLEM_RAISED` — and not the digest's contents.) | The MD has to open the page. They already do, for the problem inbox. |
 | Drill-through from a scorecard cell | Department names link to the department view; the individual numbers do not. | A reader who wants the 43 completed subtasks behind a cell has to filter the subtask export. |
-| Per-assignee scorecards | SDD §7 scores departments, and PDD §12 warns that individual league tables turn an accountability system into a blame system. Deliberate. | None — this is a product decision, not an omission. |
+| Per-assignee scorecards | **My recommendation, not the documents'.** The specs score departments and stop there — PDD FR-62 is "Department scorecard: on-time %, average delay, problems raised, problems caused" — but neither document says individuals must not be ranked, and I should not have implied one did. My reasoning: a per-person league table changes what the tool is for. The moment a member's name carries a public percentage, the cheapest way to protect it is to stop reporting problems and let a deadline quietly slip, which is the exact behaviour improvement I-05 and the extension flow exist to make safe. A department number still identifies who to talk to without publishing a ranking. Reverse it if the MD wants it — but as a decision taken, not a default. | None — a product decision. If it is wrong, the data is all there: `Subtask.assigneeId` is on every row the scorecard already aggregates. |
 | Cursor paging on the exports | Capped at 5,000 rows per export (`EXPORT_ROW_LIMIT`). At the shop's volume that is roughly two years of subtasks. | An export silently stops at 5,000. Worth revisiting before it can be reached. |
 | Materialised aggregates | Everything is computed live. At 500 jobs / 3,000 subtasks the whole dashboard is ~11 ms of PostgreSQL, so a cache would be complexity buying nothing. | None yet. Revisit an order of magnitude up. |
 
@@ -29,9 +74,17 @@ One section per module, newest first.
 - **`onTimePercent` is `null`, not 0, when nothing has completed.** A department that has
   finished nothing has no record; calling it 0% would rank it below one that is genuinely
   missing deadlines. The table, the chart and the sort all handle the null case.
-- **Extensions are reported beside the rate, never folded into it** (improvement I-11).
-  A department at 100% having moved nine deadlines is a different story from one at 100%
-  having moved none, and the scorecard shows both numbers side by side.
+- **Extensions are reported beside the rate, never folded into it.** A department at
+  100% having moved nine deadlines is a different story from one at 100% having moved
+  none, and the scorecard shows both numbers side by side. My judgement, not a
+  requirement — see the citation audit above.
+- **`problemsWhereThisDepartmentWasTheRootCause`** carries the build spec's field name
+  verbatim (M8.2); PDD FR-62 calls the same figure "problems caused". It counts a
+  problem on a subtask that at least one dependent subtask was waiting on, `DISTINCT`
+  so three dependents do not treble one blocker, and excludes `REJECTED` — a problem
+  the MD threw out caused nothing. Sits next to `problemsRaised` in the table as
+  `blocked/raised`, because raising a problem is not a fault and blocking the next
+  bench is.
 
 ---
 
@@ -42,7 +95,7 @@ One section per module, newest first.
 | WhatsApp and SMS channels | `NotifChannel` carries `WHATSAPP` and `SMS` and the channel registry takes a new channel in one `registerChannel()` call, but SDD §5 makes email the Phase 1 channel and no provider account exists. Every notification is queued with `channel: 'EMAIL'`. | Shop-floor members who do not read email miss reminders. The MD sees escalations either way. |
 | BullMQ queues | The stack lists BullMQ and Redis, and both are installed and running — but the sweeper claims work straight from Postgres with `FOR UPDATE SKIP LOCKED`, which is what SDD §5.2 actually describes. A second queue would be a second source of truth for the same rows, with its own way to lose them. Redis is still checked by `/api/health` so the dependency does not rot. | None. This is a deliberate simplification, not an omission. |
 | Per-user notification preferences | SDD §5 defines the types and who receives each; it defines no opt-out, and an accountability system whose alerts can be silenced by the person being chased is not one. | A member who wants fewer mails has no setting to change. |
-| Digest content beyond overdue / due today / open problems | SDD §5.4 specifies exactly these three lists. | None. |
+| Digest content beyond overdue / due today / open problems | The M7 build spec names exactly these three: "overdue, what is due today, problems with their age, to MD and deputies". Not SDD §5.4, which does not describe the digest body at all. | None. |
 | A retry console | A `FAILED` row is visible through `/api/health` as a count and in the database, but there is no screen to inspect or requeue one. | Somebody has to look at the count and then at SQL. The count going up is at least loud. |
 | Timezone-aware quiet hours per user | Everyone is in Coimbatore; SDD §5.3 defines one working-hours window for the company. | None for Phase 1. |
 
@@ -405,7 +458,7 @@ Three corrections applied after M1, before M2.
 | Sentry wiring | `SENTRY_DSN` is documented but not initialised. | Errors are visible only in container logs. |
 | Playwright browser binaries in CI | The CI job runs typecheck, lint, unit tests and build. E2E needs a seeded database and a built app; wired up in M11. | Regressions in the MD→member→MD loop are caught only by hand. |
 | Production Dockerfiles for `app` and `worker` | `docker-compose.yml` currently covers the local stateful services only; app and worker run on the host in development. The production topology in SDD §10.2 is built in M11. | No reproducible deploy. |
-| Dark mode | Explicitly out of scope for Phase 1 (SDD §7.4). Tokens exist in `globals.css` so it is a stylesheet change later. | None. |
+| Dark mode | SDD §7.4 says "Dark mode not required in Phase 1" — not required rather than forbidden; PDD §5.2's out-of-scope list does not mention it. Tokens exist in `globals.css` so it is a stylesheet change later. | None. |
 
 ### Known deviations from the documents
 

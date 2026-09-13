@@ -14,7 +14,13 @@
  *   extended     judged against the CURRENT deadline, because that is what the
  *                department agreed to. `extensionCount` is reported alongside,
  *                so a task extended three times and then met cannot read as a
- *                clean 100% (improvement I-11)
+ *                clean 100%
+ *
+ * That last rule is a judgement, not a requirement: nothing in the PDD or SDD
+ * says how an extension should appear in a metric. Improvement I-11 introduces
+ * the extension *request flow* — "gives the honest member a legitimate path
+ * instead of silence" — and stops there. Reporting the count beside the rate is
+ * what stops that legitimate path from also being a way to launder a delay.
  */
 
 /** A completed or still-open subtask, reduced to what the metrics need. */

@@ -14,8 +14,11 @@ import type { ProblemSeverity, ProblemStatus } from '@prisma/client';
 import { hoursBetween } from '@/lib/utils/time';
 
 /**
- * How long an open problem may sit before the dashboard calls it out in red
- * (PDD section 12). The success metric is a median under two hours, so a day is
+ * How long an open problem may sit before the dashboard calls it out in red.
+ *
+ * PDD section 12 sets the 24 hours: "problems older than 24 h flagged red on
+ * the dashboard". The two-hour figure is from section 10's success metrics —
+ * "Median time from problem raised to MD action … < 2 hours" — so a day is
  * already a long way past acceptable.
  */
 export const STALE_PROBLEM_HOURS = 24;

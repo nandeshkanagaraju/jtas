@@ -14,8 +14,10 @@ import type {
 /** `SubtaskSummary` with dates as ISO strings — what crosses the wire. */
 export type SubtaskDto = Omit<
   SubtaskSummary,
-  'deadline' | 'startedAt' | 'completedAt' | 'createdAt' | 'updatedAt' | 'dependsOn'
+  'deadline' | 'startedAt' | 'completedAt' | 'createdAt' | 'updatedAt' | 'dependsOn' | 'openProblem'
 > & {
+  openProblem:
+    (Omit<NonNullable<SubtaskSummary['openProblem']>, 'createdAt'> & { createdAt: string }) | null;
   deadline: string;
   startedAt: string | null;
   completedAt: string | null;

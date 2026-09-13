@@ -34,6 +34,14 @@ export const SUBTASK_SELECT = {
   department: { select: { id: true, name: true, code: true, sequenceOrder: true } },
   assignee: { select: { id: true, name: true, email: true, isActive: true } },
   dependsOn: { select: { id: true, title: true, status: true, deadline: true } },
+  // The live problem, if any — so the job timeline can show the amber marker
+  // and the drawer can show the member's words without a second query (M6.4).
+  problems: {
+    where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
+    select: { id: true, description: true, severity: true, status: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+  },
   job: {
     select: {
       id: true,
@@ -79,6 +87,14 @@ export interface SubtaskSummary {
   isOverdue: boolean;
   /** True when the deadline sits after the job's own (FR-23). */
   exceedsJobDeadline: boolean;
+  /** The live problem on this subtask, if one is waiting on the MD (FR-41). */
+  openProblem: {
+    id: string;
+    description: string;
+    severity: string;
+    status: string;
+    createdAt: Date;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -108,6 +124,7 @@ export function toSubtaskSummary(row: SubtaskRow, now: Date = new Date()): Subta
     completionNote: row.completionNote,
     escalationCount: row.escalationCount,
     isOverdue: !terminal && now.getTime() > row.deadline.getTime(),
+    openProblem: row.problems[0] ?? null,
     exceedsJobDeadline: row.deadline.getTime() > row.job.overallDeadline.getTime(),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -117,7 +134,7 @@ export function toSubtaskSummary(row: SubtaskRow, now: Date = new Date()): Subta
 /** The audit snapshot of a subtask — relations dropped, scalars kept. */
 export function subtaskSnapshot(row: SubtaskRow): Prisma.InputJsonValue {
   const snapshot: Record<string, unknown> = { ...row };
-  for (const relation of ['department', 'assignee', 'dependsOn', 'job']) {
+  for (const relation of ['department', 'assignee', 'dependsOn', 'job', 'problems']) {
     delete snapshot[relation];
   }
   return JSON.parse(JSON.stringify(snapshot)) as Prisma.InputJsonValue;

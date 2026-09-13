@@ -51,7 +51,12 @@ export type AuditAction =
   // M5 — member workspace
   | 'EXTENSION_REQUESTED'
   | 'EXTENSION_APPROVED'
-  | 'EXTENSION_REJECTED';
+  | 'EXTENSION_REJECTED'
+  // M6 — problems
+  | 'PROBLEM_RAISED'
+  | 'PROBLEM_ACKNOWLEDGED'
+  | 'PROBLEM_RESOLVED'
+  | 'PROBLEM_REJECTED';
 
 export type AuditEntityType = 'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION';
 

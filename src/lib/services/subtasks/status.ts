@@ -22,8 +22,8 @@ import { recomputeJobStatus } from '@/lib/services/jobs';
 import {
   cancelPendingForSubtask,
   notifyApprovalRequired,
-  notifyProblemRaised,
 } from '@/lib/services/notification-service';
+import { assertNoLiveProblem, createProblem } from '@/lib/services/problems/core';
 import { getSettingNumber } from '@/lib/services/settings-service';
 import type { SubtaskStatusChangeInput } from '@/lib/validation/subtask';
 
@@ -74,6 +74,12 @@ export async function changeStatus(
   );
 
   const note = input.note?.trim() ?? '';
+
+  // Checked before the state machine so a second report is refused with a
+  // CONFLICT that names the open one, rather than an opaque transition error.
+  if (input.action === 'PROBLEM') {
+    await assertNoLiveProblem(prisma, subtaskId);
+  }
 
   const result = transition(subtask.status, input.action as SubtaskAction, {
     actorRole: actor.role as TransitionActor,
@@ -138,18 +144,15 @@ export async function changeStatus(
     }
 
     if (next === 'PROBLEM') {
-      const problem = await tx.problem.create({
-        data: {
-          subtaskId,
-          raisedById: actor.id,
-          description: note,
-          severity: (input.severity ?? 'MEDIUM') as ProblemSeverity,
-          status: 'OPEN',
-        },
-        select: { id: true },
+      // One path for raising, shared with `raiseProblem`: the row, its audit
+      // entry and the notification to the MD all land inside this transaction.
+      await createProblem(tx, {
+        subtaskId,
+        raisedById: actor.id,
+        description: note,
+        severity: (input.severity ?? 'MEDIUM') as ProblemSeverity,
+        ipAddress: ctx.ipAddress,
       });
-      // FR-40: the MD hears about it immediately. M6 refines the inbox.
-      await notifyProblemRaised(tx, problem.id);
     }
 
     if (next === 'AWAITING_APPROVAL') {

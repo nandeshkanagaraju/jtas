@@ -18,8 +18,14 @@ import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/auth/cookies';
 import { verifyAccessToken, type AccessClaims } from '@/lib/auth/jwt';
 import { buildContentSecurityPolicy, generateNonce } from '@/lib/security/csp';
 
-/** Reachable without a session. */
-const PUBLIC_PATHS = new Set(['/login']);
+/**
+ * Reachable without a session.
+ *
+ * `/offline` is served by the service worker when the network is gone, and a
+ * redirect to `/login` at that moment would fail too — leaving the browser's
+ * own error page instead of an explanation.
+ */
+const PUBLIC_PATHS = new Set(['/login', '/offline']);
 
 /** The only page a user who owes a password change may open. */
 const CHANGE_PASSWORD_PATH = '/change-password';

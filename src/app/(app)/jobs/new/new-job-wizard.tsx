@@ -46,17 +46,17 @@ function Steps({ current }: { current: number }) {
 /**
  * Step 1 of the job wizard.
  *
- * Saving creates the job as a `DRAFT` and routes to its detail page, which is
- * where step 2 lands when M4 adds subtasks. Creating the draft now rather than
- * holding the whole wizard in memory means a half-finished job survives a
- * closed tab or a dropped connection.
+ * Saving creates the job as a `DRAFT` and routes to step 2. Creating the draft
+ * now rather than holding the whole wizard in memory means a half-finished job
+ * survives a closed tab or a dropped connection — and the MD can come back to
+ * `/jobs/{id}/plan` to finish it.
  */
 export function NewJobWizard() {
   const router = useRouter();
 
   async function handleSubmit(values: CreateJobInput) {
     const { job } = await createJobRequest(values);
-    router.push(`/jobs/${job.id}?created=1`);
+    router.push(`/jobs/${job.id}/plan`);
   }
 
   return (

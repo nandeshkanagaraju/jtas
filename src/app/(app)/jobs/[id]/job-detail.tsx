@@ -24,6 +24,7 @@ import type { CreateJobInput } from '@/lib/validation/job';
 
 import { JobHeader, type JobPermissions } from './job-header';
 import { ReasonDialog } from './reason-dialog';
+import { SubtaskPanel } from './subtask-panel';
 
 /** Converts a stored UTC instant back into the naive IST value the form edits. */
 function toIstFormValue(iso: string): string {
@@ -95,9 +96,19 @@ export function JobDetail({ job, permissions }: { job: JobRowDto; permissions: J
       {isDraft ? (
         <Alert>
           <AlertTitle>This job is still a draft</AlertTitle>
-          <AlertDescription>
-            Nobody has been notified. Add at least one department subtask, then publish — that is
-            what starts the deadlines and the reminders.
+          <AlertDescription className="space-y-3">
+            <p>
+              Nobody has been notified. Add at least one department subtask, then publish — that is
+              what starts the deadlines and the reminders.
+            </p>
+            {permissions.edit ? (
+              <Button asChild size="sm">
+                <Link href={`/jobs/${job.id}/plan`}>
+                  <ListTodo className="size-4" />
+                  Plan the subtasks
+                </Link>
+              </Button>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -135,40 +146,27 @@ export function JobDetail({ job, permissions }: { job: JobRowDto; permissions: J
         </Card>
       ) : null}
 
-      {/* Filled in by M4 (subtask timeline) and M9 (activity feed). */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ListTodo className="size-4" />
-              Subtask timeline
-            </CardTitle>
-            <CardDescription>
-              One band per department in shop-flow order, coloured by state.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-muted-foreground text-sm">
-            {job.progress.total === 0
-              ? 'No subtasks yet. Coming in M4.'
-              : `${job.progress.total} subtasks. The timeline lands in M4.`}
-          </CardContent>
-        </Card>
+      <SubtaskPanel
+        jobId={job.id}
+        canManage={permissions.edit}
+        onJobChanged={() => router.refresh()}
+      />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <History className="size-4" />
-              Activity
-            </CardTitle>
-            <CardDescription>
-              Every status change, deadline change and decision, with who and when.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-muted-foreground text-sm">
-            Coming in M9. Every action on this job is already being recorded.
-          </CardContent>
-        </Card>
-      </div>
+      {/* Filled in by M9. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <History className="size-4" />
+            Activity
+          </CardTitle>
+          <CardDescription>
+            Every status change, deadline change and decision, with who and when.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-muted-foreground text-sm">
+          Coming in M9. Every action on this job is already being recorded.
+        </CardContent>
+      </Card>
 
       <ReasonDialog
         open={holdOpen}

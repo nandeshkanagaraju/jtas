@@ -5,6 +5,53 @@ One section per module, newest first.
 
 ---
 
+## M10 — Collaboration: comments and attachments
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| Editing or deleting a comment | A comment is a statement somebody made at a time, and an accountability record where statements can be revised is a weaker record. Improvement I-12's "no hard deletes" reasoning applies. | A typo stands. Post a correction. |
+| Email on a mention | `COMMENT_MENTION` is in-app only. A mention is a nudge, not an escalation, and mailing every one would make the mail that does matter harder to see. | Somebody who does not open the app misses a mention until they do. |
+| Threaded replies | One flat conversation per subtask. A shop-floor task carries five comments, not fifty. | None at this volume. |
+| Rich text and inline images in comments | Plain text, escaped on render. SDD section 8 item 5 forbids `dangerouslySetInnerHTML`, and the safe alternatives are a parser and a sanitiser that need their own security review. | A drawing goes in as an attachment, which is where it belongs. |
+| Multi-file upload in one drop | One file at a time. The dropzone takes the first of a multi-file drop. | Three drawings are three drops. |
+| Resumable uploads | A 25 MB upload that fails restarts. | A dropped connection on a 25 MB DWG means doing it again. Worth revisiting if the shop's line is poor. |
+| A sweeper for orphaned objects | An upload abandoned between presign and register leaves an object with no row. Nothing reads it and nothing lists it, but nothing removes it either. | Storage grows slowly with abandoned uploads. |
+| Virus scanning | The signature check proves a file is the *type* it claims. It does not prove a real PDF is harmless. | A malicious-but-valid PDF is accepted. Bucket-side scanning is the answer, not application code. |
+
+### A conflict between the documents, resolved
+
+**Who may comment.** PDD **FR-34** reads "Member can comment and attach files on **his own**
+subtasks". The M10 build spec reads "scoped so a member can comment on subtasks of **jobs
+they participate in**, MD anywhere". These are not the same rule.
+
+I followed the module spec for comments and kept FR-34's narrower rule for attachments,
+because the two are different acts: a comment is a question anyone on the job might ask,
+and a file is a claim about the work that the person accountable for a step should be
+making. It also matches what M5 already built — a member can *see* a sibling department's
+subtask, on the PDD section 13 question 3 recommendation that it removes the phone call
+asking whether material has arrived. Letting them see the answer and not ask the question
+leaves the phone call in place.
+
+Say the word if you want FR-34's reading instead; it is one clause in `policy.ts` and the
+test that pins it.
+
+### What M10 changed outside its own files
+
+- **The CSP blocked every upload.** `connect-src 'self'` and `img-src 'self'` are correct
+  until the browser starts talking to an object store directly. The presigned PUT and the
+  thumbnail GET are both cross-origin, so uploads failed as a console warning and the page
+  merely looked broken. The policy now carries the origin derived from `S3_ENDPOINT` — the
+  origin only, never a wildcard, and never in `script-src`. Found by dragging in a real
+  file; now covered by `tests/unit/csp.test.ts`.
+- **MinIO joins `docker compose`.** Pulled from quay.io rather than Docker Hub, whose
+  `minio/minio` is behind a login that would break `docker compose up` on a fresh machine.
+  A one-shot `minio-init` service creates the bucket, because the first upload otherwise
+  fails with `NoSuchBucket`, which reads like a code fault rather than a setup step.
+- **`Attachment` gained `deletedAt` / `deletedById`**, additive to SDD section 3.3, for the
+  soft delete M10.5 asks for.
+
+---
+
 ## M9 — Governance: settings, calendar, audit
 
 | Deferred | Why | Production risk if never done |

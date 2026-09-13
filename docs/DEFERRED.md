@@ -5,6 +5,55 @@ One section per module, newest first.
 
 ---
 
+## M6 — Problem management
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| Notification delivery | The hooks are now fully typed — `PROBLEM_RAISED` to the MD and every deputy, `PROBLEM_RESOLVED` to the assignee, each with its dedupe key and payload — but the bodies are still no-ops. M7 fills them. | **Still the highest-risk gap, and now the most costly one.** FR-40 says a problem reaches the MD instantly; today it reaches the inbox and waits to be looked at. The "median time to MD action < 2 h" metric depends on M7. |
+| The daily unresolved-problem nudge (FR-44) | Needs the scheduler. The inbox already carries the age and the red flag it would repeat. | The MD must open the inbox rather than being pulled to it. |
+| An MD screen for extension requests | Carried over from M5. The API is complete and the member sees the outcome, but there is no inbox row for a pending request. | The MD is not told somebody asked for time. Should land with M7's digest or as a second tab on this screen. |
+| Problem comments | FR-42 lists "add an action note", which the mandatory `mdActionNote` covers; a back-and-forth thread is M10. | A clarifying question happens by phone. |
+| Re-opening a resolved problem | Not in the spec. A member whose problem was resolved wrongly raises a new one, which the CONFLICT rule now allows because the old one is closed. | None — the new problem carries the history forward. |
+
+### Decisions and ambiguities resolved in M6
+
+- **One live problem per subtask, enforced in a shared core.** The rule sits in
+  `problems/core.ts`, which both entry points use — the inbox's `raiseProblem` and the
+  member's `changeStatus`. Putting it in either one would have left the other able to
+  create a second.
+- **Acknowledging does not stop the ageing clock.** `isStale` treats an acknowledged
+  problem exactly like an open one. Reading a problem is not deciding it, and letting
+  "seen" clear the red flag would turn the PDD section 12 mitigation into a way of hiding
+  the queue.
+- **Resolution actions delegate, never duplicate.** `EXTEND` calls `changeDeadline`,
+  `REASSIGN` calls `reassignSubtask`, `CANCEL_SUBTASK` calls `changeStatus`. An extension
+  granted from the inbox leaves the same `DeadlineChange` row and the same reset
+  escalation clock as one granted anywhere else.
+- **The subtask work runs before the problem is closed.** If moving a deadline fails, the
+  problem stays open rather than reading as decided — verified by a test that attempts an
+  over-the-job-deadline extension and checks the problem is still `OPEN`.
+- **`ESCALATE_TO_DEPARTMENT` does not force the original into `BLOCKED`.** That transition
+  exists only from `PENDING`. It does not need to: the original is given a `dependsOnId`,
+  and the state machine already refuses `COMPLETE` while a dependency is unfinished — so
+  it genuinely cannot be closed until the escalated work is done. Tested both ways.
+- **The action is prefixed onto `mdActionNote`** (`[EXTEND] …`), so the stored record
+  answers "what did you do?" and not merely "what did you say?".
+- **Resolving tolerates a subtask that already left `PROBLEM`** — a member who cleared
+  their own blockage a moment earlier should not make the MD's decision fail — but the
+  problem row's own `CONFLICT` still prevents a double decision.
+
+### Fixed during M6
+
+- **The resolution drawer was a dead end on the two warn-don't-block rules.** The server
+  refuses an extension past the job deadline and asks for a confirmation; the drawer
+  relayed "confirm with a reason" and offered no field to put one in. It now reveals the
+  exact field the server named and sends it back under that key.
+- **The nav problem badge went stale after a decision.** It is server-rendered in the
+  layout, so reloading the inbox client-side left the count unchanged. A count that does
+  not go down is precisely the pressure the badge exists to apply; it now refreshes.
+
+---
+
 ## M5 — Member workspace
 
 | Deferred | Why | Production risk if never done |

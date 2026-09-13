@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { AppHeader } from '@/components/shared/app-header';
+import { Toaster } from '@/components/ui/sonner';
 import { getSession } from '@/lib/auth/session';
 
 /**
@@ -16,6 +17,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-dvh flex-col">
       <AppHeader name={session.name} email={session.email} role={session.role} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+
+      {/*
+        Bottom-centre on a phone: a toast at the top would sit under the sticky
+        summary strip, and one in a corner is easy to miss with a glove on.
+      */}
+      <Toaster position="bottom-center" richColors closeButton />
     </div>
   );
 }

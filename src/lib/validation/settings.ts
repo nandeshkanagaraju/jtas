@@ -52,3 +52,28 @@ export const templateSchema = z.object({
 export type TemplateBody = z.infer<typeof templateSchema>;
 
 export const templateActiveSchema = z.object({ isActive: z.boolean() });
+
+export const addCommentSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, 'Write something first.')
+    .max(2000, 'Use at most 2000 characters.'),
+});
+
+export const presignAttachmentSchema = z.object({
+  jobId: z.string().min(1),
+  subtaskId: z.string().min(1).nullable().optional(),
+  fileName: z.string().trim().min(1).max(255),
+  contentType: z.string().trim().min(1).max(255),
+  sizeBytes: z.number().int().positive(),
+});
+
+export const registerAttachmentSchema = z.object({
+  attachmentId: z.string().min(1),
+  jobId: z.string().min(1),
+  subtaskId: z.string().min(1).nullable().optional(),
+  fileName: z.string().trim().min(1).max(255),
+  contentType: z.string().trim().min(1).max(255),
+  storageKey: z.string().min(1).max(512),
+});

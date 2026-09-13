@@ -98,3 +98,13 @@ export function extensionRequestedKey(requestId: string, userId: string): string
 export function jobCompletedKey(jobId: string, userId: string): string {
   return `job:${jobId}:COMPLETED:${userId}`;
 }
+
+/**
+ * One mention notification per comment per person (build spec M10.1).
+ *
+ * Keyed on the comment rather than the subtask, so two comments mentioning the
+ * same person are two notifications — and a retried request is still one.
+ */
+export function commentMentionKey(commentId: string, userId: string): string {
+  return `comment:${commentId}:MENTION:${userId}`;
+}

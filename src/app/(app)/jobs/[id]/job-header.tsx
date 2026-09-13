@@ -1,6 +1,8 @@
 'use client';
 
-import { Ban, ChevronDown, Pause, Pencil, Play, Send } from 'lucide-react';
+import Link from 'next/link';
+
+import { Ban, ChevronDown, Pause, Pencil, Play, ScrollText, Send } from 'lucide-react';
 
 import {
   DeadlineCell,
@@ -26,6 +28,8 @@ export interface JobPermissions {
   publish: boolean;
   hold: boolean;
   cancel: boolean;
+  /** Whether to offer the audit trace (MD and ADMIN — SDD 6.3). */
+  viewAudit: boolean;
 }
 
 /** One labelled fact in the header card. */
@@ -73,7 +77,23 @@ export function JobHeader({
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
-            <div className="tabular text-muted-foreground text-sm">{job.jobCode}</div>
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
+              <span className="tabular">{job.jobCode}</span>
+              {permissions.viewAudit ? (
+                /*
+                 * The full trace, not just the JOB rows: the work happened on
+                 * the subtasks, and "why was this three weeks late" is answered
+                 * there. Only offered to whoever may read the log at all.
+                 */
+                <Link
+                  href={`/audit?job=${job.id}`}
+                  className="hover:text-foreground inline-flex items-center gap-1 text-xs underline-offset-4 hover:underline"
+                >
+                  <ScrollText className="size-3.5" />
+                  Full history
+                </Link>
+              ) : null}
+            </div>
             <CardTitle className="text-xl">{job.title}</CardTitle>
             <CardDescription className="flex flex-wrap items-center gap-2">
               <JobStatusBadge status={job.status} />

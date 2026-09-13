@@ -85,5 +85,15 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
     nav.push({ href: '/users', label: 'Users', icon: 'users' });
   }
 
+  // M9 governance. Both are MD and ADMIN; the deputy is deliberately excluded
+  // from the audit log by SDD 6.3's matrix.
+  if (can(session, 'audit:view', undefined)) {
+    nav.push({ href: '/audit', label: 'Audit', icon: 'audit' });
+  }
+
+  if (can(session, 'settings:view', undefined)) {
+    nav.push({ href: '/settings', label: 'Settings', icon: 'settings' });
+  }
+
   return nav;
 }

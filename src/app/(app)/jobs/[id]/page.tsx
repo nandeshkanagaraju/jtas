@@ -68,6 +68,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           createdById: job.createdBy.id,
           participantIds: [],
         }),
+        viewAudit: can(session, 'audit:view', undefined),
       }}
     />
   );

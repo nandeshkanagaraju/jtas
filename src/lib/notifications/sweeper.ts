@@ -237,6 +237,13 @@ async function recordFailure(row: DueRow, error: unknown, now: Date): Promise<De
  * has reported a blocker is not nagged, and the pressure has already moved to
  * the MD. Held and cancelled jobs are excluded too — a paused job's timers are
  * paused (FR-14).
+ *
+ * Demonstration jobs are excluded as well. `pnpm seed:demo` generates a year of
+ * history to make the dashboards meaningful, and most of it is overdue by
+ * construction — 870 subtasks on the machine this was written on. Chasing it
+ * costs nothing while mail goes to Mailpit and becomes thousands of real
+ * messages the day SMTP points at a relay, so the filter belongs here in the
+ * query rather than in whoever remembers to stop the worker.
  */
 export async function escalateOverdue(now: Date = new Date()): Promise<number> {
   const { intervalMinutes, maxCount } = await loadEscalationConfig();
@@ -246,7 +253,10 @@ export async function escalateOverdue(now: Date = new Date()): Promise<number> {
     where: {
       deadline: { lt: now },
       status: { in: CHASEABLE },
-      job: { status: { notIn: ['ON_HOLD', 'CANCELLED', 'DRAFT', 'COMPLETED'] } },
+      job: {
+        status: { notIn: ['ON_HOLD', 'CANCELLED', 'DRAFT', 'COMPLETED'] },
+        isDemo: false,
+      },
       escalationCount: { lt: maxCount },
       OR: [{ lastEscalatedAt: null }, { lastEscalatedAt: { lt: cutoff } }],
     },

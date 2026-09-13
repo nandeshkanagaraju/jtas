@@ -70,6 +70,63 @@ const PROBLEM_TEXTS = [
   'Inspection gauge is out for calibration and due back on Monday.',
 ];
 
+
+/**
+ * Demo accounts, created on first run.
+ *
+ * Never the seeded roster and never the two testing mailboxes. On the machine
+ * this was written on, `seed:demo` had put 376 overdue subtasks on the real
+ * member's account and made the real MD the recipient of every escalation —
+ * 870 notification rows aimed at a personal Gmail address. Demo work belongs to
+ * demo people.
+ *
+ * The addresses are on `demo.invalid`, which RFC 6761 reserves and no mail
+ * server will ever deliver to, so a misconfigured relay cannot turn this into
+ * real mail either.
+ */
+const DEMO_DOMAIN = 'demo.invalid';
+const DEMO_MD_EMAIL = `md@${DEMO_DOMAIN}`;
+
+function demoEmail(departmentCode: string): string {
+  return `${departmentCode.toLowerCase()}@${DEMO_DOMAIN}`;
+}
+
+async function ensureDemoUsers(
+  prisma: PrismaClient,
+  departments: Array<{ id: string; code: string }>,
+): Promise<Map<string, string>> {
+  // Unusable by construction: no plaintext exists that bcrypt-verifies against
+  // a string that is not a bcrypt hash, so nobody can sign in as a demo user.
+  const passwordHash = 'demo-account-no-login';
+
+  const wanted: Array<{ email: string; name: string; role: 'MD' | 'MEMBER'; departmentId: string | null }> =
+    [
+      { email: DEMO_MD_EMAIL, name: 'Demo MD', role: 'MD', departmentId: null },
+      ...departments.map((department) => ({
+        email: demoEmail(department.code),
+        name: `Demo ${department.code.charAt(0)}${department.code.slice(1).toLowerCase()}`,
+        role: 'MEMBER' as const,
+        departmentId: department.id,
+      })),
+    ];
+
+  const byEmail = new Map<string, string>();
+
+  for (const user of wanted) {
+    const row = await prisma.user.upsert({
+      where: { email: user.email },
+      create: { ...user, passwordHash, mustChangePassword: true, isActive: true },
+      // Nothing to update — an existing demo account is already right, and
+      // rewriting it would churn updatedAt on every run.
+      update: {},
+      select: { id: true },
+    });
+    byEmail.set(user.email, row.id);
+  }
+
+  return byEmail;
+}
+
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) {
@@ -94,24 +151,20 @@ async function main() {
   const prisma = new PrismaClient();
 
   try {
-    const [departments, members] = await Promise.all([
-      prisma.department.findMany({
-        orderBy: { sequenceOrder: 'asc' },
-        select: { id: true, code: true },
-      }),
-      prisma.user.findMany({ where: { isActive: true }, select: { id: true, departmentId: true } }),
-    ]);
+    const departments = await prisma.department.findMany({
+      orderBy: { sequenceOrder: 'asc' },
+      select: { id: true, code: true },
+    });
 
-    if (departments.length === 0 || members.length === 0) {
-      console.error(
-        '\nRun `pnpm seed` first — this needs departments and users to hang work on.\n',
-      );
+    if (departments.length === 0) {
+      console.error('\nRun `pnpm seed` first — this needs departments to hang work on.\n');
       process.exit(1);
     }
 
-    const creator = members[0].id;
-    const memberFor = (departmentId: string) =>
-      members.find((m) => m.departmentId === departmentId)?.id ?? creator;
+    const members = await ensureDemoUsers(prisma, departments);
+    const creator = members.get(DEMO_MD_EMAIL)!;
+    const memberFor = (department: { code: string }) =>
+      members.get(demoEmail(department.code)) ?? creator;
 
     const random = makeRandom(20260913);
     const now = Date.now();
@@ -178,6 +231,8 @@ async function main() {
                 : null,
               createdById: creator,
               createdAt,
+              // The flag the sweeper and the digest filter on.
+              isDemo: true,
             },
             select: { id: true },
           });
@@ -209,7 +264,7 @@ async function main() {
               data: {
                 jobId: job.id,
                 departmentId: department.id,
-                assigneeId: memberFor(department.id),
+                assigneeId: memberFor(department),
                 title: SUBTASK_TITLES[department.code] ?? 'Department task',
                 deadline,
                 completedAt: subtaskStatus === 'COMPLETED' ? completedAt : null,
@@ -234,7 +289,7 @@ async function main() {
               await tx.problem.create({
                 data: {
                   subtaskId: subtask.id,
-                  raisedById: memberFor(department.id),
+                  raisedById: memberFor(department),
                   description: PROBLEM_TEXTS[Math.floor(random() * PROBLEM_TEXTS.length)],
                   severity: (['LOW', 'MEDIUM', 'HIGH', 'BLOCKER'] as const)[
                     Math.floor(random() * 4)
@@ -293,22 +348,35 @@ async function clear() {
 
   const prisma = new PrismaClient();
   try {
-    const jobs = await prisma.job.findMany({
-      where: { jobCode: { startsWith: 'JGE-DEMO-' } },
-      select: { id: true },
-    });
+    const jobs = await prisma.job.findMany({ where: { isDemo: true }, select: { id: true } });
     const ids = jobs.map((job) => job.id);
+
+    // The notification rows come first and are scoped to demo subtasks. The
+    // earlier version deleted every SUBTASK notification in the database,
+    // taking the real ones with it.
+    const subtaskIds = (
+      await prisma.subtask.findMany({ where: { jobId: { in: ids } }, select: { id: true } })
+    ).map((row) => row.id);
+
+    const notifications = await prisma.notification.deleteMany({
+      where: { entityType: 'SUBTASK', entityId: { in: subtaskIds } },
+    });
 
     // Children first — these tables are referenced, not cascading.
     await prisma.problem.deleteMany({ where: { subtask: { jobId: { in: ids } } } });
     await prisma.deadlineChange.deleteMany({ where: { subtask: { jobId: { in: ids } } } });
     await prisma.extensionRequest.deleteMany({ where: { subtask: { jobId: { in: ids } } } });
-    await prisma.notification.deleteMany({ where: { entityType: 'SUBTASK' } });
     await prisma.subtask.updateMany({ where: { jobId: { in: ids } }, data: { dependsOnId: null } });
     await prisma.subtask.deleteMany({ where: { jobId: { in: ids } } });
     await prisma.job.deleteMany({ where: { id: { in: ids } } });
 
-    console.log(`\n  ✔ removed ${ids.length} demo jobs\n`);
+    // The demo accounts hold nothing once their subtasks are gone.
+    const users = await prisma.user.deleteMany({
+      where: { email: { endsWith: `@${DEMO_DOMAIN}` } },
+    });
+
+    console.log(`\n  ✔ removed ${ids.length} demo jobs, ${subtaskIds.length} subtasks,`);
+    console.log(`    ${notifications.count} notification rows and ${users.count} demo accounts\n`);
   } finally {
     await prisma.$disconnect();
   }

@@ -167,6 +167,15 @@ model Job {
   status          JobStatus @default(DRAFT)
   publishedAt     DateTime?
   completedAt     DateTime?
+
+  /// Seeded demonstration data, not real work.
+  ///
+  /// Additive to SDD section 3.3. `pnpm seed:demo` generates a year of history
+  /// so the dashboards have something to aggregate, and most of it is overdue
+  /// by construction — without this flag the sweeper would chase every row of
+  /// it, which is thousands of real emails the moment SMTP points at a relay.
+  /// The sweeper and the digest both exclude it.
+  isDemo          Boolean   @default(false)
   createdById     String
   createdBy       User      @relation("JobCreator", fields: [createdById], references: [id])
   createdAt       DateTime  @default(now())
@@ -177,6 +186,8 @@ model Job {
 
   @@index([status, overallDeadline])
   @@index([jobCode])
+  // The sweeper filters on this on every pass, so it is worth an index.
+  @@index([isDemo])
 }
 
 /// Per-calendar-year counter backing job-code generation (SDD 4.1).

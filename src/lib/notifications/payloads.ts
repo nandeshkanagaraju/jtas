@@ -248,9 +248,16 @@ export async function buildDigestPayload(now: Date = new Date()): Promise<Templa
   const startOfToday = new Date(`${istDateKey(now)}T00:00:00+05:30`);
   const endOfToday = new Date(startOfToday.getTime() + 24 * 3_600_000);
 
-  // Not `as const`: Prisma's filter types reject readonly arrays.
+  /*
+   * Not `as const`: Prisma's filter types reject readonly arrays.
+   *
+   * `isDemo: false` keeps seeded demonstration history out of the MD's morning
+   * mail. Without it the digest is 50 rows of fixture data and the real overdue
+   * work is pushed off the bottom — the same reason the sweeper filters it.
+   */
   const liveJob: Prisma.JobWhereInput = {
     status: { notIn: ['CANCELLED', 'ON_HOLD', 'DRAFT'] },
+    isDemo: false,
   };
   const liveSubtask: Prisma.SubtaskWhereInput = {
     status: { notIn: ['COMPLETED', 'CANCELLED', 'ON_HOLD'] },
@@ -282,7 +289,7 @@ export async function buildDigestPayload(now: Date = new Date()): Promise<Templa
       take: 50,
     }),
     prisma.problem.findMany({
-      where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
+      where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] }, subtask: { job: liveJob } },
       select: {
         severity: true,
         description: true,

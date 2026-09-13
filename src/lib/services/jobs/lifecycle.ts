@@ -14,6 +14,8 @@ import { prisma } from '@/lib/db/prisma';
 import { conflict, invalidTransition, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
 
+import { initialiseSubtasksOnPublish } from '@/lib/services/subtasks/publish';
+
 import { recomputeJobStatus } from './status';
 import { JOB_SELECT, type Actor, type JobRow, type RequestContext } from './types';
 
@@ -73,8 +75,13 @@ export async function publishJob(job: JobRow, actor: Actor, ctx: RequestContext)
       ipAddress: ctx.ipAddress,
     });
 
-    // M4/M7 plug in here: schedule SUBTASK_ASSIGNED for each assignee and the
-    // DEADLINE_REMINDER rows derived from each subtask deadline (SDD 5.1).
+    /*
+     * M4: every subtask becomes PENDING, or BLOCKED when its predecessor is not
+     * complete (build spec M4.3), and its notifications are scheduled. Inside
+     * this transaction, so a published job and the work it announces commit
+     * together or not at all.
+     */
+    await initialiseSubtasksOnPublish(tx, job.id, actor, ctx);
 
     // A just-published job may already be at risk if its deadline is close.
     await recomputeJobStatus(tx, job.id, { actor, ctx, now: publishedAt });

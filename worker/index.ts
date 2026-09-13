@@ -12,6 +12,7 @@
 import { prisma } from '@/lib/db/prisma';
 import { queueDailyDigest } from '@/lib/notifications/digest';
 import { runSweep } from '@/lib/notifications/sweeper';
+import { assertConfiguration } from '@/lib/startup/validate';
 import { env } from '@/lib/utils/env';
 import { moduleLogger } from '@/lib/utils/logger';
 
@@ -67,6 +68,15 @@ async function runTick(): Promise<void> {
 }
 
 async function main() {
+  /*
+   * The worker checks its configuration before the first tick and exits if it
+   * cannot be honoured (build spec M9.6). Unlike the app it has nothing to
+   * serve while broken — a scheduler running on a half-configured environment
+   * fails as mail that silently never arrives, which is the failure mode the
+   * heartbeat exists to catch and the one hardest to notice.
+   */
+  await assertConfiguration();
+
   const { SCHEDULER_INTERVAL_MINUTES } = env();
   const intervalMs = SCHEDULER_INTERVAL_MINUTES * 60_000;
 

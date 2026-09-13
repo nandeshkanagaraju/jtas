@@ -465,12 +465,31 @@ describe('cross-department subtask visibility', () => {
     expect(can(member, 'attachment:view', siblingSubtask)).toBe(true);
   });
 
-  it('grants viewing only — every action on a sibling subtask is still refused', () => {
+  it('grants no power over a sibling subtask', () => {
     expect(can(member, 'subtask:updateStatus', siblingSubtask)).toBe(false);
     expect(can(member, 'problem:raise', siblingSubtask)).toBe(false);
     expect(can(member, 'subtask:requestExtension', siblingSubtask)).toBe(false);
-    expect(can(member, 'comment:create', siblingSubtask)).toBe(false);
     expect(can(member, 'subtask:changeDeadline', siblingSubtask)).toBe(false);
+    // A file is a claim about the work; the person accountable for a subtask
+    // puts drawings against it (FR-34).
+    expect(can(member, 'attachment:create', siblingSubtask)).toBe(false);
+  });
+
+  it('does let a participant ask a question on a sibling subtask (M10.1)', () => {
+    /*
+     * Wider than FR-34's "his own subtasks", on the M10 build spec: "a member
+     * can comment on subtasks of jobs they participate in". Seeing a sibling
+     * subtask but being unable to ask about it leaves in place the phone call
+     * that read-only visibility existed to remove.
+     */
+    expect(can(member, 'comment:create', siblingSubtask)).toBe(true);
+    expect(can(member, 'comment:view', siblingSubtask)).toBe(true);
+  });
+
+  it('refuses a comment on a job the member has nothing to do with', () => {
+    const stranger = { ...siblingSubtask, jobParticipantIds: ['somebody-else'] };
+
+    expect(can(member, 'comment:create', stranger)).toBe(false);
   });
 
   it('refuses a member who is not on the job at all', () => {

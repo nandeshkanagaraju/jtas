@@ -361,8 +361,35 @@ export function can<A extends Action>(
       return isCommand(user);
 
     // --- Collaboration ---------------------------------------------------
-    // FR-34: a member comments and attaches on his own subtasks.
-    case 'comment:create':
+    /**
+     * Commenting is scoped to the *job*, not the subtask.
+     *
+     * The M10 build spec is explicit: "a member can comment on subtasks of jobs
+     * they participate in, MD anywhere." That is wider than PDD FR-34, which
+     * reads "Member can comment and attach files on his own subtasks" — a
+     * conflict, resolved in favour of the module spec and recorded in
+     * docs/DEFERRED.md.
+     *
+     * The wider rule is also the one that matches how the shop works. M5
+     * already lets a member see a sibling department's subtask read-only, on
+     * the PDD section 13 question 3 recommendation that it removes the phone
+     * call asking whether material has arrived. Letting them see the answer but
+     * not ask the question leaves the phone call in place.
+     */
+    case 'comment:create': {
+      const subtask = resource as SubtaskResource;
+      if (user.role === 'ADMIN') return false;
+      if (isCommand(user)) return true;
+      return ownsSubtask(user, subtask) || participatesInSubtaskJob(user, subtask);
+    }
+
+    /**
+     * Attaching stays narrower — FR-34's "his own subtasks".
+     *
+     * A comment is a question anyone on the job might ask; a file is a claim
+     * about the work, and the person accountable for a subtask should be the
+     * one putting drawings against it.
+     */
     case 'attachment:create': {
       const subtask = resource as SubtaskResource;
       if (user.role === 'ADMIN') return false;

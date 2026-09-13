@@ -90,7 +90,7 @@ async function makeJob(overrides: Partial<Parameters<typeof createJob>[0]> = {})
       overallDeadline: FUTURE,
       ...overrides,
     },
-    { id: md.id },
+    { id: md.id, role: 'MD' as const },
     ctx,
   );
 }
@@ -188,7 +188,7 @@ describe('acceptance: MD creates a draft, edits it, cannot publish it empty', ()
         overallDeadline: '2027-07-01T09:00',
         priority: 'HIGH',
       },
-      { id: md.id },
+      { id: md.id, role: 'MD' as const },
       ctx,
     );
 
@@ -206,7 +206,9 @@ describe('acceptance: MD creates a draft, edits it, cannot publish it empty', ()
   it('refuses to publish a job with no subtasks, and says why', async () => {
     const job = await makeJob();
 
-    const error = (await publishJob(job, { id: md.id }, ctx).catch((e: AppError) => e)) as AppError;
+    const error = (await publishJob(job, { id: md.id, role: 'MD' as const }, ctx).catch(
+      (e: AppError) => e,
+    )) as AppError;
 
     expect(error.code).toBe('VALIDATION_ERROR');
     expect(error.status).toBe(400);
@@ -224,7 +226,7 @@ describe('acceptance: MD creates a draft, edits it, cannot publish it empty', ()
     const job = await makeJob();
     await addSubtask(job.id);
 
-    const published = await publishJob(job, { id: md.id }, ctx);
+    const published = await publishJob(job, { id: md.id, role: 'MD' as const }, ctx);
 
     expect(published.status).toBe('IN_PROGRESS');
     expect(published.publishedAt).not.toBeNull();
@@ -303,7 +305,7 @@ describe('editing a published job', () => {
   async function publishedJob() {
     const job = await makeJob();
     await addSubtask(job.id);
-    await publishJob(job, { id: md.id }, ctx);
+    await publishJob(job, { id: md.id, role: 'MD' as const }, ctx);
     return loadJobForWrite(job.id);
   }
 
@@ -318,7 +320,7 @@ describe('editing a published job', () => {
         priority: 'URGENT',
         description: 'Revised material note.',
       },
-      { id: md.id },
+      { id: md.id, role: 'MD' as const },
       ctx,
     );
 
@@ -335,9 +337,12 @@ describe('editing a published job', () => {
       ['quantity', 999],
       ['overallDeadline', '2027-08-01T09:00'],
     ] as const) {
-      const error = (await updateJob(job, { [field]: value }, { id: md.id }, ctx).catch(
-        (e: AppError) => e,
-      )) as AppError;
+      const error = (await updateJob(
+        job,
+        { [field]: value },
+        { id: md.id, role: 'MD' as const },
+        ctx,
+      ).catch((e: AppError) => e)) as AppError;
 
       expect(error.code, field).toBe('VALIDATION_ERROR');
       expect((error.details as { frozenFields: string[] }).frozenFields, field).toContain(field);
@@ -350,7 +355,7 @@ describe('editing a published job', () => {
     const error = (await updateJob(
       job,
       { quantity: 10, partNumber: 'X', title: 'Allowed' },
-      { id: md.id },
+      { id: md.id, role: 'MD' as const },
       ctx,
     ).catch((e: AppError) => e)) as AppError;
 
@@ -360,11 +365,11 @@ describe('editing a published job', () => {
 
   it('refuses any edit once the job is cancelled', async () => {
     const job = await publishedJob();
-    await cancelJob(job, 'Customer withdrew the order', { id: md.id }, ctx);
+    await cancelJob(job, 'Customer withdrew the order', { id: md.id, role: 'MD' as const }, ctx);
     const cancelled = await loadJobForWrite(job.id);
 
     await expect(
-      updateJob(cancelled, { title: 'Too late' }, { id: md.id }, ctx),
+      updateJob(cancelled, { title: 'Too late' }, { id: md.id, role: 'MD' as const }, ctx),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 });
@@ -377,14 +382,14 @@ describe('job lifecycle', () => {
   async function publishedJob() {
     const job = await makeJob();
     await addSubtask(job.id);
-    await publishJob(job, { id: md.id }, ctx);
+    await publishJob(job, { id: md.id, role: 'MD' as const }, ctx);
     return loadJobForWrite(job.id);
   }
 
   it('refuses to publish twice', async () => {
     const job = await publishedJob();
 
-    await expect(publishJob(job, { id: md.id }, ctx)).rejects.toMatchObject({
+    await expect(publishJob(job, { id: md.id, role: 'MD' as const }, ctx)).rejects.toMatchObject({
       code: 'INVALID_TRANSITION',
     });
   });
@@ -392,7 +397,12 @@ describe('job lifecycle', () => {
   it('holds a live job with a reason on the record', async () => {
     const job = await publishedJob();
 
-    const held = await holdJob(job, 'Customer paused the order', { id: md.id }, ctx);
+    const held = await holdJob(
+      job,
+      'Customer paused the order',
+      { id: md.id, role: 'MD' as const },
+      ctx,
+    );
     expect(held.status).toBe('ON_HOLD');
 
     const entry = (await auditRowsFor(job.id)).find((row) => row.action === 'JOB_HELD')!;
@@ -402,17 +412,21 @@ describe('job lifecycle', () => {
   it('refuses to hold a draft, which has nothing to pause', async () => {
     const job = await makeJob();
 
-    await expect(holdJob(job, 'Not yet', { id: md.id }, ctx)).rejects.toMatchObject({
+    await expect(
+      holdJob(job, 'Not yet', { id: md.id, role: 'MD' as const }, ctx),
+    ).rejects.toMatchObject({
       code: 'INVALID_TRANSITION',
     });
   });
 
   it('refuses to hold a job twice', async () => {
     const job = await publishedJob();
-    await holdJob(job, 'Paused', { id: md.id }, ctx);
+    await holdJob(job, 'Paused', { id: md.id, role: 'MD' as const }, ctx);
     const held = await loadJobForWrite(job.id);
 
-    await expect(holdJob(held, 'Again', { id: md.id }, ctx)).rejects.toMatchObject({
+    await expect(
+      holdJob(held, 'Again', { id: md.id, role: 'MD' as const }, ctx),
+    ).rejects.toMatchObject({
       code: 'CONFLICT',
     });
   });
@@ -424,7 +438,7 @@ describe('job lifecycle', () => {
       data: { deadline: new Date('2020-01-01T00:00:00Z') },
     });
 
-    const held = await holdJob(job, 'Paused', { id: md.id }, ctx);
+    const held = await holdJob(job, 'Paused', { id: md.id, role: 'MD' as const }, ctx);
     expect(held.status).toBe('ON_HOLD');
 
     // Recomputing must not flip it to DELAYED — the hold would achieve nothing.
@@ -434,13 +448,17 @@ describe('job lifecycle', () => {
 
   it('recomputes rather than restores on unhold, because time passed', async () => {
     const job = await publishedJob();
-    await holdJob(job, 'Paused', { id: md.id }, ctx);
+    await holdJob(job, 'Paused', { id: md.id, role: 'MD' as const }, ctx);
     await testDb.subtask.updateMany({
       where: { jobId: job.id },
       data: { deadline: new Date('2020-01-01T00:00:00Z') },
     });
 
-    const resumed = await unholdJob(await loadJobForWrite(job.id), { id: md.id }, ctx);
+    const resumed = await unholdJob(
+      await loadJobForWrite(job.id),
+      { id: md.id, role: 'MD' as const },
+      ctx,
+    );
 
     expect(resumed.status).toBe('DELAYED');
     expect(await auditActionsFor(job.id)).toContain('JOB_UNHELD');
@@ -449,7 +467,7 @@ describe('job lifecycle', () => {
   it('refuses to unhold a job that is not on hold', async () => {
     const job = await publishedJob();
 
-    await expect(unholdJob(job, { id: md.id }, ctx)).rejects.toMatchObject({
+    await expect(unholdJob(job, { id: md.id, role: 'MD' as const }, ctx)).rejects.toMatchObject({
       code: 'INVALID_TRANSITION',
     });
   });
@@ -457,7 +475,12 @@ describe('job lifecycle', () => {
   it('cancels the job and its open subtasks, never deleting anything', async () => {
     const job = await publishedJob();
 
-    const cancelled = await cancelJob(job, 'Customer withdrew', { id: md.id }, ctx);
+    const cancelled = await cancelJob(
+      job,
+      'Customer withdrew',
+      { id: md.id, role: 'MD' as const },
+      ctx,
+    );
     expect(cancelled.status).toBe('CANCELLED');
 
     // The open subtask went with it, so the sweeper stops chasing people.
@@ -477,7 +500,12 @@ describe('job lifecycle', () => {
     await testDb.subtask.updateMany({ where: { jobId: job.id }, data: { status: 'COMPLETED' } });
     const extra = await addSubtask(job.id);
 
-    await cancelJob(await loadJobForWrite(job.id), 'Withdrawn', { id: md.id }, ctx);
+    await cancelJob(
+      await loadJobForWrite(job.id),
+      'Withdrawn',
+      { id: md.id, role: 'MD' as const },
+      ctx,
+    );
 
     const subtasks = await testDb.subtask.findMany({ where: { jobId: job.id } });
     expect(subtasks.find((s) => s.id === extra.id)!.status).toBe('CANCELLED');
@@ -486,10 +514,10 @@ describe('job lifecycle', () => {
 
   it('refuses to cancel a job twice', async () => {
     const job = await publishedJob();
-    await cancelJob(job, 'Withdrawn', { id: md.id }, ctx);
+    await cancelJob(job, 'Withdrawn', { id: md.id, role: 'MD' as const }, ctx);
 
     await expect(
-      cancelJob(await loadJobForWrite(job.id), 'Again', { id: md.id }, ctx),
+      cancelJob(await loadJobForWrite(job.id), 'Again', { id: md.id, role: 'MD' as const }, ctx),
     ).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
   });
 });
@@ -502,7 +530,7 @@ describe('recomputeJobStatus', () => {
   async function publishedJob() {
     const job = await makeJob();
     await addSubtask(job.id);
-    await publishJob(job, { id: md.id }, ctx);
+    await publishJob(job, { id: md.id, role: 'MD' as const }, ctx);
     return loadJobForWrite(job.id);
   }
 
@@ -530,7 +558,7 @@ describe('recomputeJobStatus', () => {
     });
 
     const result = await testDb.$transaction((tx) =>
-      recomputeJobStatus(tx, job.id, { actor: { id: md.id }, ctx }),
+      recomputeJobStatus(tx, job.id, { actor: { id: md.id, role: 'MD' as const }, ctx }),
     );
 
     expect(result).toMatchObject({ previous: 'IN_PROGRESS', current: 'DELAYED', changed: true });

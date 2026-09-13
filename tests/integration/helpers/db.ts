@@ -13,10 +13,26 @@ import { hashPassword } from '@/lib/auth/password';
 
 export const testDb = new PrismaClient();
 
-/** Truncates everything the auth and directory tests touch, children first. */
+/**
+ * Truncates everything the suites touch, children before parents.
+ *
+ * The order matters and the two unusual steps are deliberate:
+ *
+ *  - `Problem`, `DeadlineChange`, `ExtensionRequest`, `Comment` and
+ *    `Attachment` all point at `Subtask`, so they go first.
+ *  - `Subtask.dependsOnId` points at `Subtask`, so the self-reference is
+ *    cleared before the delete; otherwise the rows in a dependency chain block
+ *    each other.
+ */
 export async function resetAuthTables(): Promise<void> {
   await testDb.auditLog.deleteMany();
   await testDb.refreshToken.deleteMany();
+  await testDb.problem.deleteMany();
+  await testDb.deadlineChange.deleteMany();
+  await testDb.extensionRequest.deleteMany();
+  await testDb.comment.deleteMany();
+  await testDb.attachment.deleteMany();
+  await testDb.subtask.updateMany({ data: { dependsOnId: null } });
   await testDb.subtask.deleteMany();
   await testDb.job.deleteMany();
   await testDb.user.deleteMany();

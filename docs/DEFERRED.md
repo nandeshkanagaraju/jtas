@@ -5,6 +5,55 @@ One section per module, newest first.
 
 ---
 
+## M5 — Member workspace
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| Notification scheduling | Unchanged from M4: the seams exist, all no-ops. M7 fills them. | **Still the highest-risk gap.** The member workspace is now complete and nobody is chased to open it. |
+| Comments and attachments on `/tasks/[id]` | FR-34; M10 fills the typed slot that is already on the screen. | Problem context stays in WhatsApp instead of on the record. |
+| An MD-side screen for extension requests | The API is complete (`POST /api/extension-requests/:id/decide`) and the member sees the outcome, but the MD has no inbox for them — that lands with the problem inbox in M6. | The MD must be told about a request another way. Concrete gap; it should land with M6. |
+| Push notifications | The PWA is installable with a manifest, icons and an offline fallback; web push is P3 in the release plan. | Members must open the app rather than being pulled into it. Email covers this from M7. |
+| Offline writes | **Deliberately never.** A queued "completed" tap that syncs an hour later tells the member their work was recorded when the MD had not been told. The service worker caches the offline page only, and says so in its own comment. | None — this is the correct behaviour, not a gap. |
+| `Idempotency-Key` | Outstanding since M1. A double-tapped Complete is now harmless — the second attempt is an `INVALID_TRANSITION` — so the member paths are naturally idempotent. The wizard is not. | Unchanged from M4: a double-submitted wizard creates two chains. |
+
+### Decisions and ambiguities resolved in M5
+
+- **A `later` bucket was added.** The build spec lists six buckets and FR-30 lists five;
+  neither covers a subtask due in three weeks, which would have belonged to no bucket and
+  vanished from the member's screen. A member has to be able to see all of their work.
+- **Buckets are mutually exclusive, with status beating deadline.** `BLOCKED` and
+  `AWAITING_APPROVAL` are their own buckets even when overdue: surfacing a blocked task
+  under "overdue" would ask the member to do work the system itself is preventing.
+- **Cancelled and on-hold work is hidden from My Tasks**, and so is anything on a draft,
+  cancelled or held job — filtered in the query, not afterwards. None of it is the
+  member's to act on.
+- **A reported problem removes every action from the member's screen.** The state machine
+  allows only `RESOLVE_PROBLEM` out of `PROBLEM`, so any other button would have been one
+  that always failed. The card says the MD has it instead — improvement I-05 made visible.
+- **Blocked shows the three buttons disabled rather than hiding them** (build spec M5.3),
+  with the predecessor named. Hiding them leaves the member wondering whether the app is
+  broken.
+- **Optimistic updates model removal only, never the destination bucket.** The server
+  decides the next status — a completion can become `AWAITING_APPROVAL` — and guessing
+  would flash the wrong state before the reload corrected it. A failure restores the exact
+  previous snapshot and surfaces the error.
+
+### Fixed during M5
+
+- **A policy bug from M1.** `subtask:view` carried a comment saying a member may read a
+  sibling department's subtask on a job they are on, but the code only checked ownership.
+  The route-level query already allowed it, so the two disagreed. `SubtaskResource` now
+  carries `jobParticipantIds` and the rule matches its comment — and fails closed when the
+  caller does not supply the list.
+- **The tab strip overlapped the first card at 380px.** `TabsList` carries a fixed
+  `group-data-[orientation=horizontal]/tabs:h-9`, which a plain `h-auto` cannot override,
+  so the wrapped second row rendered on top of the content. It now scrolls sideways in one
+  row, which is the pattern a phone user already knows.
+- **"is problem, due 13 Sep"** — the predecessor's state was being rendered by
+  lower-casing the enum. Replaced with phrasings a person would use.
+
+---
+
 ## M4 — Subtasks, deadlines and dependencies
 
 | Deferred | Why | Production risk if never done |

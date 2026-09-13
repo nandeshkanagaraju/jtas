@@ -150,9 +150,15 @@ describe('publishing a job schedules exactly what SDD 5.1 says', () => {
   });
 
   it('skips a reminder whose moment has already passed', async () => {
-    // Deadline four hours out, lead six hours: the reminder is in the past.
+    /*
+     * Deadline four hours out, lead six hours: the reminder is in the past.
+     * The subtask is published with the usual far-future deadline and then
+     * moved, because going through the service with a near-term one would make
+     * the test depend on the wall clock — an earlier version built the deadline
+     * string from today's date and failed after 6 PM IST.
+     */
     const soon = new Date(Date.now() + 4 * 3_600_000);
-    const { subtask } = await publishedSubtask(`${soon.toISOString().slice(0, 10)}T23:00`);
+    const { subtask } = await publishedSubtask();
 
     await testDb.notification.deleteMany({ where: { entityId: subtask.id } });
     await testDb.subtask.update({

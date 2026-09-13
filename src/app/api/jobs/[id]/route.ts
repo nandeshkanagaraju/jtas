@@ -42,7 +42,12 @@ export async function PATCH(request: Request, context: RouteContext) {
     assertCan(session, 'job:edit', await jobResource(job.id, job.createdById));
 
     const input = await parseJson(req, updateJobSchema);
-    const updated = await updateJob(job, input, { id: session.id }, { ipAddress: clientIp(req) });
+    const updated = await updateJob(
+      job,
+      input,
+      { id: session.id, role: session.role },
+      { ipAddress: clientIp(req) },
+    );
 
     return ok({ job: await getJob(session, updated.id) });
   })(request);

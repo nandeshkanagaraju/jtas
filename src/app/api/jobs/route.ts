@@ -31,7 +31,11 @@ export const POST = handler(async (request) => {
 
   const input = await parseJson(request, createJobSchema);
 
-  const job = await createJob(input, { id: session.id }, { ipAddress: clientIp(request) });
+  const job = await createJob(
+    input,
+    { id: session.id, role: session.role },
+    { ipAddress: clientIp(request) },
+  );
 
   return NextResponse.json(
     {

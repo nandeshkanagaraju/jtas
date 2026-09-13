@@ -41,7 +41,12 @@ export function jobLifecycleRoute(options: {
 
       const reason = options.requiresReason ? (await parseJson(req, jobReasonSchema)).reason : '';
 
-      await options.run(job, reason, { id: session.id }, { ipAddress: clientIp(req) });
+      await options.run(
+        job,
+        reason,
+        { id: session.id, role: session.role },
+        { ipAddress: clientIp(req) },
+      );
 
       // Re-read through the scoped query so the response carries the derived
       // facets (progress, departments, overdue) the screens render.

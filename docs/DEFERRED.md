@@ -5,6 +5,55 @@ One section per module, newest first.
 
 ---
 
+## M4 — Subtasks, deadlines and dependencies
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| Extension requests (FR-33, improvement I-11) | `ExtensionRequest` exists in the schema and `subtask:requestExtension` is in the policy, but the service and the two endpoints are M5's member workspace. | A member who needs more time has no legitimate path, so they go silent — which is the exact behaviour I-11 exists to prevent. Should land with M5. |
+| The MD problem inbox (FR-41, FR-42) | Raising a problem works end to end and creates the `Problem` row; the MD can resolve it from the subtask drawer. The inbox with age, severity and the full action set is M6. | The MD sees problems only by opening each job. Workable but slow, and the "median time to MD action < 2 h" metric depends on the inbox. |
+| Notification scheduling | `notification-service.ts` has the seven seams wired into the right transactions, all no-ops. M7 fills the bodies. | **Still the highest-risk gap.** Every deadline is recorded and every state is correct, but nothing chases anybody yet. |
+| Comments and attachments on a subtask | FR-34; M10. The drawer has no thread. | Problem context lives in WhatsApp instead of on the record. |
+| Subtask-level audit history in the drawer | `DeadlineChange` rows and the audit log are both written and `listDeadlineChanges` exists, but the drawer does not render a history panel yet — M9 builds the activity feed. | The MD sees the current state but not how it got there without reading the database. |
+| Template management (FR-74) | Templates are read-only reference data, seeded by migration. `GET /api/job-templates` exists; there is no write path. | Changing the standard chain needs a developer. Correct for Phase 1. |
+| `Idempotency-Key` | Outstanding since M1. A double-submitted wizard now creates **two full 8-subtask chains**. | The most concrete remaining gap, and it got worse in M4. Should land with M5. |
+| Editing subtasks on a published job through the UI | The API supports it (`PATCH /api/subtasks/:id`) and the drawer covers deadline, reassignment, hold and cancel — but not title, dependency or the approval flag. | The MD must use the API for those. Low impact. |
+
+### Decisions and ambiguities resolved in M4
+
+- **The SDD 4.3 table has no exit from `ON_HOLD`.** Taken literally, holding a subtask
+  would strand it permanently. An `UNHOLD` transition was added (MD/Deputy), returning to
+  `PENDING` — or to `BLOCKED` if the dependency is still open. The previous status is not
+  stored, and `PENDING` is the honest restart.
+- **`CANCEL` is allowed from `ON_HOLD`.** "Any active" excludes a held subtask, but a
+  paused task still has to be stoppable.
+- **A deputy may not complete somebody else's subtask.** The SDD 6.3 row "Update another's
+  subtask status" is MD-only, and the state machine enforces it even though "Raise problem"
+  and "Update own subtask status" are ✔ for the role. Same reading as M1.
+- **Two rules warn rather than block, and become errors only until a reason is given**
+  (build spec M4.2): a deadline after the job's own (FR-23), and an assignee from another
+  department. Both are sometimes genuinely correct, so refusing outright would teach people
+  to work around the tool. The reason lands in the audit log.
+- **Two rules have no override at all:** a dependency cycle, and an assignee who is
+  deactivated or an administrator. A cycle is never correct, and `can()` refuses an
+  administrator `subtask:updateStatus`, so a subtask assigned to one could never be
+  completed by anybody.
+- **Resolving a problem through the subtask closes the `Problem` row too**, so the M6
+  inbox will not keep showing something already dealt with.
+- **Rejecting an approval clears `completedAt`**, so a sent-back subtask does not read as
+  finished in the timeline.
+- **In-batch dependencies use a client-side `dependsOnKey`.** The wizard's rows have no ids
+  yet, so the batch is validated for cycles before any insert and the keys are resolved to
+  foreign keys in a second pass inside the same transaction.
+
+### Known rule-9 exceptions
+
+`src/lib/auth/policy.ts` (423) and `src/lib/domain/subtask-state-machine.ts` (334) both stay
+over the ~300-line guideline. Each is a single exhaustive `switch`; splitting either would
+break the `never` guard that makes a forgotten case a compile error, which is the whole
+point of both files.
+
+---
+
 ## M3 — Jobs
 
 | Deferred | Why | Production risk if never done |

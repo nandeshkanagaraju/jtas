@@ -1,0 +1,131 @@
+/**
+ * Typed payloads for the eleven mail templates — SDD section 5.4.
+ *
+ * Each payload carries what its template renders and nothing else, so a
+ * template cannot quietly start depending on data the sweeper does not load.
+ */
+import type { ProblemSeverity } from '@prisma/client';
+
+/** Common to every mail: who it is about and where to go. */
+export interface JobContext {
+  jobCode: string;
+  jobTitle: string;
+  partNumber: string | null;
+  drawingNumber: string | null;
+}
+
+export interface SubtaskContext extends JobContext {
+  subtaskId: string;
+  jobId: string;
+  subtaskTitle: string;
+  departmentName: string;
+  assigneeName: string;
+  /** Already formatted in IST, e.g. "13 Sep 2026, 6:00 PM". */
+  deadlineIst: string;
+  status: string;
+}
+
+export interface AssignedPayload extends SubtaskContext {
+  kind: 'SUBTASK_ASSIGNED';
+  reminderLeadHours: number;
+}
+
+export interface ReminderPayload extends SubtaskContext {
+  kind: 'DEADLINE_REMINDER';
+  hoursLeft: number;
+}
+
+export interface OverdueMemberPayload extends SubtaskContext {
+  kind: 'OVERDUE_MEMBER';
+  delayHours: number;
+  escalationNumber: number;
+}
+
+export interface OverdueMdPayload extends SubtaskContext {
+  kind: 'OVERDUE_MD';
+  delayHours: number;
+  escalationNumber: number;
+}
+
+export interface ProblemRaisedPayload extends SubtaskContext {
+  kind: 'PROBLEM_RAISED';
+  problemId: string;
+  severity: ProblemSeverity;
+  description: string;
+  raisedByName: string;
+}
+
+export interface ProblemResolvedPayload extends SubtaskContext {
+  kind: 'PROBLEM_RESOLVED';
+  problemId: string;
+  action: string;
+  mdActionNote: string;
+}
+
+export interface DeadlineChangedPayload extends SubtaskContext {
+  kind: 'DEADLINE_CHANGED';
+  oldDeadlineIst: string;
+  reason: string;
+}
+
+export interface ExtensionRequestedPayload extends SubtaskContext {
+  kind: 'EXTENSION_REQUESTED';
+  requestedDeadlineIst: string;
+  reason: string;
+  requestedByName: string;
+}
+
+export interface ApprovalRequiredPayload extends SubtaskContext {
+  kind: 'APPROVAL_REQUIRED';
+  completedByName: string;
+  completionNote: string | null;
+}
+
+export interface JobCompletedPayload extends JobContext {
+  kind: 'JOB_COMPLETED';
+  jobId: string;
+  completedIst: string;
+  subtaskCount: number;
+  onTime: boolean;
+}
+
+export interface DigestRow {
+  jobCode: string;
+  departmentName: string;
+  assigneeName: string;
+  subtaskTitle: string;
+  deadlineIst: string;
+  /** Hours late, or hours of problem age. */
+  hours: number;
+}
+
+export interface DailyDigestPayload {
+  kind: 'DAILY_DIGEST_MD';
+  dateIst: string;
+  overdue: DigestRow[];
+  dueToday: DigestRow[];
+  openProblems: Array<DigestRow & { severity: ProblemSeverity; description: string }>;
+}
+
+export type TemplatePayload =
+  | AssignedPayload
+  | ReminderPayload
+  | OverdueMemberPayload
+  | OverdueMdPayload
+  | ProblemRaisedPayload
+  | ProblemResolvedPayload
+  | DeadlineChangedPayload
+  | ExtensionRequestedPayload
+  | ApprovalRequiredPayload
+  | JobCompletedPayload
+  | DailyDigestPayload;
+
+export type TemplateKind = TemplatePayload['kind'];
+
+/** What a rendered template produces. */
+export interface RenderedEmail {
+  subject: string;
+  html: string;
+  /** Plain-text fallback — required, not optional (build spec M7.5). */
+  text: string;
+}

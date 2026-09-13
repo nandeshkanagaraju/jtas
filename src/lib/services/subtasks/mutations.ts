@@ -4,6 +4,7 @@
  * Every mutation writes its audit row inside the same transaction as the change
  * (architecture rule 5).
  */
+import { loadDefaultReminderLeadMinutes } from '@/lib/notifications/config';
 import { prisma } from '@/lib/db/prisma';
 import { notFound } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
@@ -67,7 +68,8 @@ export async function createSubtask(
         title: input.title,
         description: input.description ?? null,
         deadline,
-        reminderLeadMinutes: input.reminderLeadMinutes,
+        // Omitted means the operator's configured default (M9.1).
+        reminderLeadMinutes: input.reminderLeadMinutes ?? (await loadDefaultReminderLeadMinutes()),
         requiresApproval: input.requiresApproval,
         dependsOnId: input.dependsOnId ?? null,
         // A draft's subtasks stay PENDING until publish decides; publish is

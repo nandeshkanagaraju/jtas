@@ -6,6 +6,7 @@
  * before any row has an id. Resolving those is what the second pass below does,
  * and it is the reason the whole thing has to be one transaction.
  */
+import { loadDefaultReminderLeadMinutes } from '@/lib/notifications/config';
 import { prisma } from '@/lib/db/prisma';
 import { validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
@@ -70,6 +71,13 @@ export async function bulkCreateSubtasks(
 
   assertBatchDependenciesAcyclic(input);
 
+  /*
+   * Read once for the batch, not per subtask. A draft that names its own lead
+   * time keeps it; one that does not gets whatever the operator has configured
+   * — which is what makes the setting on /settings mean anything.
+   */
+  const defaultLead = await loadDefaultReminderLeadMinutes();
+
   return prisma.$transaction(async (tx) => {
     const created: SubtaskRow[] = [];
     /** Maps each draft's client-side key to the id it was given. */
@@ -84,7 +92,7 @@ export async function bulkCreateSubtasks(
           title: draft.title,
           description: draft.description ?? null,
           deadline,
-          reminderLeadMinutes: draft.reminderLeadMinutes,
+          reminderLeadMinutes: draft.reminderLeadMinutes ?? defaultLead,
           requiresApproval: draft.requiresApproval,
           // Real foreign keys only; in-batch references are linked below.
           dependsOnId: draft.dependsOnId ?? null,

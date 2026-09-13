@@ -47,7 +47,11 @@ export type AuditAction =
   | 'SUBTASK_DEADLINE_CHANGED'
   | 'SUBTASK_REASSIGNED'
   | 'SUBTASK_BLOCKED'
-  | 'SUBTASK_UNBLOCKED';
+  | 'SUBTASK_UNBLOCKED'
+  // M5 — member workspace
+  | 'EXTENSION_REQUESTED'
+  | 'EXTENSION_APPROVED'
+  | 'EXTENSION_REJECTED';
 
 export type AuditEntityType = 'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION';
 

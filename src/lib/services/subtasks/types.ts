@@ -34,7 +34,21 @@ export const SUBTASK_SELECT = {
   department: { select: { id: true, name: true, code: true, sequenceOrder: true } },
   assignee: { select: { id: true, name: true, email: true, isActive: true } },
   dependsOn: { select: { id: true, title: true, status: true, deadline: true } },
-  job: { select: { id: true, jobCode: true, title: true, status: true, overallDeadline: true } },
+  job: {
+    select: {
+      id: true,
+      jobCode: true,
+      title: true,
+      status: true,
+      overallDeadline: true,
+      // SDD section 7.2: the member's screen leads with the job code, the part
+      // number and the drawing, because that is what identifies the work on a
+      // shop floor.
+      partNumber: true,
+      drawingNumber: true,
+      quantity: true,
+    },
+  },
 } satisfies Prisma.SubtaskSelect;
 
 export type SubtaskRow = Prisma.SubtaskGetPayload<{ select: typeof SUBTASK_SELECT }>;
@@ -45,6 +59,9 @@ export interface SubtaskSummary {
   jobId: string;
   jobCode: string;
   jobTitle: string;
+  partNumber: string | null;
+  drawingNumber: string | null;
+  quantity: number | null;
   department: { id: string; name: string; code: string; sequenceOrder: number };
   assignee: { id: string; name: string; email: string; isActive: boolean };
   title: string;
@@ -74,6 +91,9 @@ export function toSubtaskSummary(row: SubtaskRow, now: Date = new Date()): Subta
     jobId: row.jobId,
     jobCode: row.job.jobCode,
     jobTitle: row.job.title,
+    partNumber: row.job.partNumber,
+    drawingNumber: row.job.drawingNumber,
+    quantity: row.job.quantity,
     department: row.department,
     assignee: row.assignee,
     title: row.title,

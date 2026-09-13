@@ -10,6 +10,7 @@
 import { PrismaClient, type Role } from '@prisma/client';
 
 import { hashPassword } from '@/lib/auth/password';
+import { generateTempPassword } from '@/lib/auth/temp-password';
 
 export const testDb = new PrismaClient();
 
@@ -107,11 +108,17 @@ export interface TestUserOptions {
   lockedUntil?: Date | null;
 }
 
-/** Creates a user with a real bcrypt hash, so login exercises the real path. */
+/**
+ * Creates a user with a real bcrypt hash, so login exercises the real path.
+ *
+ * The password is generated unless the caller supplies one — there is no
+ * fixture credential in this repository, not even in tests. The value used is
+ * returned alongside the row so a test that needs to sign in can.
+ */
 export async function createTestUser(options: TestUserOptions = {}) {
-  const password = options.password ?? 'Shopfloor7';
+  const password = options.password ?? generateTempPassword();
 
-  return testDb.user.create({
+  const user = await testDb.user.create({
     data: {
       name: options.name ?? 'Test User',
       email: options.email ?? `user-${crypto.randomUUID()}@jaraaglobal.com`,
@@ -124,6 +131,8 @@ export async function createTestUser(options: TestUserOptions = {}) {
       departmentId: options.departmentId ?? null,
     },
   });
+
+  return Object.assign(user, { password });
 }
 
 /** Every audit row for an entity, oldest first. */

@@ -44,6 +44,17 @@ describe('generateTempPassword', () => {
     }
   });
 
+  it('never returns the same value twice in a row', () => {
+    // The narrow version of the property below: two back-to-back calls, which
+    // is exactly what `pnpm user:reset-password` run twice does.
+    const first = generateTempPassword();
+    const second = generateTempPassword();
+
+    expect(first).not.toBe(second);
+    expect(checkPasswordPolicy(first).valid).toBe(true);
+    expect(checkPasswordPolicy(second).valid).toBe(true);
+  });
+
   it('never repeats', () => {
     const generated = new Set(Array.from({ length: 1_000 }, () => generateTempPassword()));
     expect(generated.size).toBe(1_000);

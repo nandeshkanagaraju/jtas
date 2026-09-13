@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { verifyPassword } from '@/lib/auth/password';
+import { generateTempPassword } from '@/lib/auth/temp-password';
 import type { AppError } from '@/lib/errors';
 import { login } from '@/lib/services/auth';
 import {
@@ -211,8 +212,13 @@ describe('acceptance: a created member signs in and is forced to change password
       ctx,
     );
 
+    // Any value the server did not issue. Generated rather than written down,
+    // so this file contains no usable credential.
     await expect(
-      login({ email: 'ravi@jaraaglobal.com', password: 'Jaraa@2026', rememberDevice: false }, ctx),
+      login(
+        { email: 'ravi@jaraaglobal.com', password: generateTempPassword(), rememberDevice: false },
+        ctx,
+      ),
     ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
   });
 
@@ -422,10 +428,9 @@ describe('acceptance: deactivating a member with open subtasks', () => {
     const leaving = await createTestUser({
       email: 'leaving@jaraaglobal.com',
       departmentId: production.id,
-      password: 'Shopfloor7',
     });
 
-    await login({ email: leaving.email, password: 'Shopfloor7', rememberDevice: true }, ctx);
+    await login({ email: leaving.email, password: leaving.password, rememberDevice: true }, ctx);
     expect(await testDb.refreshToken.count({ where: { userId: leaving.id } })).toBe(1);
 
     await deactivateUser(leaving.id, {}, actor(), ctx);
@@ -606,17 +611,16 @@ describe('resetPassword', () => {
     const member = await createTestUser({
       email: 'member@jaraaglobal.com',
       departmentId: production.id,
-      password: 'Shopfloor7',
       mustChangePassword: false,
     });
 
-    await login({ email: member.email, password: 'Shopfloor7', rememberDevice: false }, ctx);
+    await login({ email: member.email, password: member.password, rememberDevice: false }, ctx);
 
     const { temporaryPassword } = await resetPassword(member.id, actor(), ctx);
 
     // The old password is dead…
     await expect(
-      login({ email: member.email, password: 'Shopfloor7', rememberDevice: false }, ctx),
+      login({ email: member.email, password: member.password, rememberDevice: false }, ctx),
     ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
 
     // …the new one works and forces a change…

@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { hashToken, verifyAccessToken, verifyRefreshToken } from '@/lib/auth/jwt';
+import { generateTempPassword } from '@/lib/auth/temp-password';
 import { verifyPassword } from '@/lib/auth/password';
 import {
   LOCKOUT_MINUTES,
@@ -15,7 +16,22 @@ import type { AppError } from '@/lib/errors';
 import { auditActionsFor, createTestUser, resetAuthTables, testDb } from './helpers/db';
 
 const ctx = { ipAddress: '203.0.113.7' };
-const PASSWORD = 'Shopfloor7';
+/*
+ * Generated per run, not written down. A fixture credential in a test file is
+ * still a credential in the repository, and this one is attached to accounts
+ * the suite really signs in as.
+ */
+const PASSWORD = generateTempPassword();
+
+/**
+ * A test user whose password is the one this file signs in with.
+ *
+ * `createTestUser` generates its own when none is given — there is no fixture
+ * credential in this repository — so a file that logs in has to say which value
+ * it means.
+ */
+const createUser: typeof createTestUser = (options = {}) =>
+  createTestUser({ password: PASSWORD, ...options });
 
 beforeEach(async () => {
   await resetAuthTables();
@@ -32,7 +48,7 @@ afterAll(async () => {
 
 describe('login', () => {
   it('issues a usable token pair and records LOGIN_SUCCESS with the IP', async () => {
-    const user = await createTestUser({ email: 'md@jaraaglobal.com', role: 'MD' });
+    const user = await createUser({ email: 'md@jaraaglobal.com', role: 'MD' });
 
     const result = await login(
       { email: 'md@jaraaglobal.com', password: PASSWORD, rememberDevice: false },
@@ -62,7 +78,7 @@ describe('login', () => {
   });
 
   it('is case-insensitive on the email, via the shared schema', async () => {
-    await createTestUser({ email: 'md@jaraaglobal.com' });
+    await createUser({ email: 'md@jaraaglobal.com' });
     // The Zod schema lowercases before the service sees it.
     await expect(
       login({ email: 'md@jaraaglobal.com', password: PASSWORD, rememberDevice: false }, ctx),
@@ -70,7 +86,7 @@ describe('login', () => {
   });
 
   it('stamps lastLoginAt and clears the failure counter', async () => {
-    const user = await createTestUser({ failedLoginCount: 3 });
+    const user = await createUser({ failedLoginCount: 3 });
 
     await login({ email: user.email, password: PASSWORD, rememberDevice: false }, ctx);
 
@@ -81,7 +97,7 @@ describe('login', () => {
   });
 
   it('extends the refresh token to 30 days when the device is remembered', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
 
     const session = await login(
       { email: user.email, password: PASSWORD, rememberDevice: false },
@@ -97,7 +113,7 @@ describe('login', () => {
   });
 
   it('returns mustChangePassword so the client can force the redirect', async () => {
-    const user = await createTestUser({ mustChangePassword: true });
+    const user = await createUser({ mustChangePassword: true });
 
     const result = await login(
       { email: user.email, password: PASSWORD, rememberDevice: false },
@@ -111,7 +127,7 @@ describe('login', () => {
   });
 
   it('gives the same message for an unknown email and a wrong password', async () => {
-    await createTestUser({ email: 'known@jaraaglobal.com' });
+    await createUser({ email: 'known@jaraaglobal.com' });
 
     const unknown = await login(
       { email: 'nobody@jaraaglobal.com', password: PASSWORD, rememberDevice: false },
@@ -119,7 +135,7 @@ describe('login', () => {
     ).catch((e: AppError) => e);
 
     const wrongPassword = await login(
-      { email: 'known@jaraaglobal.com', password: 'WrongPass1', rememberDevice: false },
+      { email: 'known@jaraaglobal.com', password: generateTempPassword(), rememberDevice: false },
       ctx,
     ).catch((e: AppError) => e);
 
@@ -138,7 +154,7 @@ describe('login', () => {
   });
 
   it('refuses a deactivated account without deleting its history (FR-70)', async () => {
-    const user = await createTestUser({ isActive: false });
+    const user = await createUser({ isActive: false });
 
     await expect(
       login({ email: user.email, password: PASSWORD, rememberDevice: false }, ctx),
@@ -156,8 +172,9 @@ describe('login', () => {
 
 describe('account lockout', () => {
   it('locks after exactly 5 failures and records ACCOUNT_LOCKED', async () => {
-    const user = await createTestUser();
-    const bad = { email: user.email, password: 'WrongPass1', rememberDevice: false };
+    const user = await createUser();
+    // Generated, so it is certainly not the password this user was given.
+    const bad = { email: user.email, password: generateTempPassword(), rememberDevice: false };
 
     for (let attempt = 1; attempt <= MAX_FAILED_LOGINS - 1; attempt++) {
       await login(bad, ctx).catch(() => undefined);
@@ -181,7 +198,7 @@ describe('account lockout', () => {
   });
 
   it('rejects the correct password while the lock is live', async () => {
-    const user = await createTestUser({
+    const user = await createUser({
       failedLoginCount: MAX_FAILED_LOGINS,
       lockedUntil: new Date(Date.now() + 10 * 60_000),
     });
@@ -196,7 +213,7 @@ describe('account lockout', () => {
   });
 
   it('lets the correct password through once the lock has expired', async () => {
-    const user = await createTestUser({
+    const user = await createUser({
       failedLoginCount: MAX_FAILED_LOGINS,
       lockedUntil: new Date(Date.now() - 60_000),
     });
@@ -217,7 +234,7 @@ describe('account lockout', () => {
 
 describe('refresh token rotation', () => {
   it('exchanges a refresh token for a new pair in the same family', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
     const session = await login(
       { email: user.email, password: PASSWORD, rememberDevice: false },
       ctx,
@@ -242,7 +259,7 @@ describe('refresh token rotation', () => {
   });
 
   it('detects reuse and revokes the whole family', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
     const session = await login(
       { email: user.email, password: PASSWORD, rememberDevice: false },
       ctx,
@@ -270,7 +287,7 @@ describe('refresh token rotation', () => {
   });
 
   it('does not promote a 12-hour session into a 30-day one on rotation', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
     const session = await login(
       { email: user.email, password: PASSWORD, rememberDevice: false },
       ctx,
@@ -281,7 +298,7 @@ describe('refresh token rotation', () => {
   });
 
   it('preserves a remembered 30-day session across rotation', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
     const session = await login(
       { email: user.email, password: PASSWORD, rememberDevice: true },
       ctx,
@@ -298,7 +315,7 @@ describe('refresh token rotation', () => {
   });
 
   it('rejects rotation for a user deactivated since sign-in', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
     const session = await login(
       { email: user.email, password: PASSWORD, rememberDevice: false },
       ctx,
@@ -318,7 +335,7 @@ describe('refresh token rotation', () => {
 
 describe('logout', () => {
   it('revokes the family so the refresh token cannot be reused', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
     const session = await login(
       { email: user.email, password: PASSWORD, rememberDevice: false },
       ctx,
@@ -343,10 +360,10 @@ describe('logout', () => {
 // ---------------------------------------------------------------------------
 
 describe('changePassword', () => {
-  const NEW_PASSWORD = 'Machined9x';
+  const NEW_PASSWORD = generateTempPassword();
 
   it('replaces the hash, clears mustChangePassword and audits the change', async () => {
-    const user = await createTestUser({ mustChangePassword: true });
+    const user = await createUser({ mustChangePassword: true });
 
     const result = await changePassword(
       user.id,
@@ -369,7 +386,7 @@ describe('changePassword', () => {
   });
 
   it('revokes every other session but keeps this device signed in', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
 
     const phone = await login({ email: user.email, password: PASSWORD, rememberDevice: true }, ctx);
     const desktop = await login(
@@ -396,13 +413,13 @@ describe('changePassword', () => {
   });
 
   it('rejects a wrong current password and audits the attempt', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
 
     await expect(
       changePassword(
         user.id,
         {
-          currentPassword: 'WrongPass1',
+          currentPassword: generateTempPassword(),
           newPassword: NEW_PASSWORD,
           confirmPassword: NEW_PASSWORD,
         },
@@ -414,7 +431,7 @@ describe('changePassword', () => {
   });
 
   it('rejects a new password that breaks policy, including the blocklist', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
 
     await expect(
       changePassword(
@@ -430,7 +447,7 @@ describe('changePassword', () => {
   });
 
   it('rejects reusing the current password', async () => {
-    const user = await createTestUser();
+    const user = await createUser();
 
     await expect(
       changePassword(
@@ -442,7 +459,7 @@ describe('changePassword', () => {
   });
 
   it('clears an active lockout, so the MD can rescue a locked user', async () => {
-    const user = await createTestUser({
+    const user = await createUser({
       failedLoginCount: 5,
       lockedUntil: new Date(Date.now() + 10 * 60_000),
     });

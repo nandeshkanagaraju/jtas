@@ -2,6 +2,7 @@ import { Client } from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { login } from '@/lib/services/auth';
+import { generateTempPassword } from '@/lib/auth/temp-password';
 
 import { workerSchemaName } from './setup';
 import { auditActionsFor, createTestUser, resetAuthTables, testDb } from './helpers/db';
@@ -17,7 +18,18 @@ import { auditActionsFor, createTestUser, resetAuthTables, testDb } from './help
  */
 
 const ctx = { ipAddress: '198.51.100.1' };
-const PASSWORD = 'Shopfloor7';
+/** Generated per run — no credential literal lives in this repository. */
+const PASSWORD = generateTempPassword();
+
+/**
+ * A test user whose password is the one this file signs in with.
+ *
+ * `createTestUser` generates its own when none is given — there is no fixture
+ * credential in this repository — so a file that logs in has to say which value
+ * it means.
+ */
+const createUser: typeof createTestUser = (options = {}) =>
+  createTestUser({ password: PASSWORD, ...options });
 
 beforeEach(async () => {
   await resetAuthTables();
@@ -46,7 +58,7 @@ describe('connection target', () => {
   });
 
   it('writes to that schema and nowhere else', async () => {
-    const user = await createTestUser({ email: 'schema-check@jaraaglobal.com' });
+    const user = await createUser({ email: 'schema-check@jaraaglobal.com' });
 
     const client = new Client({ connectionString: process.env.DATABASE_URL });
     await client.connect();
@@ -128,11 +140,11 @@ describe('independence from ambient state', () => {
   });
 
   it('produces the same result whether or not the database is dirty', async () => {
-    const user = await createTestUser({ email: 'dirty-check@jaraaglobal.com' });
+    const user = await createUser({ email: 'dirty-check@jaraaglobal.com' });
 
     // Junk inside the worker's own schema too: audit rows for other entities,
     // other users, and spare refresh tokens.
-    const noise = await createTestUser({ email: 'noise@jaraaglobal.com' });
+    const noise = await createUser({ email: 'noise@jaraaglobal.com' });
     for (let i = 0; i < 30; i++) {
       await testDb.auditLog.create({
         data: {
@@ -159,7 +171,7 @@ describe('independence from ambient state', () => {
   it('survives residue left by a previous, interrupted run', async () => {
     // Simulate a half-finished run: a user with the same address a later test
     // will create, plus a stale locked account and orphaned tokens.
-    const stale = await createTestUser({
+    const stale = await createUser({
       email: 'interrupted@jaraaglobal.com',
       failedLoginCount: 5,
       lockedUntil: new Date(Date.now() + 60 * 60_000),
@@ -182,7 +194,7 @@ describe('independence from ambient state', () => {
     expect(await testDb.refreshToken.count()).toBe(0);
 
     // And a fresh flow behaves exactly as it would on a virgin database.
-    const user = await createTestUser({ email: 'interrupted@jaraaglobal.com' });
+    const user = await createUser({ email: 'interrupted@jaraaglobal.com' });
     await login({ email: user.email, password: PASSWORD, rememberDevice: false }, ctx);
     expect(await auditActionsFor(user.id)).toEqual(['LOGIN_SUCCESS']);
   });

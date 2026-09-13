@@ -9,32 +9,42 @@ import {
   passwordStrength,
   verifyPassword,
 } from '@/lib/auth/password';
+import { generateTempPassword } from '@/lib/auth/temp-password';
 import { AppError } from '@/lib/errors';
+
+/*
+ * Generated per run. The invalid and blocklisted fixtures below stay literal —
+ * 'abcdefgh' and 'password1' are the input a rule is being tested against, not
+ * credentials, and generating them would delete the assertion.
+ */
+const VALID = generateTempPassword();
+const OTHER = generateTempPassword();
 
 describe('hashPassword / verifyPassword', () => {
   it('produces a bcrypt hash at the cost SDD 8.1 requires', async () => {
-    const hash = await hashPassword('Jaraa@2026');
+    const hash = await hashPassword(VALID);
     // $2a$12$... — the cost is encoded in the hash itself.
     expect(hash).toMatch(/^\$2[aby]\$12\$/);
     expect(BCRYPT_COST).toBe(12);
   });
 
   it('verifies a correct password', async () => {
-    const hash = await hashPassword('Jaraa@2026');
-    await expect(verifyPassword('Jaraa@2026', hash)).resolves.toBe(true);
+    const hash = await hashPassword(VALID);
+    await expect(verifyPassword(VALID, hash)).resolves.toBe(true);
   });
 
   it('rejects a wrong password, including case differences', async () => {
-    const hash = await hashPassword('Jaraa@2026');
-    await expect(verifyPassword('jaraa@2026', hash)).resolves.toBe(false);
+    const hash = await hashPassword(VALID);
+    await expect(verifyPassword(VALID.toLowerCase(), hash)).resolves.toBe(false);
+    await expect(verifyPassword(OTHER, hash)).resolves.toBe(false);
     await expect(verifyPassword('', hash)).resolves.toBe(false);
   });
 
   it('salts, so the same password hashes differently every time', async () => {
-    const [a, b] = await Promise.all([hashPassword('Jaraa@2026'), hashPassword('Jaraa@2026')]);
+    const [a, b] = await Promise.all([hashPassword(VALID), hashPassword(VALID)]);
     expect(a).not.toBe(b);
-    await expect(verifyPassword('Jaraa@2026', a)).resolves.toBe(true);
-    await expect(verifyPassword('Jaraa@2026', b)).resolves.toBe(true);
+    await expect(verifyPassword(VALID, a)).resolves.toBe(true);
+    await expect(verifyPassword(VALID, b)).resolves.toBe(true);
   });
 
   it('denies access rather than throwing on a corrupted or empty hash', async () => {
@@ -45,8 +55,8 @@ describe('hashPassword / verifyPassword', () => {
 
 describe('checkPasswordPolicy', () => {
   it('accepts a password meeting every rule', () => {
-    expect(checkPasswordPolicy('Shopfloor7').valid).toBe(true);
-    expect(checkPasswordPolicy('Jaraa@2026').valid).toBe(true);
+    expect(checkPasswordPolicy(VALID).valid).toBe(true);
+    expect(checkPasswordPolicy(OTHER).valid).toBe(true);
   });
 
   it('rejects anything shorter than 8 characters', () => {
@@ -83,7 +93,7 @@ describe('checkPasswordPolicy', () => {
   it('matches the blocklist case-insensitively', () => {
     expect(isCommonPassword('PASSWORD1')).toBe(true);
     expect(isCommonPassword('Qwerty123')).toBe(true);
-    expect(isCommonPassword('Shopfloor7')).toBe(false);
+    expect(isCommonPassword(VALID)).toBe(false);
   });
 
   it('rejects a password longer than 128 characters', () => {
@@ -93,7 +103,7 @@ describe('checkPasswordPolicy', () => {
 
 describe('assertPasswordPolicy', () => {
   it('is silent for a valid password', () => {
-    expect(() => assertPasswordPolicy('Shopfloor7')).not.toThrow();
+    expect(() => assertPasswordPolicy(VALID)).not.toThrow();
   });
 
   it('throws VALIDATION_ERROR listing every problem under the field name', () => {

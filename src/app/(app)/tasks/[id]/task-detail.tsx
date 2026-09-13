@@ -19,6 +19,9 @@ import { changeSubtaskStatusRequest, type SubtaskDto } from '@/lib/api/subtasks-
 import { cn } from '@/lib/utils';
 import { formatIST } from '@/lib/utils/time';
 
+import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
+import { CommentThread } from '@/components/collaboration/comment-thread';
+
 import { ExtensionPanel } from './extension-panel';
 import { TaskStatusAlerts } from './task-status-alerts';
 
@@ -26,6 +29,10 @@ export interface TaskPermissions {
   updateStatus: boolean;
   raiseProblem: boolean;
   requestExtension: boolean;
+  /** M10: anyone on the job may ask a question here. */
+  comment: boolean;
+  /** M10: only the person accountable for the subtask puts files on it (FR-34). */
+  attach: boolean;
 }
 
 export function TaskDetail({
@@ -33,9 +40,11 @@ export function TaskDetail({
   permissions,
   initialAction,
   extensionRequests,
+  currentUserId,
 }: {
   subtask: SubtaskDto;
   permissions: TaskPermissions;
+  currentUserId: string;
   /** From the `?action=` deep link the M7 emails use (improvement I-14). */
   initialAction: 'complete' | 'problem' | null;
   extensionRequests: ExtensionRequestDto[];
@@ -267,7 +276,6 @@ export function TaskDetail({
         />
       ) : null}
 
-      {/* Typed slots M10 fills. */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Comments and files</CardTitle>
@@ -275,7 +283,20 @@ export function TaskDetail({
             Drawings, inspection reports and the back-and-forth on this task.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">Coming in M10.</CardContent>
+        <CardContent className="space-y-6">
+          <AttachmentPanel
+            jobId={subtask.jobId}
+            subtaskId={subtask.id}
+            canUpload={permissions.attach}
+            canDelete={permissions.attach}
+          />
+
+          <CommentThread
+            subtaskId={subtask.id}
+            currentUserId={currentUserId}
+            canComment={permissions.comment}
+          />
+        </CardContent>
       </Card>
     </div>
   );

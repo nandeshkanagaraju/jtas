@@ -74,12 +74,16 @@ export default async function TaskPage({
     updateStatus: can(session, 'subtask:updateStatus', resource),
     raiseProblem: can(session, 'problem:raise', resource),
     requestExtension: can(session, 'subtask:requestExtension', resource),
+    // M10: commenting is scoped to the job, attaching to the subtask.
+    comment: can(session, 'comment:create', resource),
+    attach: can(session, 'attachment:create', resource),
   };
 
   const extensionRequests = permissions.requestExtension ? await listExtensionRequests(id) : [];
 
   return (
     <TaskDetail
+      currentUserId={session.id}
       subtask={{
         ...subtask,
         deadline: subtask.deadline.toISOString(),

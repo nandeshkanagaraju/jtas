@@ -39,6 +39,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
 
   return (
     <JobDetail
+      currentUserId={session.id}
       job={{
         ...job,
         overallDeadline: job.overallDeadline.toISOString(),

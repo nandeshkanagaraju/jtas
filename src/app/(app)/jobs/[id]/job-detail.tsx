@@ -24,6 +24,8 @@ import type { CreateJobInput } from '@/lib/validation/job';
 
 import { JobHeader, type JobPermissions } from './job-header';
 import { ReasonDialog } from './reason-dialog';
+import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
+
 import { ActivityPanel } from './activity-panel';
 import { SubtaskPanel } from './subtask-panel';
 
@@ -37,7 +39,15 @@ const FROZEN_AFTER_PUBLISH = (
   ['partNumber', 'drawingNumber', 'quantity', 'overallDeadline'] as const
 ).filter((field) => !(EDITABLE_AFTER_PUBLISH as readonly string[]).includes(field));
 
-export function JobDetail({ job, permissions }: { job: JobRowDto; permissions: JobPermissions }) {
+export function JobDetail({
+  job,
+  permissions,
+  currentUserId,
+}: {
+  job: JobRowDto;
+  permissions: JobPermissions;
+  currentUserId: string;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
@@ -153,7 +163,27 @@ export function JobDetail({ job, permissions }: { job: JobRowDto; permissions: J
         onJobChanged={() => router.refresh()}
       />
 
-      {permissions.viewAudit ? <ActivityPanel jobId={job.id} /> : null}
+      <Card>
+        <CardContent className="pt-6">
+          {/* The customer drawing and the PO belong to the job, not to any one
+              department's step (build spec M10.4). */}
+          <AttachmentPanel
+            jobId={job.id}
+            jobLevelOnly
+            title="Job files"
+            canUpload={permissions.edit}
+            canDelete={permissions.edit}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Everyone on the job sees the story; only MD and ADMIN get the link
+          to the forensic view (SDD 6.3). */}
+      <ActivityPanel
+        jobId={job.id}
+        currentUserId={currentUserId}
+        canViewAudit={permissions.viewAudit}
+      />
 
       <ReasonDialog
         open={holdOpen}

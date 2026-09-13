@@ -90,6 +90,9 @@ export default async function TaskPage({
         dependsOn: subtask.dependsOn
           ? { ...subtask.dependsOn, deadline: subtask.dependsOn.deadline.toISOString() }
           : null,
+        openProblem: subtask.openProblem
+          ? { ...subtask.openProblem, createdAt: subtask.openProblem.createdAt.toISOString() }
+          : null,
       }}
       permissions={permissions}
       initialAction={action === 'complete' || action === 'problem' ? action : null}

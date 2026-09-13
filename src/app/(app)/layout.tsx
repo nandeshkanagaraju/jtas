@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
 
 import { AppHeader } from '@/components/shared/app-header';
+import type { NavItem } from '@/components/shared/main-nav';
 import { Toaster } from '@/components/ui/sonner';
+import { can } from '@/lib/auth/policy';
+import { listProblems } from '@/lib/services/problems';
 import { getSession } from '@/lib/auth/session';
 
 /**
@@ -13,9 +16,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect('/login');
   if (session.mustChangePassword) redirect('/change-password');
 
+  const nav = await buildNav(session);
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <AppHeader name={session.name} email={session.email} role={session.role} />
+      <AppHeader name={session.name} email={session.email} role={session.role} nav={nav} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
 
       {/*
@@ -25,4 +30,44 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Toaster position="bottom-center" richColors closeButton />
     </div>
   );
+}
+
+/**
+ * The links this user gets, and the problem count beside one of them.
+ *
+ * The count is loaded here rather than by the header so it is server-rendered
+ * with the page — an MD should see the queue length in the first paint, not
+ * after a round trip.
+ */
+async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSession>>>) {
+  const nav: NavItem[] = [];
+
+  if (can(session, 'dashboard:md', undefined)) {
+    nav.push({ href: '/dashboard', label: 'Dashboard', icon: 'jobs' });
+  }
+
+  // Every role that can see a job at all gets the jobs list; it scopes itself.
+  if (session.role !== 'ADMIN') {
+    nav.push({ href: '/jobs', label: 'Jobs', icon: 'jobs' });
+  }
+
+  if (can(session, 'dashboard:md', undefined)) {
+    const { counts } = await listProblems({ open: true });
+    nav.push({
+      href: '/problems',
+      label: 'Problems',
+      icon: 'problems',
+      badge: counts.open + counts.acknowledged,
+      // Red once anything has been waiting a day (PDD section 12).
+      badgeUrgent: counts.stale > 0,
+    });
+  }
+
+  nav.push({ href: '/my-tasks', label: 'My tasks', icon: 'my-tasks' });
+
+  if (can(session, 'user:view', undefined)) {
+    nav.push({ href: '/users', label: 'Users', icon: 'users' });
+  }
+
+  return nav;
 }

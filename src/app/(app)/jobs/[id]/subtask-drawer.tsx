@@ -126,6 +126,19 @@ export function SubtaskDrawer({
 
           <SubtaskFacts subtask={subtask} />
 
+          {subtask.openProblem ? (
+            <Alert>
+              <AlertTitle>
+                {subtask.openProblem.severity.charAt(0) +
+                  subtask.openProblem.severity.slice(1).toLowerCase()}{' '}
+                problem reported
+              </AlertTitle>
+              <AlertDescription className="whitespace-pre-wrap">
+                {subtask.openProblem.description}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           {subtask.exceedsJobDeadline ? (
             <Alert>
               <AlertDescription>This deadline is after the job&rsquo;s own.</AlertDescription>

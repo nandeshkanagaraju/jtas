@@ -1,6 +1,6 @@
 'use client';
 
-import { Ban, CircleAlert, Lock } from 'lucide-react';
+import { Ban, CircleAlert, Lock, TriangleAlert } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import type { SubtaskDto } from '@/lib/api/subtasks-client';
@@ -113,6 +113,18 @@ export function SubtaskTimeline({
                   </span>
 
                   <span className="block truncate font-medium">{subtask.title}</span>
+
+                  {/*
+                    M6.4: an amber marker the moment a problem is open on this
+                    band, with the member's first words — the MD should see that
+                    something is stuck without opening anything.
+                  */}
+                  {subtask.openProblem ? (
+                    <span className="text-state-problem flex items-start gap-1 text-xs">
+                      <TriangleAlert className="mt-0.5 size-3 shrink-0" />
+                      <span className="line-clamp-1">{subtask.openProblem.description}</span>
+                    </span>
+                  ) : null}
 
                   <span className="text-muted-foreground block text-xs">
                     {subtask.assignee.name}

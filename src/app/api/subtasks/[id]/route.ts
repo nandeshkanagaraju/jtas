@@ -9,7 +9,7 @@ import { getSubtask, loadSubtaskForWrite, updateSubtaskMeta } from '@/lib/servic
 import { clientIp } from '@/lib/utils/request';
 import { updateSubtaskSchema } from '@/lib/validation/subtask';
 
-import { subtaskResource } from '../subtask-resource';
+import { subtaskResource, subtaskViewResource } from '../subtask-resource';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,9 @@ export async function GET(request: Request, context: RouteContext) {
     const { id } = await context.params;
 
     const subtask = await getSubtask(session, id);
-    assertCan(session, 'subtask:view', subtaskResource(subtask));
+    // The view resource carries the job's participants, which is what lets a
+    // member read a sibling department's subtask read-only.
+    assertCan(session, 'subtask:view', await subtaskViewResource(subtask));
 
     return ok({ subtask });
   })(request);

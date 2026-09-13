@@ -5,6 +5,38 @@ One section per module, newest first.
 
 ---
 
+## M9 — Governance: settings, calendar, audit
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| A settings cache shared between processes | The cache is per-process with a 60-second TTL, so the worker can be up to a minute behind a change the app made. No setting here needs to be consistent to the second, and the alternative is a message bus for a table of fifteen rows. | A reminder scheduled in the first minute after a change may use the old lead time. |
+| Rolling back a setting from the audit log | The log records `before` and `after` for every change, but there is no "restore" button. | Somebody has to read the old value and retype it. The value is in the log, so nothing is lost. |
+| Per-department working hours | SDD §3.4 defines one company-wide window. | None for Phase 1 — one shop, one shift pattern. |
+| Recurring holidays | Each year's list is imported as dates. Diwali moves; Republic Day does not, and encoding which is which is a calendar library's problem. | The annual list is pasted once a year. The CSV import exists so that takes a minute. |
+| Editing a holiday's name in place | Remove and re-add. | Trivial. |
+| Template versioning | Editing a template replaces its steps. Jobs already created are untouched, but there is no record of what the template looked like when a given job was made. | An old job's layout cannot be traced back to the template revision that produced it. The audit row records the step count and name, not the chain. |
+| Restoring an archived template through the UI | `setTemplateActive(id, true)` exists in the service; only the archive direction is wired to a button. | An archived template needs a database change to come back. |
+| Failing the app's boot on a bad configuration | The worker exits; the app logs loudly and starts. A process that refuses to start serves nothing — including the /settings screen somebody needs to fix the value. | A misconfiguration is visible in the logs rather than fatal. Deliberate. |
+
+### What M9 changed outside its own files
+
+- **`reminder.default_lead_minutes` was orphaned.** The setting existed, `/settings` could
+  change it, and `loadDefaultReminderLeadMinutes()` was written in M7 — but nothing called
+  it. `reminderLeadSchema` carried `.default(360)`, which resolves at the request boundary,
+  so the operator's value could never reach a subtask. The schema is now `.optional()` and
+  the services fall back to the configured default. This is the module's first acceptance
+  criterion, and it did not hold until this was fixed.
+- **The settings cache made direct table writes invisible.** Anything that writes `Setting`
+  without going through `updateSettings` — which is every test that needs a non-default
+  value — is now read through a cache. `resetAuthTables()` invalidates it, and three M7
+  working-hours tests that had been passing by reading the table directly needed it.
+- **The test harness never applied a new migration.** `tests/integration/setup.ts` skipped
+  `migrate deploy` as soon as it found any applied migration, so adding a column left every
+  worker schema stale. Fixed in the M8 follow-ups; worth recording because the failure mode
+  — eight unrelated tests failing on a column that exists — is thoroughly misleading.
+
+---
+
 ## Citation audit (2026-09-14)
 
 A claim in the M8 notes attributed a design decision to "PDD §12", which does not

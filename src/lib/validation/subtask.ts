@@ -41,13 +41,20 @@ const titleSchema = z
   .min(3, 'Give the subtask a title of at least 3 characters.')
   .max(200, 'Use at most 200 characters.');
 
-/** 15 minutes to 30 days, in minutes. Stored per subtask (FR-21, I-09). */
+/**
+ * 15 minutes to 30 days, in minutes. Stored per subtask (FR-21, I-09).
+ *
+ * Optional rather than defaulted to 360. A default here would resolve before
+ * the service ever sees the request, so `reminder.default_lead_minutes` — the
+ * setting an operator changes on /settings — could never take effect. Omitted
+ * means "use the configured default"; a number means this subtask overrides it.
+ */
 const reminderLeadSchema = z.coerce
   .number()
   .int()
   .min(15, 'Give at least 15 minutes of warning.')
   .max(43_200, 'That is more than 30 days.')
-  .default(360);
+  .optional();
 
 /**
  * One subtask as the wizard and the API express it.

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, History, ListTodo } from 'lucide-react';
+import { ArrowLeft, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -24,6 +24,7 @@ import type { CreateJobInput } from '@/lib/validation/job';
 
 import { JobHeader, type JobPermissions } from './job-header';
 import { ReasonDialog } from './reason-dialog';
+import { ActivityPanel } from './activity-panel';
 import { SubtaskPanel } from './subtask-panel';
 
 /** Converts a stored UTC instant back into the naive IST value the form edits. */
@@ -152,21 +153,7 @@ export function JobDetail({ job, permissions }: { job: JobRowDto; permissions: J
         onJobChanged={() => router.refresh()}
       />
 
-      {/* Filled in by M9. */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <History className="size-4" />
-            Activity
-          </CardTitle>
-          <CardDescription>
-            Every status change, deadline change and decision, with who and when.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">
-          Coming in M9. Every action on this job is already being recorded.
-        </CardContent>
-      </Card>
+      {permissions.viewAudit ? <ActivityPanel jobId={job.id} /> : null}
 
       <ReasonDialog
         open={holdOpen}

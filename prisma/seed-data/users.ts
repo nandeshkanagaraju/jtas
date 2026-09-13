@@ -7,6 +7,16 @@
  * plain text — a constant in a file that ships with the repository and appears
  * in design documents is a published credential.
  */
+/**
+ * The MD and the Production member can be pointed at real mailboxes for
+ * testing, so escalations and assignments can be read where they would really
+ * land. Kept in the environment rather than in this file: these are the
+ * go-live accounts, and a personal address committed here would ship to the
+ * client and end up in the design documents.
+ */
+const MD_EMAIL = process.env.SEED_MD_EMAIL?.trim() || 'md@jaraaglobal.com';
+const MEMBER_EMAIL = process.env.SEED_MEMBER_EMAIL?.trim() || 'production@jaraaglobal.com';
+
 export interface SeedUser {
   name: string;
   email: string;
@@ -15,7 +25,7 @@ export interface SeedUser {
 }
 
 export const SEED_USERS: SeedUser[] = [
-  { name: 'Managing Director', email: 'md@jaraaglobal.com', role: 'MD', departmentCode: null },
+  { name: 'Managing Director', email: MD_EMAIL, role: 'MD', departmentCode: null },
   { name: 'System Admin', email: 'admin@jaraaglobal.com', role: 'ADMIN', departmentCode: null },
   {
     name: 'Planning Member',
@@ -37,7 +47,7 @@ export const SEED_USERS: SeedUser[] = [
   },
   {
     name: 'Production Member',
-    email: 'production@jaraaglobal.com',
+    email: MEMBER_EMAIL,
     role: 'MEMBER',
     departmentCode: 'PRODUCTION',
   },

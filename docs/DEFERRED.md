@@ -5,6 +5,36 @@ One section per module, newest first.
 
 ---
 
+## M8 — Dashboards, scorecards and exports
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| PDF for list exports | `type=jobs\|subtasks\|problems` are Excel only. A PDF of two thousand subtask rows is not a document anybody reads, and generating one would be the slowest thing in the application. PDF is offered where it makes sense — a single job report, which is the thing that gets printed and filed. | None. The route says so in its refusal rather than silently producing a 400-page file. |
+| Scheduled report delivery | SDD §5.4 covers the daily digest; nothing in the spec asks for a monthly scorecard by email. | The MD has to open the page. They already do, for the problem inbox. |
+| Drill-through from a scorecard cell | Department names link to the department view; the individual numbers do not. | A reader who wants the 43 completed subtasks behind a cell has to filter the subtask export. |
+| Per-assignee scorecards | SDD §7 scores departments, and PDD §12 warns that individual league tables turn an accountability system into a blame system. Deliberate. | None — this is a product decision, not an omission. |
+| Cursor paging on the exports | Capped at 5,000 rows per export (`EXPORT_ROW_LIMIT`). At the shop's volume that is roughly two years of subtasks. | An export silently stops at 5,000. Worth revisiting before it can be reached. |
+| Materialised aggregates | Everything is computed live. At 500 jobs / 3,000 subtasks the whole dashboard is ~11 ms of PostgreSQL, so a cache would be complexity buying nothing. | None yet. Revisit an order of magnitude up. |
+
+### Notes on the metric definitions
+
+- **"On time" is defined once**, in `src/lib/domain/metrics.ts`, and the SQL aggregates
+  are asserted against it in `tests/integration/analytics-service.test.ts`. The dashboard
+  and the Excel export agreeing is not a coincidence to be maintained by hand.
+- **The stored `deadline` is the one in force at completion.** `changeDeadline` refuses a
+  subtask that is already COMPLETED or CANCELLED, so no deadline move can land after
+  `completedAt`. `deadlineInForceAt()` implements the rollback anyway, and its test is
+  what keeps that guard honest — without it, extending a deadline after the fact would
+  retroactively turn a late task into an on-time one.
+- **`onTimePercent` is `null`, not 0, when nothing has completed.** A department that has
+  finished nothing has no record; calling it 0% would rank it below one that is genuinely
+  missing deadlines. The table, the chart and the sort all handle the null case.
+- **Extensions are reported beside the rate, never folded into it** (improvement I-11).
+  A department at 100% having moved nine deadlines is a different story from one at 100%
+  having moved none, and the scorecard shows both numbers side by side.
+
+---
+
 ## M7 — The notification engine
 
 | Deferred | Why | Production risk if never done |

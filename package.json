@@ -26,6 +26,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:reset": "tsx --env-file-if-exists=.env scripts/db-reset.ts",
+    "user:reset-password": "tsx --env-file-if-exists=.env scripts/reset-password.ts",
     "seed": "prisma db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

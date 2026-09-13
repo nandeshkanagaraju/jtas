@@ -14,6 +14,8 @@
  * tests pass identically against a freshly reset database and a dirty one.
  */
 import { execFileSync } from 'node:child_process';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { config } from 'dotenv';
 import { Client } from 'pg';
@@ -43,8 +45,12 @@ const schemaUrl = withSchema(testDatabaseUrl, schema);
 /**
  * Creates the worker's schema and applies migrations into it.
  *
- * Skipped when the schema already carries every migration, which keeps repeat
- * runs fast — the check is one query against `_prisma_migrations`.
+ * Skipped only when the schema already carries *every* migration on disk. An
+ * earlier version skipped as soon as it found any, so adding a migration left
+ * every worker schema stale and the whole suite ran against yesterday's tables
+ * — which surfaced as "the column isDemo does not exist" in eight tests that
+ * had nothing to do with each other. `migrate deploy` is idempotent, so the
+ * worst case of getting this wrong is a redundant run.
  */
 async function ensureWorkerSchema(): Promise<void> {
   const client = new Client({ connectionString: testDatabaseUrl });
@@ -61,7 +67,7 @@ async function ensureWorkerSchema(): Promise<void> {
       )
       .catch(() => null);
 
-    if (applied && Number(applied.rows[0]?.count ?? 0) > 0) return;
+    if (applied && Number(applied.rows[0]?.count ?? 0) >= migrationsOnDisk()) return;
   } finally {
     await client.end();
   }
@@ -70,6 +76,13 @@ async function ensureWorkerSchema(): Promise<void> {
     env: { ...process.env, DATABASE_URL: schemaUrl },
     stdio: 'pipe',
   });
+}
+
+/** How many migrations the repository holds. */
+function migrationsOnDisk(): number {
+  return readdirSync(join(process.cwd(), 'prisma/migrations'), { withFileTypes: true }).filter(
+    (entry) => entry.isDirectory(),
+  ).length;
 }
 
 /** Ensures the `_test` database itself exists before a schema is added to it. */

@@ -101,6 +101,11 @@ afterAll(async () => {
  * sees rather than about the file's length.
  */
 function pdfText(body: Buffer): string {
+  return inflatedStreams(body).map(decodeHexRunsInStream).join('');
+}
+
+/** Every deflated content stream in a PDF, as latin1 text. */
+function inflatedStreams(body: Buffer): string[] {
   const parts: string[] = [];
   const marker = Buffer.from('stream');
   const end = Buffer.from('endstream');
@@ -113,7 +118,6 @@ function pdfText(body: Buffer): string {
     const stop = body.indexOf(end, start);
     if (stop === -1) break;
 
-    // Skip `stream` and the EOL that must follow it.
     let from = start + marker.length;
     while (from < stop && (body[from] === 0x0d || body[from] === 0x0a)) from++;
 
@@ -126,15 +130,16 @@ function pdfText(body: Buffer): string {
     cursor = stop + end.length;
   }
 
-  /*
-   * pdfkit writes each run as a hex string inside a kerned TJ array —
-   * `[<4a6172...> 120 <41532097...>] TJ` — so the words are neither in the raw
-   * bytes nor in parenthesised literals. Decoding every hex run in drawing
-   * order reassembles the page as a reader sees it.
-   */
-  const runs = parts.join('\n').match(/<([0-9a-fA-F\s]+)>/g) ?? [];
+  return parts;
+}
 
-  return runs
+/**
+ * pdfkit writes each run as a hex string inside a kerned TJ array —
+ * `[<4a6172...> 120 <41532097...>] TJ` — so the words are neither in the raw
+ * bytes nor in parenthesised literals.
+ */
+function decodeHexRuns(source: string): string {
+  return (source.match(/<([0-9a-fA-F\s]+)>/g) ?? [])
     .map((run) => {
       const hex = run.slice(1, -1).replace(/\s+/g, '');
       let text = '';
@@ -144,6 +149,35 @@ function pdfText(body: Buffer): string {
       return text;
     })
     .join('');
+}
+
+const decodeHexRunsInStream = (stream: string) => decodeHexRuns(stream);
+
+/**
+ * Text runs with their distance from the top of the page, in points.
+ *
+ * pdfkit flips the y-axis, so a run's `Tm` y subtracted from the page height is
+ * where a reader sees it. Needed because the footer once rendered *behind the
+ * letterhead* — present in the file, invisible on the page — which no
+ * text-only assertion could catch.
+ */
+function pdfRuns(body: Buffer): Array<{ text: string; fromTop: number; left: number }> {
+  const A4_HEIGHT = 841.89;
+  const runs: Array<{ text: string; fromTop: number; left: number }> = [];
+
+  for (const stream of inflatedStreams(body)) {
+    const pattern = /1 0 0 1 ([\d.]+) ([\d.]+) Tm[\s\S]*?\[([\s\S]*?)\] TJ/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = pattern.exec(stream)) !== null) {
+      const text = decodeHexRuns(match[3]);
+      if (text.trim()) {
+        runs.push({ text, left: Number(match[1]), fromTop: A4_HEIGHT - Number(match[2]) });
+      }
+    }
+  }
+
+  return runs;
 }
 
 /** Reads a workbook back, which only succeeds if the file is well-formed. */
@@ -294,6 +328,75 @@ describe('PDF export', () => {
     expect(text).toContain('Jaraa Global Engineering');
     expect(text).toContain('JGE-2026-0042');
     expect(text).toContain('Generated');
+  });
+
+  it('puts the generation stamp at the foot of the page, not behind the header', async () => {
+    const result = await buildExport({
+      type: 'job-report',
+      format: 'pdf',
+      range: MONTH,
+      filters: { jobId: job.id },
+      now: GENERATED_AT,
+    });
+
+    const runs = pdfRuns(result.body);
+    const stamp = runs.find((run) => run.text.startsWith('Generated'));
+    const pageNumber = runs.find((run) => run.text.startsWith('Page '));
+    const letterhead = runs.find((run) => run.text.includes('Jaraa Global Engineering'));
+
+    /*
+     * pdfkit reflows text placed past the bottom margin to the top of the page
+     * rather than clipping it, so the footer was once written into the
+     * letterhead — present in the file and invisible to a reader.
+     */
+    expect(stamp, 'no generation stamp').toBeDefined();
+    expect(pageNumber, 'no page number').toBeDefined();
+    expect(stamp!.fromTop).toBeGreaterThan(700);
+    expect(pageNumber!.fromTop).toBeGreaterThan(700);
+    expect(letterhead!.fromTop).toBeLessThan(100);
+  });
+
+  it('lays the subtask table out in columns, not a staircase', async () => {
+    const result = await buildExport({
+      type: 'job-report',
+      format: 'pdf',
+      range: MONTH,
+      filters: { jobId: job.id },
+      now: GENERATED_AT,
+    });
+
+    const headings = pdfRuns(result.body).filter((run) =>
+      ['DEPARTMENT', 'SUBTASK', 'ASSIGNEE', 'PLANNED', 'ACTUAL', 'DELAY'].includes(run.text.trim()),
+    );
+
+    expect(headings).toHaveLength(6);
+
+    // Every heading shares one baseline. Reading doc.y inside the loop stepped
+    // each one a line lower than the last.
+    const baselines = new Set(headings.map((run) => Math.round(run.fromTop)));
+    expect(baselines.size).toBe(1);
+  });
+
+  it('sets each fact label and its value in two columns', async () => {
+    const result = await buildExport({
+      type: 'job-report',
+      format: 'pdf',
+      range: MONTH,
+      filters: { jobId: job.id },
+      now: GENERATED_AT,
+    });
+
+    const runs = pdfRuns(result.body);
+    const label = runs.find((run) => run.text.trim() === 'Customer');
+    const value = runs.find((run) => run.text.includes('Ashok Leyland'));
+
+    expect(label, 'no Customer label').toBeDefined();
+    expect(value, 'no customer value').toBeDefined();
+
+    // Same line, two columns. `continued: true` ignored the width it was given
+    // and resumed immediately after the label — "CustomerAshok Leyland".
+    expect(Math.round(value!.fromTop)).toBe(Math.round(label!.fromTop));
+    expect(value!.left).toBeGreaterThan(label!.left + 60);
   });
 
   it('refuses a list as PDF, and says what to do instead', async () => {

@@ -22,6 +22,9 @@ const MARGIN = 40;
 const PAGE_WIDTH = 595.28; // A4 portrait, points
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 
+/** Room reserved at the foot of every page for the generation stamp. */
+const FOOTER_HEIGHT = 14;
+
 const INK = '#0f172a';
 const MUTED = '#64748b';
 const RULE = '#cbd5e1';
@@ -79,16 +82,30 @@ function header(doc: Doc, jobCode: string): void {
   doc.y = MARGIN + 50;
 }
 
-/** Draws the generation stamp at the foot of every page. */
+/**
+ * Draws the generation stamp at the foot of every page.
+ *
+ * Sits *inside* the bottom margin, not below it: pdfkit treats the margin as
+ * the edge of the flow area, and text placed past it is reflowed to the top of
+ * the page rather than clipped — which silently printed the footer behind the
+ * letterhead. `lineBreak: false` stops the two halves wrapping into each other.
+ */
 function footer(doc: Doc, generatedAt: Date, page: number): void {
-  const y = doc.page.height - MARGIN + 4;
+  const y = doc.page.height - MARGIN - FOOTER_HEIGHT;
 
   doc
     .font('Helvetica')
     .fontSize(8)
     .fillColor(MUTED)
-    .text(`Generated ${formatIST(generatedAt)} IST`, MARGIN, y, { width: CONTENT_WIDTH })
-    .text(`Page ${page}`, MARGIN, y, { width: CONTENT_WIDTH, align: 'right' });
+    .text(`Generated ${formatIST(generatedAt)} IST`, MARGIN, y, {
+      width: CONTENT_WIDTH,
+      lineBreak: false,
+    })
+    .text(`Page ${page}`, MARGIN, y, {
+      width: CONTENT_WIDTH,
+      align: 'right',
+      lineBreak: false,
+    });
 }
 
 function rule(doc: Doc, y: number): void {
@@ -124,15 +141,28 @@ function facts(doc: Doc, report: JobReport): void {
 
   doc.fontSize(9);
 
+  const LABEL_WIDTH = 110;
+
   for (const [label, value] of rows) {
-    doc
-      .font('Helvetica')
-      .fillColor(MUTED)
-      .text(label, MARGIN, doc.y, { width: 100, continued: true });
+    /*
+     * Two calls pinned to the same `top`, not one `continued: true` pair.
+     * `continued` resumes immediately where the previous run ended and ignores
+     * the width it was given, which ran every label into its value —
+     * "TitleBearing carrier ring".
+     */
+    const top = doc.y;
+    const height = Math.max(
+      doc.font('Helvetica-Bold').heightOfString(value, { width: CONTENT_WIDTH - LABEL_WIDTH }),
+      11,
+    );
+
+    doc.font('Helvetica').fillColor(MUTED).text(label, MARGIN, top, { width: LABEL_WIDTH });
     doc
       .font('Helvetica-Bold')
       .fillColor(INK)
-      .text(value, { width: CONTENT_WIDTH - 100 });
+      .text(value, MARGIN + LABEL_WIDTH, top, { width: CONTENT_WIDTH - LABEL_WIDTH });
+
+    doc.y = top + height + 2;
   }
 }
 
@@ -147,14 +177,18 @@ function table<T>(
   rows: readonly T[],
   state: { page: number; jobCode: string; generatedAt: Date },
 ): void {
-  const bottom = doc.page.height - MARGIN - 16;
+  const bottom = doc.page.height - MARGIN - FOOTER_HEIGHT - 8;
 
   const drawHeader = () => {
     let x = MARGIN;
+    // Captured once: every `text()` call advances `doc.y`, so reading it inside
+    // the loop stepped each heading a line lower than the last.
+    const top = doc.y;
+
     doc.font('Helvetica-Bold').fontSize(8).fillColor(MUTED);
 
     for (const column of columns) {
-      doc.text(column.header.toUpperCase(), x, doc.y, {
+      doc.text(column.header.toUpperCase(), x, top, {
         width: column.width,
         align: column.align ?? 'left',
         lineBreak: false,
@@ -162,7 +196,7 @@ function table<T>(
       x += column.width;
     }
 
-    doc.moveDown(0.4);
+    doc.y = top + 12;
     rule(doc, doc.y);
     doc.moveDown(0.3);
   };

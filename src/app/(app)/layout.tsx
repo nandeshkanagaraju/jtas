@@ -4,6 +4,7 @@ import { AppHeader } from '@/components/shared/app-header';
 import type { NavItem } from '@/components/shared/main-nav';
 import { Toaster } from '@/components/ui/sonner';
 import { can } from '@/lib/auth/policy';
+import { listNotifications } from '@/lib/notifications/notification-service';
 import { listProblems } from '@/lib/services/problems';
 import { getSession } from '@/lib/auth/session';
 
@@ -16,11 +17,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session) redirect('/login');
   if (session.mustChangePassword) redirect('/change-password');
 
-  const nav = await buildNav(session);
+  const [nav, inbox] = await Promise.all([
+    buildNav(session),
+    listNotifications(session.id, { unreadOnly: true, limit: 1 }),
+  ]);
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <AppHeader name={session.name} email={session.email} role={session.role} nav={nav} />
+      <AppHeader
+        name={session.name}
+        email={session.email}
+        role={session.role}
+        nav={nav}
+        unreadNotifications={inbox.unreadCount}
+      />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
 
       {/*

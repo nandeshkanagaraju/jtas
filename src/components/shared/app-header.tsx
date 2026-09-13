@@ -1,6 +1,7 @@
 import type { Role } from '@prisma/client';
 
 import { MainNav, type NavItem } from '@/components/shared/main-nav';
+import { NotificationBell } from '@/components/shared/notification-bell';
 import { SignOutButton } from '@/components/shared/sign-out-button';
 import { Badge } from '@/components/ui/badge';
 
@@ -23,11 +24,13 @@ export function AppHeader({
   email,
   role,
   nav,
+  unreadNotifications,
 }: {
   name: string;
   email: string;
   role: Role;
   nav: NavItem[];
+  unreadNotifications: number;
 }) {
   return (
     <header className="bg-card sticky top-0 z-10 border-b">
@@ -45,6 +48,7 @@ export function AppHeader({
           <Badge variant="secondary" className="hidden shrink-0 xl:inline-flex">
             {ROLE_LABELS[role]}
           </Badge>
+          <NotificationBell initialUnread={unreadNotifications} />
           <SignOutButton />
         </div>
       </div>

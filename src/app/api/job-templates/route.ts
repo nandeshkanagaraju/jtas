@@ -1,19 +1,33 @@
 /**
- * GET /api/job-templates — the chains the job wizard can prefill from (FR-11).
+ * GET/POST /api/job-templates — build spec M9.5.
  *
- * MD and Deputy only: templates exist to create jobs, which is their capability.
+ * Reading is open to anyone who can create a job; writing is MD and ADMIN,
+ * because a template decides how every future job is laid out.
  */
-import { handler, ok } from '@/lib/api/respond';
-import { assertCan } from '@/lib/auth/policy';
+import { handler, ok, parseJson } from '@/lib/api/respond';
+import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
-import { listJobTemplates } from '@/lib/services/job-template-service';
+import { forbidden } from '@/lib/errors';
+import { createTemplate, listJobTemplates } from '@/lib/services/templates';
+import { clientIp } from '@/lib/utils/request';
+import { templateSchema } from '@/lib/validation/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const GET = handler(async () => {
-  const session = await requireActiveSession(['MD', 'DEPUTY_MD']);
-  assertCan(session, 'job:create', undefined);
-
+  await requireActiveSession();
   return ok({ data: await listJobTemplates() });
+});
+
+export const POST = handler(async (request) => {
+  const session = await requireActiveSession();
+  if (!can(session, 'settings:manage', undefined)) throw forbidden();
+
+  const body = await parseJson(request, templateSchema);
+
+  return ok(
+    { data: await createTemplate(body, session, { ipAddress: clientIp(request) }) },
+    { status: 201 },
+  );
 });

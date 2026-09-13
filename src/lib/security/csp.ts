@@ -28,6 +28,30 @@ export function generateNonce(): string {
 }
 
 /**
+ * The object-storage origin, so uploads and thumbnails are not blocked.
+ *
+ * M10 sends files straight from the browser to the bucket through a presigned
+ * PUT and reads image previews back through a presigned GET. Both are
+ * cross-origin, so `connect-src 'self'` blocks the upload and `img-src 'self'`
+ * blocks the thumbnail — silently, as a console warning, which is how this was
+ * found only when a real file was dragged in.
+ *
+ * Derived from `S3_ENDPOINT` rather than hard-coded: the origin differs between
+ * the local MinIO and whatever the production bucket is, and a wildcard would
+ * give back most of what the policy is for.
+ */
+function storageOrigin(): string {
+  const endpoint = process.env.S3_ENDPOINT;
+  if (!endpoint) return '';
+
+  try {
+    return new URL(endpoint).origin;
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Assembles the policy.
  *
  * Development adds `'unsafe-eval'`, which the Next dev server's hot reloader
@@ -35,6 +59,7 @@ export function generateNonce(): string {
  */
 export function buildContentSecurityPolicy(nonce: string): string {
   const isDevelopment = process.env.NODE_ENV !== 'production';
+  const storage = storageOrigin();
 
   return [
     "default-src 'self'",
@@ -44,8 +69,8 @@ export function buildContentSecurityPolicy(nonce: string): string {
     // weaker primitive than script injection, so this is the accepted trade.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob:",
-    "connect-src 'self'",
+    `img-src 'self' data: blob:${storage ? ` ${storage}` : ''}`,
+    `connect-src 'self'${storage ? ` ${storage}` : ''}`,
     "form-action 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

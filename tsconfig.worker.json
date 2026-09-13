@@ -1,9 +1,19 @@
 {
+  // The worker is a plain Node process run by tsx, not a Next build.
+  //
+  // `"jsx": "react-jsx"` is the load-bearing line. The base tsconfig sets
+  // "jsx": "preserve" because Next insists on doing the JSX transform itself;
+  // under tsx nothing does it, so esbuild falls back to the classic runtime and
+  // every React Email template dies on `ReferenceError: React is not defined`
+  // — which the sweeper reads as a transient send failure and retries until the
+  // row is FAILED. Without this, JTAS silently sends no email at all.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "bundler",
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   },
-  "include": ["worker/**/*.ts", "src/lib/**/*.ts"]
+  "include": ["worker/**/*.ts", "src/lib/**/*.ts", "src/lib/**/*.tsx"]
 }

@@ -6,6 +6,13 @@ import { defineConfig } from 'vitest/config';
  * `vitest.workspace.ts`; this file holds what both halves agree on.
  */
 export default defineConfig({
+  /*
+   * The base tsconfig sets "jsx": "preserve" for Next, which leaves esbuild on
+   * the classic runtime — and the React Email templates then fail to render
+   * with `React is not defined`. Declared here so the tests exercise the same
+   * automatic runtime the app and the worker use.
+   */
+  esbuild: { jsx: 'automatic' },
   resolve: {
     // Mirrors the `@/*` -> `./src/*` alias in tsconfig.json. Declared inline
     // rather than via a plugin so the config stays loadable as CJS.

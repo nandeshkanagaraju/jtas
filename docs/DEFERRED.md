@@ -5,6 +5,47 @@ One section per module, newest first.
 
 ---
 
+## M7 — The notification engine
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| WhatsApp and SMS channels | `NotifChannel` carries `WHATSAPP` and `SMS` and the channel registry takes a new channel in one `registerChannel()` call, but SDD §5 makes email the Phase 1 channel and no provider account exists. Every notification is queued with `channel: 'EMAIL'`. | Shop-floor members who do not read email miss reminders. The MD sees escalations either way. |
+| BullMQ queues | The stack lists BullMQ and Redis, and both are installed and running — but the sweeper claims work straight from Postgres with `FOR UPDATE SKIP LOCKED`, which is what SDD §5.2 actually describes. A second queue would be a second source of truth for the same rows, with its own way to lose them. Redis is still checked by `/api/health` so the dependency does not rot. | None. This is a deliberate simplification, not an omission. |
+| Per-user notification preferences | SDD §5 defines the types and who receives each; it defines no opt-out, and an accountability system whose alerts can be silenced by the person being chased is not one. | A member who wants fewer mails has no setting to change. |
+| Digest content beyond overdue / due today / open problems | SDD §5.4 specifies exactly these three lists. | None. |
+| A retry console | A `FAILED` row is visible through `/api/health` as a count and in the database, but there is no screen to inspect or requeue one. | Somebody has to look at the count and then at SQL. The count going up is at least loud. |
+| Timezone-aware quiet hours per user | Everyone is in Coimbatore; SDD §5.3 defines one working-hours window for the company. | None for Phase 1. |
+
+### Bugs this module surfaced in earlier work
+
+- **No email could ever have been sent.** The worker runs under `tsx`, which honours
+  `tsconfig.json` — and that file sets `"jsx": "preserve"` because Next insists on doing
+  the JSX transform itself. Nothing then transforms the React Email templates, so every
+  render threw `ReferenceError: React is not defined`, which the sweeper classifies as a
+  transient failure and retries until the row is `FAILED`. The app never hit it because
+  Next uses the automatic runtime. Fixed with `tsconfig.worker.json` (`"jsx": "react-jsx"`)
+  for the worker and `esbuild: { jsx: 'automatic' }` for Vitest, so both run the same
+  runtime as the app. Covered by `tests/integration/email-templates.test.ts`.
+- **`publishJob` trusted the caller's snapshot.** It checked `job.status !== 'DRAFT'` on
+  the row the route had read a moment earlier, so two people pressing Publish at the same
+  instant would both pass and the job would be initialised — and announced — twice. It now
+  claims the job with a conditional `updateMany(where: { id, status: 'DRAFT' })` inside the
+  transaction; the second caller matches nothing and gets the same error as if it had been
+  late by an hour.
+- **Opening a notification never marked it read.** The click both navigated and fired the
+  `POST /api/notifications/:id/read`, and the router tore the page down before the request
+  left — so the badge could only be cleared with "Mark all read". Now sent with
+  `keepalive: true`.
+- **The daily digest linked to a 404.** Its `entityId` is an IST date key rather than an id,
+  so routing by `entityType` produced `/jobs/2026-09-13`. `inboxLinkFor` now decides by type
+  first; covered by `tests/unit/inbox-links.test.ts`.
+- **The plain-text half of every mail was unreadable.** html-to-text's default flattens a
+  `<table>` into one run, turning each fact table into
+  `JobJGE-2026-0042Part / DrawingSH-4410DepartmentProduction`. Now rendered with the
+  `dataTable` formatter, and asserted per template.
+
+---
+
 ## M6 — Problem management
 
 | Deferred | Why | Production risk if never done |

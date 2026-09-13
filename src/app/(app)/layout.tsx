@@ -73,6 +73,12 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
     });
   }
 
+  // Reports is a commander's view of everybody's record — the same gate as the
+  // department scorecards it opens on. Admin exports through the API instead.
+  if (can(session, 'dashboard:department', undefined)) {
+    nav.push({ href: '/reports', label: 'Reports', icon: 'reports' });
+  }
+
   nav.push({ href: '/my-tasks', label: 'My tasks', icon: 'my-tasks' });
 
   if (can(session, 'user:view', undefined)) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Briefcase, ListTodo, Users } from 'lucide-react';
+import { AlertTriangle, BarChart3, Briefcase, ListTodo, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 export interface NavItem {
   href: string;
   label: string;
-  icon: 'jobs' | 'problems' | 'users' | 'my-tasks';
+  icon: 'jobs' | 'problems' | 'users' | 'my-tasks' | 'reports';
   /** Rendered as a count chip; omitted or zero shows nothing. */
   badge?: number;
   /** Draws the badge in red — used for problems older than a day. */
@@ -22,6 +22,7 @@ const ICONS = {
   problems: AlertTriangle,
   users: Users,
   'my-tasks': ListTodo,
+  reports: BarChart3,
 } as const;
 
 /**

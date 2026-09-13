@@ -446,3 +446,43 @@ describe('matrix completeness', () => {
     expect(ALL_ACTIONS).toHaveLength(35);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Read-only cross-department visibility (build spec M5.5, PDD 13 Q3)
+// ---------------------------------------------------------------------------
+
+describe('cross-department subtask visibility', () => {
+  /** A sibling subtask on a job the member participates in. */
+  const siblingSubtask: SubtaskResource = {
+    ...foreignSubtask,
+    jobParticipantIds: [member.id, 'user-someone-else'],
+  };
+
+  it('lets a member read a sibling department’s subtask on a job they are on', () => {
+    // Removes the phone call asking whether material has arrived.
+    expect(can(member, 'subtask:view', siblingSubtask)).toBe(true);
+    expect(can(member, 'comment:view', siblingSubtask)).toBe(true);
+    expect(can(member, 'attachment:view', siblingSubtask)).toBe(true);
+  });
+
+  it('grants viewing only — every action on a sibling subtask is still refused', () => {
+    expect(can(member, 'subtask:updateStatus', siblingSubtask)).toBe(false);
+    expect(can(member, 'problem:raise', siblingSubtask)).toBe(false);
+    expect(can(member, 'subtask:requestExtension', siblingSubtask)).toBe(false);
+    expect(can(member, 'comment:create', siblingSubtask)).toBe(false);
+    expect(can(member, 'subtask:changeDeadline', siblingSubtask)).toBe(false);
+  });
+
+  it('refuses a member who is not on the job at all', () => {
+    expect(can(otherMember, 'subtask:view', siblingSubtask)).toBe(false);
+  });
+
+  it('fails closed when the participant list was not supplied', () => {
+    // A caller that cannot cheaply load the list gets the narrow answer.
+    expect(can(member, 'subtask:view', foreignSubtask)).toBe(false);
+  });
+
+  it('still lets a member read their own subtask without the list', () => {
+    expect(can(member, 'subtask:view', ownSubtask)).toBe(true);
+  });
+});

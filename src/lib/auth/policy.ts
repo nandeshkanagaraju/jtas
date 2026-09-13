@@ -59,6 +59,15 @@ export interface SubtaskResource {
   jobId: string;
   assigneeId: string;
   departmentId: string;
+  /**
+   * User ids holding a subtask on the same job.
+   *
+   * Only `subtask:view` and its siblings consult it, and only for a member —
+   * everyone else is decided by role. Omitting it makes the decision
+   * ownership-only, which fails closed, so a caller that cannot cheaply load
+   * the list gets the narrow answer rather than a permissive one.
+   */
+  jobParticipantIds?: readonly string[];
 }
 
 export interface ProblemResource {
@@ -211,6 +220,15 @@ function participatesInJob(user: PolicySubject, job: JobResource): boolean {
   return job.createdById === user.id || job.participantIds.includes(user.id);
 }
 
+/**
+ * True when the user holds some other subtask on the same job.
+ *
+ * Fails closed when the caller did not supply the participant list.
+ */
+function participatesInSubtaskJob(user: PolicySubject, subtask: SubtaskResource): boolean {
+  return subtask.jobParticipantIds?.includes(user.id) ?? false;
+}
+
 // ---------------------------------------------------------------------------
 // The gate
 // ---------------------------------------------------------------------------
@@ -277,13 +295,16 @@ export function can<A extends Action>(
      * participates in. The second clause is the PDD section 13 question 3
      * recommendation — read-only visibility of sibling departments removes the
      * phone call asking whether material has arrived.
+     *
+     * Viewing is all it grants: every action on a sibling subtask is refused by
+     * the rules below, which check `ownsSubtask` rather than participation.
      */
     case 'subtask:view':
     case 'comment:view':
     case 'attachment:view': {
       const subtask = resource as SubtaskResource;
       if (isCommand(user) || user.role === 'ADMIN') return true;
-      return ownsSubtask(user, subtask);
+      return ownsSubtask(user, subtask) || participatesInSubtaskJob(user, subtask);
     }
 
     /**

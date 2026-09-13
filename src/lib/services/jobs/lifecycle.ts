@@ -40,6 +40,8 @@ const UNCANCELLABLE: readonly JobStatus[] = ['COMPLETED', 'CANCELLED'];
  * @throws {AppError} `INVALID_TRANSITION`, `VALIDATION_ERROR`
  */
 export async function publishJob(job: JobRow, actor: Actor, ctx: RequestContext): Promise<JobRow> {
+  // Checked here too so the common case fails fast with a good message, but
+  // the claim below is what actually makes publishing safe.
   if (job.status !== 'DRAFT') {
     throw invalidTransition(`${job.jobCode} is already published.`, {
       from: job.status,
@@ -59,11 +61,25 @@ export async function publishJob(job: JobRow, actor: Actor, ctx: RequestContext)
   const publishedAt = new Date();
 
   return prisma.$transaction(async (tx) => {
-    await tx.job.update({
-      where: { id: job.id },
+    /*
+     * Claim the job by moving it out of DRAFT conditionally, rather than
+     * trusting the `job` the caller read a moment ago. Two people pressing
+     * Publish at the same instant both arrive here holding a DRAFT snapshot;
+     * the second update blocks on the row lock, re-reads, matches nothing and
+     * gets the same error as if it had been late by an hour. Without this the
+     * job would be initialised — and announced — twice.
+     */
+    const claimed = await tx.job.updateMany({
+      where: { id: job.id, status: 'DRAFT' },
       data: { status: 'IN_PROGRESS', publishedAt },
-      select: { id: true },
     });
+
+    if (claimed.count === 0) {
+      throw invalidTransition(`${job.jobCode} is already published.`, {
+        from: 'IN_PROGRESS',
+        to: 'IN_PROGRESS',
+      });
+    }
 
     await writeAudit(tx, {
       actorId: actor.id,

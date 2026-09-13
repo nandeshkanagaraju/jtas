@@ -52,6 +52,46 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
+  # S3-compatible object storage for attachments (M10). The production bucket
+  # is whatever S3_ENDPOINT points at; locally that is MinIO, so a developer
+  # exercises presigned PUT and GET rather than a filesystem stub that would
+  # hide every signing and expiry bug until deployment.
+  minio:
+    # quay.io, not Docker Hub: the docker.io/minio images are gated behind a
+    # login, which would make `docker compose up` fail on a fresh machine.
+    image: quay.io/minio/minio:latest
+    container_name: jtas-minio
+    restart: unless-stopped
+    command: server /data --console-address ':9001'
+    ports:
+      - '9000:9000' # S3 API
+      - '9001:9001' # Web console
+    environment:
+      MINIO_ROOT_USER: jtas
+      MINIO_ROOT_PASSWORD: jtas-local-dev
+    volumes:
+      - jtas-minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Creates the bucket once and exits. Without it the first upload fails with
+  # NoSuchBucket, which reads like a code fault rather than a setup step.
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: jtas-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 jtas jtas-local-dev; do sleep 1; done;
+      mc mb --ignore-existing local/jtas-attachments;
+      echo 'bucket ready';
+      "
+
 volumes:
   jtas-db-data:
   jtas-redis-data:
+  jtas-minio-data:

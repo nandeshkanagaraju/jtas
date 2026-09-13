@@ -76,6 +76,10 @@ enum NotifType {
   APPROVAL_REQUIRED
   JOB_COMPLETED
   DAILY_DIGEST_MD
+  /// M10: somebody wrote your name in a comment. In-app only — a mention is
+  /// a nudge, not an escalation, and mailing every one would make the mail
+  /// that does matter harder to see.
+  COMMENT_MENTION
 }
 
 enum NotifChannel {
@@ -311,8 +315,17 @@ model Attachment {
   uploadedById String
   createdAt    DateTime @default(now())
 
+  /// Soft delete (build spec M10.5, architecture rule 6).
+  ///
+  /// Additive to SDD section 3.3. A drawing removed from a job is part of why
+  /// the job was built the way it was; the row and the object both stay, and
+  /// every query filters on this instead.
+  deletedAt    DateTime?
+  deletedById  String?
+
   @@index([jobId])
   @@index([subtaskId])
+  @@index([deletedAt])
 }
 
 // ---------------------------------------------------------------------------

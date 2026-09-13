@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "NotifType" ADD VALUE 'COMMENT_MENTION';

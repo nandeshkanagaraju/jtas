@@ -11,6 +11,7 @@
 import { prisma } from '@/lib/db/prisma';
 import { conflict, notFound, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
+import { notifyExtensionRequested } from '@/lib/services/notification-service';
 import { changeDeadline } from '@/lib/services/subtasks';
 import type { Actor, RequestContext } from '@/lib/services/subtasks';
 import { formatIST, fromISTInput } from '@/lib/utils/time';
@@ -106,6 +107,9 @@ export async function requestExtension(
       },
       ipAddress: ctx.ipAddress,
     });
+
+    // FR-33: the MD hears about it rather than having to notice it.
+    await notifyExtensionRequested(tx, request.id);
 
     return toSummary(request);
   });

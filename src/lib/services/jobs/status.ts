@@ -10,6 +10,7 @@ import type { JobStatus } from '@prisma/client';
 import type { Db } from '@/lib/db/prisma';
 import { deriveJobStatus } from '@/lib/domain/job-status';
 import { writeAudit } from '@/lib/services/audit-service';
+import { notifyJobCompleted } from '@/lib/services/notification-service';
 
 import { toSubtaskSnapshots, type Actor, type RequestContext } from './types';
 
@@ -80,6 +81,12 @@ export async function recomputeJobStatus(
     after: { status: next },
     ipAddress: options.ctx?.ipAddress ?? null,
   });
+
+  // Told once, the first time a job closes: the dedupe key is the job id, so a
+  // later recompute cannot mail it again.
+  if (next === 'COMPLETED') {
+    await notifyJobCompleted(db, jobId);
+  }
 
   return { jobId, previous: job.status, current: next, changed: true };
 }

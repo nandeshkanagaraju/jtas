@@ -1,145 +1,107 @@
 /**
- * Notification scheduling — the seams M7 fills in.
+ * The seams M4 and M6 call, now backed by the real engine.
  *
- * The bodies are deliberately empty today. What matters now is that every place
- * which *must* schedule or cancel a notification already calls the right
- * function, inside the right transaction, with a fully typed payload. When M7
- * implements the bodies the engine switches on without a single caller
- * changing — and, more importantly, without anyone having to rediscover where
- * the calls belong.
+ * This file deliberately survived M7 rather than being deleted: every call site
+ * built in earlier modules already sits inside the right transaction, and
+ * keeping the same function names means switching the engine on changed no
+ * caller at all. The bodies simply stopped being no-ops.
  *
  * Every function takes a transaction client, because SDD section 5.1 schedules
- * at write time: the notification rows and the change that caused them must
- * commit together, or a published job could exist with nobody told about it.
+ * at write time — the notification rows and the change that caused them commit
+ * together, or a published job could exist with nobody told about it.
  */
-import type { NotifType, ProblemSeverity } from '@prisma/client';
+import type { ProblemSeverity } from '@prisma/client';
 
 import type { Db } from '@/lib/db/prisma';
-import { moduleLogger } from '@/lib/utils/logger';
-
-const log = moduleLogger('notifications');
-
-/**
- * What a queued notification needs to know.
- *
- * `dedupeKey` is the idempotency guarantee of SDD section 5.1 — the unique
- * index on it is what makes a restart mid-sweep harmless. Callers build it, not
- * the sweeper, because only the caller knows what makes this event distinct.
- */
-export interface EnqueueInput {
-  type: NotifType;
-  /** Recipients. One row per user, so each can be read and retried alone. */
-  userIds: readonly string[];
-  entityType: 'SUBTASK' | 'JOB' | 'PROBLEM';
-  entityId: string;
-  dedupeKey: string;
-  /** Absent means "as soon as the sweeper next runs". */
-  scheduledFor?: Date;
-  /** Typed context the M7 template renders from. */
-  payload: NotificationPayload;
-}
-
-/** The context each template needs, discriminated by the notification type. */
-export type NotificationPayload =
-  | { kind: 'SUBTASK'; subtaskId: string }
-  | {
-      kind: 'SUBTASK_REASSIGNED';
-      subtaskId: string;
-      previousAssigneeId: string;
-      nextAssigneeId: string;
-    }
-  | {
-      kind: 'DEADLINE_CHANGED';
-      subtaskId: string;
-      oldDeadline: Date;
-      newDeadline: Date;
-      reason: string;
-    }
-  | {
-      kind: 'PROBLEM_RAISED';
-      problemId: string;
-      subtaskId: string;
-      severity: ProblemSeverity;
-      description: string;
-    }
-  | {
-      kind: 'PROBLEM_RESOLVED';
-      problemId: string;
-      subtaskId: string;
-      action: string;
-      mdActionNote: string;
-    }
-  | { kind: 'JOB'; jobId: string };
-
-/**
- * The single entry point M7 implements.
- *
- * Everything below is a named wrapper over it, so that a caller expresses
- * *what happened* rather than assembling a dedupe key at the call site.
- */
-export async function enqueue(_db: Db, input: EnqueueInput): Promise<void> {
-  log.debug(
-    { type: input.type, entityId: input.entityId, recipients: input.userIds.length },
-    'enqueue: no-op until M7',
-  );
-}
+import {
+  approvalRequiredKey,
+  deadlineChangedKey,
+  extensionRequestedKey,
+  jobCompletedKey,
+  problemRaisedKey,
+  problemResolvedKey,
+  reassignedKey,
+} from '@/lib/notifications/dedupe';
+import {
+  cancelForSubtask,
+  enqueue,
+  rescheduleForSubtask as rescheduleImpl,
+  scheduleForSubtask as scheduleImpl,
+} from '@/lib/notifications/notification-service';
 
 /**
  * Schedules `SUBTASK_ASSIGNED` (now) and `DEADLINE_REMINDER`
- * (`deadline − reminderLeadMinutes`) for a subtask — SDD section 5.1.
+ * (`deadline − reminderLeadMinutes`) — SDD section 5.1.
  */
-export async function scheduleForSubtask(_db: Db, subtaskId: string): Promise<void> {
-  log.debug({ subtaskId }, 'scheduleForSubtask: no-op until M7');
+export async function scheduleForSubtask(db: Db, subtaskId: string): Promise<void> {
+  const subtask = await db.subtask.findUnique({
+    where: { id: subtaskId },
+    select: { id: true, assigneeId: true, deadline: true, reminderLeadMinutes: true },
+  });
+  if (!subtask) return;
+
+  await scheduleImpl(db, subtask);
+}
+
+/** Cancels pending rows and schedules fresh ones — SDD section 4.5. */
+export async function rescheduleForSubtask(db: Db, subtaskId: string): Promise<void> {
+  await rescheduleImpl(db, subtaskId);
 }
 
 /**
- * Cancels pending rows for a subtask and schedules fresh ones from the new
- * deadline — SDD section 4.5.
- *
- * The dedupe key includes the deadline epoch, so a new reminder row is created
- * naturally and the old one can never be resurrected.
- */
-export async function rescheduleForSubtask(_db: Db, subtaskId: string): Promise<void> {
-  log.debug({ subtaskId }, 'rescheduleForSubtask: no-op until M7');
-}
-
-/**
- * Deletes still-pending `DEADLINE_REMINDER` and `OVERDUE_*` rows for a subtask.
+ * Deletes still-pending rows for a subtask.
  *
  * Called when a subtask completes or is cancelled: chasing somebody for work
- * that is already done is exactly what destroys trust in the mails
- * (improvement I-05).
+ * that is already done is exactly what destroys trust in the mails (I-05).
  */
-export async function cancelPendingForSubtask(_db: Db, subtaskId: string): Promise<void> {
-  log.debug({ subtaskId }, 'cancelPendingForSubtask: no-op until M7');
+export async function cancelPendingForSubtask(db: Db, subtaskId: string): Promise<void> {
+  await cancelForSubtask(db, subtaskId);
 }
 
-/** Notifies the old and the new assignee of a reassignment (FR-24). */
+/** Tells the old and the new assignee about a reassignment (FR-24). */
 export async function notifyReassignment(
   db: Db,
   subtaskId: string,
   previousAssigneeId: string,
   nextAssigneeId: string,
 ): Promise<void> {
+  const at = new Date();
+
   await enqueue(db, {
     type: 'SUBTASK_REASSIGNED',
     userIds: [previousAssigneeId, nextAssigneeId],
     entityType: 'SUBTASK',
     entityId: subtaskId,
-    dedupeKey: `subtask:${subtaskId}:REASSIGNED:${nextAssigneeId}:${Date.now()}`,
-    payload: { kind: 'SUBTASK_REASSIGNED', subtaskId, previousAssigneeId, nextAssigneeId },
+    subject: 'A task has changed hands',
+    body: 'A subtask you are involved with has been reassigned.',
+    dedupeKeyFor: (userId) => reassignedKey(subtaskId, userId, at),
   });
 }
 
-/** Notifies the assignee that their deadline moved (FR-55 `DEADLINE_CHANGED`). */
-export async function notifyDeadlineChange(_db: Db, subtaskId: string): Promise<void> {
-  log.debug({ subtaskId }, 'notifyDeadlineChange: no-op until M7');
+/** Tells the assignee their deadline moved (FR-55). */
+export async function notifyDeadlineChange(db: Db, subtaskId: string): Promise<void> {
+  const subtask = await db.subtask.findUnique({
+    where: { id: subtaskId },
+    select: { assigneeId: true, deadline: true, title: true },
+  });
+  if (!subtask) return;
+
+  await enqueue(db, {
+    type: 'DEADLINE_CHANGED',
+    userIds: [subtask.assigneeId],
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: 'Your deadline has changed',
+    body: `The deadline for ${subtask.title} has been changed.`,
+    dedupeKeyFor: (userId) => deadlineChangedKey(subtaskId, subtask.deadline, userId),
+  });
 }
 
 /**
- * FR-40: an instant mail and in-app notification to the MD and every deputy the
- * moment a problem is raised. This is the hinge of the whole product — a
- * problem that reaches the MD late is one where the cost of recovery is highest.
+ * FR-40: an instant alert to the MD and every deputy.
+ *
+ * Never working-hour shifted — a blocker that waits until 9 AM has cost the
+ * factory a shift.
  */
 export async function notifyProblemRaised(
   db: Db,
@@ -156,15 +118,9 @@ export async function notifyProblemRaised(
     userIds: input.recipientIds,
     entityType: 'PROBLEM',
     entityId: input.problemId,
-    // One notification per problem per recipient, ever.
-    dedupeKey: `problem:${input.problemId}:RAISED`,
-    payload: {
-      kind: 'PROBLEM_RAISED',
-      problemId: input.problemId,
-      subtaskId: input.subtaskId,
-      severity: input.severity,
-      description: input.description,
-    },
+    subject: `${input.severity} problem reported`,
+    body: input.description,
+    dedupeKeyFor: (userId) => problemRaisedKey(input.problemId, userId),
   });
 }
 
@@ -184,27 +140,66 @@ export async function notifyProblemResolved(
     userIds: [input.assigneeId],
     entityType: 'PROBLEM',
     entityId: input.problemId,
-    dedupeKey: `problem:${input.problemId}:RESOLVED`,
-    payload: {
-      kind: 'PROBLEM_RESOLVED',
-      problemId: input.problemId,
-      subtaskId: input.subtaskId,
-      action: input.action,
-      mdActionNote: input.mdActionNote,
-    },
+    subject: 'The MD has dealt with your problem',
+    body: input.mdActionNote,
+    dedupeKeyFor: (userId) => problemResolvedKey(input.problemId, userId),
   });
 }
 
-/** Notifies the MD that a subtask is waiting for approval (FR-25). */
-export async function notifyApprovalRequired(_db: Db, subtaskId: string): Promise<void> {
-  log.debug({ subtaskId }, 'notifyApprovalRequired: no-op until M7');
+/** FR-25: the MD is told a subtask is waiting for approval. */
+export async function notifyApprovalRequired(db: Db, subtaskId: string): Promise<void> {
+  const recipients = await problemRecipientIds(db);
+  if (recipients.length === 0) return;
+
+  const at = new Date();
+
+  await enqueue(db, {
+    type: 'APPROVAL_REQUIRED',
+    userIds: recipients,
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: 'A task is waiting for your approval',
+    body: 'A member has marked a task completed and it needs your approval.',
+    dedupeKeyFor: (userId) => approvalRequiredKey(subtaskId, userId, at),
+  });
+}
+
+/** FR-33: the MD is told somebody asked for more time. */
+export async function notifyExtensionRequested(db: Db, extensionRequestId: string): Promise<void> {
+  const recipients = await problemRecipientIds(db);
+  if (recipients.length === 0) return;
+
+  await enqueue(db, {
+    type: 'EXTENSION_REQUESTED',
+    userIds: recipients,
+    entityType: 'SUBTASK',
+    entityId: extensionRequestId,
+    subject: 'Somebody has asked for more time',
+    body: 'A member has asked to move a deadline.',
+    dedupeKeyFor: (userId) => extensionRequestedKey(extensionRequestId, userId),
+  });
+}
+
+/** Tells the MD and deputies that a job finished. */
+export async function notifyJobCompleted(db: Db, jobId: string): Promise<void> {
+  const recipients = await problemRecipientIds(db);
+  if (recipients.length === 0) return;
+
+  await enqueue(db, {
+    type: 'JOB_COMPLETED',
+    userIds: recipients,
+    entityType: 'JOB',
+    entityId: jobId,
+    subject: 'A job is complete',
+    body: 'Every subtask on this job has been closed.',
+    dedupeKeyFor: (userId) => jobCompletedKey(jobId, userId),
+  });
 }
 
 /**
- * The MD and every deputy — who hears about a problem (FR-40).
+ * The MD and every active deputy.
  *
- * Loaded here rather than at each call site so the recipient rule has one
- * definition, and so M7 can extend it with `mail.md_recipients` without
+ * One definition, so M7 can later extend it with `mail.md_recipients` without
  * touching a caller.
  */
 export async function problemRecipientIds(db: Db): Promise<string[]> {
@@ -214,3 +209,5 @@ export async function problemRecipientIds(db: Db): Promise<string[]> {
   });
   return recipients.map((row) => row.id);
 }
+
+export { enqueue } from '@/lib/notifications/notification-service';

@@ -56,7 +56,11 @@ export type AuditAction =
   | 'PROBLEM_RAISED'
   | 'PROBLEM_ACKNOWLEDGED'
   | 'PROBLEM_RESOLVED'
-  | 'PROBLEM_REJECTED';
+  | 'PROBLEM_REJECTED'
+  // M7 — the notification engine. Written by the sweeper, which has no human
+  // actor, so these rows carry a null actorId.
+  | 'SUBTASK_OVERDUE_ESCALATED'
+  | 'DIGEST_SENT';
 
 export type AuditEntityType = 'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION';
 

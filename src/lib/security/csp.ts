@@ -76,6 +76,22 @@ export function buildContentSecurityPolicy(nonce: string): string {
   const sentry = sentryOrigin(process.env.NEXT_PUBLIC_SENTRY_DSN);
   const connect = ["'self'", storage, sentry].filter(Boolean).join(' ');
 
+  /*
+   * Whether the app is actually *served* over TLS — not whether this is a
+   * production build.
+   *
+   * `upgrade-insecure-requests` rewrites every subresource request to https.
+   * Behind Caddy that is exactly right. Served over plain http it is a
+   * self-inflicted outage: the browser asks for `https://localhost:3000/...`,
+   * nothing is listening there, and the page renders as bare HTML with no
+   * stylesheet and no JavaScript. Chrome exempts localhost and shows nothing
+   * wrong, which is how this survived a day of screenshots; Safari does not.
+   *
+   * It also contradicted `img-src http://localhost:9000` — the policy allowed
+   * the MinIO origin and then upgraded every request to it.
+   */
+  const servedOverTls = (process.env.APP_BASE_URL ?? '').startsWith('https:');
+
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDevelopment ? " 'unsafe-eval'" : ''}`,
@@ -91,6 +107,6 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "base-uri 'self'",
     "object-src 'none'",
     // Belt and braces with the HSTS header: no plain-HTTP subresources.
-    ...(isDevelopment ? [] : ['upgrade-insecure-requests']),
+    ...(servedOverTls ? ['upgrade-insecure-requests'] : []),
   ].join('; ');
 }

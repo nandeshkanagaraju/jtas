@@ -6,7 +6,12 @@ import { buildContentSecurityPolicy, generateNonce } from '@/lib/security/csp';
  * Every variable the policy reads, restored after each test — a leaked DSN or
  * endpoint makes these pass or fail depending on the order they ran in.
  */
-const VARIABLES = ['S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'NEXT_PUBLIC_SENTRY_DSN'] as const;
+const VARIABLES = [
+  'S3_ENDPOINT',
+  'S3_PUBLIC_ENDPOINT',
+  'NEXT_PUBLIC_SENTRY_DSN',
+  'APP_BASE_URL',
+] as const;
 
 const original = Object.fromEntries(VARIABLES.map((key) => [key, process.env[key]]));
 
@@ -119,5 +124,27 @@ describe('buildContentSecurityPolicy', () => {
     delete process.env.NEXT_PUBLIC_SENTRY_DSN;
 
     expect(directive(buildContentSecurityPolicy('n'), 'connect-src')).toBe("connect-src 'self'");
+  });
+
+  it('upgrades insecure requests only when the app is actually served over TLS', () => {
+    process.env.APP_BASE_URL = 'https://jtas.example.com';
+    expect(buildContentSecurityPolicy('n')).toContain('upgrade-insecure-requests');
+  });
+
+  it('does not upgrade insecure requests when the app is served over plain http', () => {
+    /*
+     * The directive rewrites every subresource to https. Over plain http that
+     * is a self-inflicted outage: the browser asks for
+     * `https://localhost:3000/...`, nothing answers, and the page renders as
+     * bare HTML with no stylesheet and no JavaScript. Chrome exempts localhost
+     * and shows nothing wrong; Safari does not, which is how it was found.
+     */
+    process.env.APP_BASE_URL = 'http://localhost:3000';
+    expect(buildContentSecurityPolicy('n')).not.toContain('upgrade-insecure-requests');
+  });
+
+  it('does not upgrade when there is no base URL to judge by', () => {
+    delete process.env.APP_BASE_URL;
+    expect(buildContentSecurityPolicy('n')).not.toContain('upgrade-insecure-requests');
   });
 });

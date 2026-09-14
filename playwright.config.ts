@@ -40,6 +40,18 @@ if (E2E_DATABASE_URL && !process.env.PW_SKIP_DB_SETUP) {
  */
 if (E2E_DATABASE_URL) process.env.DATABASE_URL = E2E_DATABASE_URL;
 
+/*
+ * Its own port.
+ *
+ * On 3000 Playwright reuses whatever is already listening — which, on a
+ * developer's machine, is their own `pnpm dev` pointed at `jtas_dev`. The suite
+ * then signs in against a database that has none of its fixtures, and every
+ * spec fails at the login step with "waiting for navigation", which says
+ * nothing whatever about the real cause.
+ */
+const E2E_PORT = 3101;
+const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
+
 /**
  * End-to-end configuration (SDD section 9). The suite drives a real build
  * against a seeded database, so it exercises middleware, route handlers and
@@ -71,7 +83,7 @@ export default defineConfig({
   expect: { timeout: 5_000 },
 
   use: {
-    baseURL: process.env.APP_BASE_URL ?? 'http://localhost:3000',
+    baseURL: E2E_BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // Assertions on rendered deadlines are written in IST, matching what a
@@ -84,10 +96,20 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     // The shop floor uses phones; the member flow must pass on one.
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    /*
+     * Safari, because Chrome is forgiving in ways that hide real bugs.
+     *
+     * `upgrade-insecure-requests` in the CSP shipped for a day looking
+     * perfectly fine: Chrome exempts localhost from it, Safari does not, and
+     * the page rendered as bare HTML with no stylesheet and no JavaScript for
+     * anybody on a Mac. Nothing in a Chromium-only suite could have caught it.
+     */
+    { name: 'safari', use: { ...devices['Desktop Safari'] } },
   ],
 
   webServer: {
-    command: 'pnpm build && pnpm start',
+    command: `pnpm build && pnpm start --port ${E2E_PORT}`,
+    url: `${E2E_BASE_URL}/api/health`,
     env: {
       ...process.env,
       // The app must read the same database the fixtures seeded.
@@ -99,9 +121,13 @@ export default defineConfig({
        * cause. The build under test must be a production build.
        */
       NODE_ENV: 'production',
+      // Where the app thinks it is. The CSP is derived from this — a mismatched
+      // value is how `upgrade-insecure-requests` ends up on a plain-http origin.
+      APP_BASE_URL: E2E_BASE_URL,
     } as Record<string, string>,
-    url: 'http://localhost:3000/api/health',
-    reuseExistingServer: !process.env.CI,
+    // Never reuse: the port is the suite's own, so anything already on it is
+    // a leftover from a killed run rather than something to adopt.
+    reuseExistingServer: false,
     timeout: 180_000,
   },
 });

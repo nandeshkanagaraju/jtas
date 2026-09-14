@@ -29,6 +29,8 @@
     "user:reset-password": "tsx --env-file-if-exists=.env scripts/reset-password.ts",
     "seed:demo": "tsx --env-file-if-exists=.env scripts/seed-demo.ts",
     "perf": "tsx --env-file-if-exists=.env scripts/perf-check.ts",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
     "seed": "prisma db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

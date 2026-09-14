@@ -2,8 +2,19 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 /**
- * Shared configuration. The suite is split into two projects by
- * `vitest.workspace.ts`; this file holds what both halves agree on.
+ * The whole test configuration.
+ *
+ * Two projects, because they have different needs:
+ *
+ *   unit        — pure, no database, no setup cost. Runs on any machine.
+ *   integration — needs PostgreSQL. Its setup file redirects DATABASE_URL to a
+ *                 per-worker schema inside the `_test` database, which is what
+ *                 keeps the suite independent of ambient state. Loading that
+ *                 setup for unit tests would make them fail wherever no
+ *                 database is running, for no benefit.
+ *
+ * Declared here rather than in a `vitest.workspace.ts`: Vitest 5 removed
+ * `defineWorkspace`, and projects now live inside `test`.
  */
 export default defineConfig({
   /*
@@ -19,6 +30,20 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   test: {
+    projects: [
+      {
+        extends: true,
+        test: { name: 'unit', include: ['tests/unit/**/*.test.ts'] },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'integration',
+          include: ['tests/integration/**/*.test.ts'],
+          setupFiles: ['tests/integration/setup.ts'],
+        },
+      },
+    ],
     globals: true,
     environment: 'node',
     // Asserts IST behaviour from a UTC process, exactly as production runs

@@ -6,3 +6,23 @@ allowBuilds:
   prisma: true
   sharp: false
   unrs-resolver: false
+
+# pnpm 11 reads overrides from here rather than from package.json.
+#
+# Each entry pins a transitive dependency to its patched version for an
+# advisory with no direct upgrade path — the vulnerable package is pulled in by
+# next, prisma, exceljs or vitest, and waiting for each of those to bump its own
+# lockfile would leave a known issue in the tree meanwhile.
+#
+# Review on every `pnpm audit`: an override that is no longer needed is an
+# override that pins a package *back* once upstream moves past it.
+overrides:
+  # ReDoS in the NodeJS parser. Pulled in by next.
+  postcss: '>=8.5.12'
+  # Dev-server request forwarding. Pulled in by vite.
+  esbuild: '>=0.25.0'
+  # Pulled in by exceljs.
+  uuid: '>=11.1.1'
+  # Prototype pollution. Pulled in by prisma's config loader.
+  deepmerge-ts: '>=8.0.0'
+  vite: '>=6.4.3'

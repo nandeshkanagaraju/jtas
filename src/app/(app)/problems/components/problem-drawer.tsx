@@ -69,6 +69,14 @@ export function ProblemDrawer({
   const [overrideReason, setOverrideReason] = useState('');
   const [busy, setBusy] = useState(false);
 
+  /*
+   * Acknowledging does not refresh the `problem` prop — the list behind the
+   * drawer refetches, but the selected row is a snapshot taken when it was
+   * clicked. Tracked here so "Mark as seen" disappears the moment it succeeds
+   * rather than sitting there inviting a second click.
+   */
+  const [seen, setSeen] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     setMode('resolve');
@@ -77,17 +85,25 @@ export function ProblemDrawer({
     setError(null);
     setOverrideField(null);
     setOverrideReason('');
+    setSeen(false);
   }, [open, problem?.id]);
 
   if (!problem) return null;
 
-  async function run(action: () => Promise<unknown>, message: string) {
+  /**
+   * Runs one action against the problem.
+   *
+   * `close` is false for acknowledging: it is a step on the way to a decision,
+   * not the decision, and dismissing the panel there makes the MD reopen it to
+   * do the thing they came for.
+   */
+  async function run(action: () => Promise<unknown>, message: string, close = true) {
     setBusy(true);
     setError(null);
     try {
       await action();
       onResolved(message);
-      onOpenChange(false);
+      if (close) onOpenChange(false);
     } catch (caught) {
       if (caught instanceof ApiError) {
         const details = caught.details as { requiresOverride?: string } | undefined;
@@ -174,12 +190,21 @@ export function ProblemDrawer({
             </div>
           </dl>
 
-          {problem.status === 'OPEN' ? (
+          {problem.status === 'OPEN' && !seen ? (
             <Button
               variant="outline"
               size="sm"
               disabled={busy}
-              onClick={() => run(() => acknowledgeProblemRequest(problem.id), 'Marked as seen.')}
+              onClick={() =>
+                run(
+                  async () => {
+                    await acknowledgeProblemRequest(problem.id);
+                    setSeen(true);
+                  },
+                  'Marked as seen.',
+                  false,
+                )
+              }
             >
               Mark as seen
             </Button>

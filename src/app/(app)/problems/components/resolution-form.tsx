@@ -99,8 +99,11 @@ export function ResolutionForm({
 
       {draft.action === 'EXTEND' ? (
         <div className="space-y-1.5">
-          <Label className="text-xs">New deadline (currently {currentDeadline})</Label>
+          <Label htmlFor="resolution-new-deadline" className="text-xs">
+            New deadline (currently {currentDeadline})
+          </Label>
           <IstDateTimePicker
+            id="resolution-new-deadline"
             value={draft.newDeadline ?? ''}
             onChange={(value) => set({ newDeadline: value })}
             disabled={busy}
@@ -209,8 +212,11 @@ export function ResolutionForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">By when</Label>
+            <Label htmlFor="resolution-escalation-deadline" className="text-xs">
+              By when
+            </Label>
             <IstDateTimePicker
+              id="resolution-escalation-deadline"
               value={draft.escalation?.deadline ?? ''}
               onChange={(value) => set({ escalation: { ...draft.escalation!, deadline: value } })}
               disabled={busy}

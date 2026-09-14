@@ -215,8 +215,11 @@ export function SubtaskBuilder({
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1.5 lg:col-span-2">
-                  <Label className="text-xs">Deadline (IST)</Label>
+                  <Label htmlFor={`subtask-deadline-${index}`} className="text-xs">
+                    Deadline (IST)
+                  </Label>
                   <IstDateTimePicker
+                    id={`subtask-deadline-${index}`}
                     value={row.deadline}
                     onChange={(value) => update(index, { deadline: value })}
                   />

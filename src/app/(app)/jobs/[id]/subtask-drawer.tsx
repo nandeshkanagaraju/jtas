@@ -200,8 +200,14 @@ export function SubtaskDrawer({
               }
             >
               <div className="space-y-1.5">
-                <Label className="text-xs">New deadline (IST)</Label>
-                <IstDateTimePicker value={newDeadline} onChange={setNewDeadline} />
+                <Label htmlFor="subtask-new-deadline" className="text-xs">
+                  New deadline (IST)
+                </Label>
+                <IstDateTimePicker
+                  id="subtask-new-deadline"
+                  value={newDeadline}
+                  onChange={setNewDeadline}
+                />
               </div>
             </ActionPanel>
           ) : null}

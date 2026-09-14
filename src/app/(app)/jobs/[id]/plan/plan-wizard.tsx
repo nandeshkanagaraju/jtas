@@ -82,9 +82,14 @@ export function PlanWizard({
           deadline,
           reminderLeadHours: Math.round(item.reminderLeadMinutes / 60),
           requiresApproval: false,
-          dependsOnKey: item.dependsOnItemOrder
-            ? (keyByOrder.get(item.dependsOnItemOrder) ?? null)
-            : null,
+          // `!= null`, not truthiness: order 0 is the first step of the
+          // template, and a step that waits for it would otherwise be applied
+          // with no predecessor at all — published as actionable on day one
+          // instead of BLOCKED, which is the whole point of the chain.
+          dependsOnKey:
+            item.dependsOnItemOrder != null
+              ? (keyByOrder.get(item.dependsOnItemOrder) ?? null)
+              : null,
         };
       }),
     );

@@ -107,10 +107,11 @@ export function ExtensionPanel({
         ) : open ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">
+              <Label htmlFor="extension-new-deadline" className="text-xs">
                 New deadline you need (currently {formatIST(new Date(currentDeadline))})
               </Label>
               <IstDateTimePicker
+                id="extension-new-deadline"
                 value={requestedDeadline}
                 onChange={setRequestedDeadline}
                 disabled={busy}

@@ -23,10 +23,14 @@ const nextConfig: NextConfig = {
 
   /*
    * A self-contained server bundle with only the node_modules it actually
-   * imports, so the runtime image is ~200 MB rather than ~1.5 GB and does not
-   * need pnpm or a lockfile inside it (SDD 10.2: a 2 vCPU / 4 GB VPS).
+   * imports, so the runtime image is ~290 MB rather than ~1.5 GB and needs
+   * neither pnpm nor a lockfile inside it (SDD 10.2: a 2 vCPU / 4 GB VPS).
+   *
+   * Opt-in rather than always on: `next start` refuses to serve a standalone
+   * build, so switching it on unconditionally breaks every local `pnpm start`
+   * — including the one the end-to-end suite runs. The Dockerfile sets it.
    */
-  output: 'standalone',
+  ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const } : {}),
 
   async headers() {
     return [

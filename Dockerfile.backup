@@ -1,0 +1,15 @@
+# The nightly backup container.
+#
+# postgres:16-alpine for pg_dump — the same major version as the database, so
+# the dump format cannot drift — plus the MinIO client copied from its own
+# image rather than downloaded at runtime. Fetching mc from dl.min.io at boot
+# looked tidier until that URL started answering 410 and every backup stopped
+# with no alert.
+FROM quay.io/minio/mc:latest AS mc
+
+FROM postgres:16-alpine
+COPY --from=mc /usr/bin/mc /usr/local/bin/mc
+RUN chmod +x /usr/local/bin/mc
+COPY scripts/backup.sh /usr/local/bin/backup.sh
+RUN chmod +x /usr/local/bin/backup.sh
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/backup.sh"]

@@ -47,6 +47,9 @@ COPY . .
 ARG NEXT_PUBLIC_SENTRY_DSN=""
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_TELEMETRY_DISABLED=1
+# Produces .next/standalone. Opt-in, because `next start` cannot serve it and
+# local development and the e2e suite both use `next start`.
+ENV NEXT_OUTPUT=standalone
 
 RUN pnpm exec prisma generate && pnpm build
 

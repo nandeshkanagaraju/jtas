@@ -13,14 +13,10 @@ AT="${BACKUP_AT_UTC:-19:30}"
 
 log() { echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') backup: $*"; }
 
-apk add --no-cache curl >/dev/null 2>&1 || true
-
-# The MinIO client, fetched once. Kept out of the image so the backup uses the
-# same postgres:16-alpine as the database and pg_dump versions cannot drift.
-if [ ! -x /usr/local/bin/mc ]; then
-  log "fetching mc"
-  curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-  chmod +x /usr/local/bin/mc
+# `mc` is baked into the image (Dockerfile.backup) rather than fetched at boot.
+if ! command -v mc >/dev/null 2>&1; then
+  log "FATAL: mc is not in the image"
+  exit 1
 fi
 
 until mc alias set store "http://minio:9000" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do

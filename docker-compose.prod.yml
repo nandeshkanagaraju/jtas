@@ -175,7 +175,10 @@ services:
   # A sidecar rather than a host cron job, so the backup ships with the stack
   # and cannot be forgotten when the VPS is rebuilt.
   backup:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    image: jtas-backup:${JTAS_VERSION:-latest}
     restart: unless-stopped
     environment:
       PGUSER: ${POSTGRES_USER}
@@ -187,9 +190,6 @@ services:
       BACKUP_BUCKET: ${BACKUP_BUCKET:-jtas-backups}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
       BACKUP_AT_UTC: ${BACKUP_AT_UTC:-19:30} # 01:00 IST
-    volumes:
-      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
-    entrypoint: ['/bin/sh', '/usr/local/bin/backup.sh']
     depends_on:
       db:
         condition: service_healthy

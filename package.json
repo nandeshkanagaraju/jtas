@@ -28,6 +28,7 @@
     "db:reset": "tsx --env-file-if-exists=.env scripts/db-reset.ts",
     "user:reset-password": "tsx --env-file-if-exists=.env scripts/reset-password.ts",
     "seed:demo": "tsx --env-file-if-exists=.env scripts/seed-demo.ts",
+    "perf": "tsx --env-file-if-exists=.env scripts/perf-check.ts",
     "seed": "prisma db seed",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

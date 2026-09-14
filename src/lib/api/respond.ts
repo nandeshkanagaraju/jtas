@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import { ZodError, type TypeOf, type ZodTypeAny } from 'zod';
 
 import { AppError, isAppError, validationError } from '@/lib/errors';
-import { moduleLogger } from '@/lib/utils/logger';
+import { moduleLogger, REQUEST_ID_HEADER, requestIdFrom } from '@/lib/utils/logger';
 
 const log = moduleLogger('api');
 
@@ -28,7 +28,10 @@ export function noContent(): NextResponse {
  * a bug: it is logged with its stack and replaced with a generic 500, so an
  * internal detail never reaches the browser.
  */
-export function toErrorResponse(error: unknown): NextResponse {
+export function toErrorResponse(
+  error: unknown,
+  context: Record<string, unknown> = {},
+): NextResponse {
   if (isAppError(error)) {
     return NextResponse.json(error.toBody(), {
       status: error.status,
@@ -37,13 +40,26 @@ export function toErrorResponse(error: unknown): NextResponse {
   }
 
   if (error instanceof ZodError) {
-    return toErrorResponse(zodToAppError(error));
+    return toErrorResponse(zodToAppError(error), context);
   }
 
-  log.error({ err: error }, 'unhandled error in route handler');
+  /*
+   * `err` is serialised by pino's error serialiser — message, stack, cause —
+   * and the redaction list in lib/utils/logger censors anything secret that
+   * rides along on a custom property. The request body is never passed in.
+   */
+  log.error({ err: error, ...context }, 'unhandled error in route handler');
 
   return NextResponse.json(
-    { error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' } },
+    {
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Something went wrong. Please try again.',
+        // The id the operator needs to find this exact failure in the log, and
+        // nothing about what went wrong — that stays server-side.
+        ...(context.requestId ? { details: { requestId: context.requestId } } : {}),
+      },
+    },
     { status: 500 },
   );
 }
@@ -101,15 +117,34 @@ export function parseQuery<S extends ZodTypeAny>(url: URL, schema: S): TypeOf<S>
 /**
  * Wraps a route handler so every thrown `AppError` becomes the documented
  * envelope and every unexpected throw becomes a logged 500.
+ *
+ * Also stamps a request id on the response and on anything logged while the
+ * handler runs (build spec M11.4), so a 500 in the aggregator can be joined to
+ * the authorisation check and the query that preceded it.
  */
 export function handler<Args extends unknown[]>(
   fn: (request: Request, ...args: Args) => Promise<NextResponse>,
 ) {
   return async (request: Request, ...args: Args): Promise<NextResponse> => {
+    const requestId = requestIdFrom(request.headers);
+    const startedAt = Date.now();
+
     try {
-      return await fn(request, ...args);
+      const response = await fn(request, ...args);
+      response.headers.set(REQUEST_ID_HEADER, requestId);
+      return response;
     } catch (error) {
-      return toErrorResponse(error);
+      const response = toErrorResponse(error, {
+        requestId,
+        method: request.method,
+        // The path only. A query string carries ids, filters and — on the
+        // attachment routes — a presigned signature.
+        path: new URL(request.url).pathname,
+        durationMs: Date.now() - startedAt,
+      });
+
+      response.headers.set(REQUEST_ID_HEADER, requestId);
+      return response;
     }
   };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { deadlineLabel } from '@/lib/utils/relative-time';
+import { completionLabel, deadlineLabel } from '@/lib/utils/relative-time';
 
 const NOW = new Date('2026-09-13T10:00:00Z');
 const at = (offsetHours: number) => new Date(NOW.getTime() + offsetHours * 3_600_000);
@@ -39,5 +39,33 @@ describe('deadlineLabel', () => {
   it('never reports "0 min"', () => {
     // A deadline one second away still reads as a minute, not as nothing.
     expect(deadlineLabel(new Date(NOW.getTime() + 1_000), NOW).text).toBe('in 1 min');
+  });
+});
+
+describe('completionLabel', () => {
+  const deadline = new Date('2026-09-14T12:00:00Z');
+
+  it('calls finished-before-the-deadline early, not late', () => {
+    // The bug this exists to stop: `deadlineLabel` measures from now, so a job
+    // completed two days early but whose deadline has since passed was shown
+    // in red as "6 days late" while the dashboard counted it as on time.
+    const label = completionLabel(deadline, new Date('2026-09-12T12:00:00Z'));
+
+    expect(label.text).toBe('finished 2 days early');
+    expect(label.overdue).toBe(false);
+    expect(label.tone).toBe('normal');
+  });
+
+  it('calls finished-after-the-deadline late, however long ago it was', () => {
+    const label = completionLabel(deadline, new Date('2026-09-15T18:00:00Z'));
+
+    expect(label.text).toBe('finished 30 h late');
+    expect(label.overdue).toBe(true);
+    expect(label.tone).toBe('overdue');
+  });
+
+  it('treats finishing exactly on the deadline as on time', () => {
+    // The same boundary the on-time metric uses: completedAt <= deadline.
+    expect(completionLabel(deadline, deadline).overdue).toBe(false);
   });
 });

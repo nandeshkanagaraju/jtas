@@ -2,7 +2,7 @@ import type { JobStatus, Priority } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { deadlineLabel, type DeadlineTone } from '@/lib/utils/relative-time';
+import { completionLabel, deadlineLabel, type DeadlineTone } from '@/lib/utils/relative-time';
 import { formatIST } from '@/lib/utils/time';
 
 /**
@@ -69,16 +69,19 @@ const TONE_CLASS: Record<DeadlineTone, string> = {
  */
 export function DeadlineCell({
   deadline,
+  completedAt,
   className,
   compact,
 }: {
   deadline: string;
+  /** Set once the work is finished, which changes what the label measures. */
+  completedAt?: string | null;
   className?: string;
   /** One line instead of two, for the phone layout where space is the constraint. */
   compact?: boolean;
 }) {
   const date = new Date(deadline);
-  const label = deadlineLabel(date);
+  const label = completedAt ? completionLabel(date, new Date(completedAt)) : deadlineLabel(date);
 
   if (compact) {
     return (

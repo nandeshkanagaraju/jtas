@@ -155,7 +155,10 @@ export function JobHeader({
           <Fact label="Part number" value={job.partNumber} />
           <Fact label="Drawing" value={job.drawingNumber} />
           <Fact label="Quantity" value={job.quantity} />
-          <Fact label="Overall deadline" value={<DeadlineCell deadline={job.overallDeadline} />} />
+          <Fact
+            label="Overall deadline"
+            value={<DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />}
+          />
         </dl>
 
         {job.description ? (

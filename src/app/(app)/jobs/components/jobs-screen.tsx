@@ -191,7 +191,12 @@ export function JobsScreen({
                       </div>
                       {/* The deadline column is hidden on a phone, so the
                           deadline folds in here rather than disappearing. */}
-                      <DeadlineCell deadline={job.overallDeadline} compact className="sm:hidden" />
+                      <DeadlineCell
+                        deadline={job.overallDeadline}
+                        completedAt={job.completedAt}
+                        compact
+                        className="sm:hidden"
+                      />
                     </Link>
                   </TableCell>
 
@@ -206,7 +211,7 @@ export function JobsScreen({
                   </TableCell>
 
                   <TableCell className="hidden sm:table-cell">
-                    <DeadlineCell deadline={job.overallDeadline} />
+                    <DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />
                   </TableCell>
 
                   <TableCell>

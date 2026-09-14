@@ -55,3 +55,22 @@ export function deadlineLabel(deadline: Date, now: Date = new Date()): DeadlineL
 
   return { text: `in ${describe(hours)}`, tone, overdue: false };
 }
+
+/**
+ * Describes a *finished* piece of work against the deadline it had.
+ *
+ * `deadlineLabel` measures from now, which is right until the work is done and
+ * wrong the moment it is: a job completed two days early still has a deadline
+ * in the past, so the list marked it "6 days late" in red while the dashboard
+ * called it on time. The two screens disagreeing about the same job is the
+ * fastest way to lose the MD's trust in both.
+ */
+export function completionLabel(deadline: Date, completedAt: Date): DeadlineLabel {
+  const hours = hoursBetween(completedAt, deadline);
+
+  if (hours < 0) {
+    return { text: `finished ${describe(hours)} late`, tone: 'overdue', overdue: true };
+  }
+
+  return { text: `finished ${describe(hours)} early`, tone: 'normal', overdue: false };
+}

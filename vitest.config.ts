@@ -41,6 +41,17 @@ export default defineConfig({
           name: 'integration',
           include: ['tests/integration/**/*.test.ts'],
           setupFiles: ['tests/integration/setup.ts'],
+          /*
+           * Vitest's 10 s default is a test-sized timeout, and these hooks do
+           * real work: `beforeEach` truncates a dozen tables and reseeds them.
+           * On a busy machine that crosses ten seconds, and the failure it
+           * produces is deeply misleading — the hook aborts half way, the next
+           * test hits a foreign-key violation or a duplicate email, and the
+           * report blames the test rather than the clock. Three files failed
+           * this way on a loaded laptop while passing in isolation.
+           */
+          hookTimeout: 60_000,
+          testTimeout: 30_000,
         },
       },
     ],

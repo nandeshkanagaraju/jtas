@@ -2,11 +2,19 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { buildContentSecurityPolicy, generateNonce } from '@/lib/security/csp';
 
-const original = process.env.S3_ENDPOINT;
+/*
+ * Every variable the policy reads, restored after each test — a leaked DSN or
+ * endpoint makes these pass or fail depending on the order they ran in.
+ */
+const VARIABLES = ['S3_ENDPOINT', 'S3_PUBLIC_ENDPOINT', 'NEXT_PUBLIC_SENTRY_DSN'] as const;
+
+const original = Object.fromEntries(VARIABLES.map((key) => [key, process.env[key]]));
 
 afterEach(() => {
-  if (original === undefined) delete process.env.S3_ENDPOINT;
-  else process.env.S3_ENDPOINT = original;
+  for (const key of VARIABLES) {
+    if (original[key] === undefined) delete process.env[key];
+    else process.env[key] = original[key];
+  }
 });
 
 /** Pulls one directive out of the assembled policy. */
@@ -88,5 +96,28 @@ describe('buildContentSecurityPolicy', () => {
     expect(policy).toContain("object-src 'none'");
     expect(policy).toContain("frame-ancestors 'none'");
     expect(policy).toContain("base-uri 'self'");
+  });
+
+  it('lets the browser reach Sentry, and only Sentry', () => {
+    process.env.NEXT_PUBLIC_SENTRY_DSN = 'https://abc123@o42.ingest.sentry.io/99';
+    process.env.S3_ENDPOINT = 'http://localhost:9000';
+
+    const policy = buildContentSecurityPolicy('n');
+
+    // Without this the policy blocks the very request that reports the error,
+    // and the only trace is a console warning nobody reads.
+    expect(directive(policy, 'connect-src')).toBe(
+      "connect-src 'self' http://localhost:9000 https://o42.ingest.sentry.io",
+    );
+
+    // Reporting is not running code or loading pictures.
+    expect(directive(policy, 'script-src')).not.toContain('sentry.io');
+    expect(directive(policy, 'img-src')).not.toContain('sentry.io');
+  });
+
+  it('adds nothing when Sentry is not configured', () => {
+    delete process.env.NEXT_PUBLIC_SENTRY_DSN;
+
+    expect(directive(buildContentSecurityPolicy('n'), 'connect-src')).toBe("connect-src 'self'");
   });
 });

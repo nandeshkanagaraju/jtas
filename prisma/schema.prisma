@@ -345,6 +345,10 @@ model Notification {
   dedupeKey    String       @unique // idempotency guarantee
   scheduledFor DateTime
   sentAt       DateTime?
+  // When the sweeper gave up, not when it last retried. The health check counts
+  // these over the last hour (M11.4): a rate, so that a handful of dead
+  // addresses from last year does not read as an outage today.
+  failedAt     DateTime?
   status       NotifStatus  @default(PENDING)
   attemptCount Int          @default(0)
   lastError    String?
@@ -354,6 +358,7 @@ model Notification {
   @@index([status, scheduledFor])
   @@index([userId, readAt])
   @@index([entityType, entityId])
+  @@index([status, failedAt])
 }
 
 model AuditLog {

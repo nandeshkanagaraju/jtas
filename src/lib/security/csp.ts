@@ -27,6 +27,8 @@ export function generateNonce(): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
+import { sentryOrigin } from '@/lib/observability/sentry';
+
 /**
  * The object-storage origin, so uploads and thumbnails are not blocked.
  *
@@ -63,6 +65,17 @@ export function buildContentSecurityPolicy(nonce: string): string {
   const isDevelopment = process.env.NODE_ENV !== 'production';
   const storage = storageOrigin();
 
+  /*
+   * Sentry's ingest host, when the browser SDK is configured.
+   *
+   * Without it the policy blocks the very request that would have reported the
+   * error, and the only trace is a console warning in a browser nobody is
+   * looking at. Derived from the DSN so it is exactly one host, and absent
+   * entirely when Sentry is off.
+   */
+  const sentry = sentryOrigin(process.env.NEXT_PUBLIC_SENTRY_DSN);
+  const connect = ["'self'", storage, sentry].filter(Boolean).join(' ');
+
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDevelopment ? " 'unsafe-eval'" : ''}`,
@@ -72,7 +85,7 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     `img-src 'self' data: blob:${storage ? ` ${storage}` : ''}`,
-    `connect-src 'self'${storage ? ` ${storage}` : ''}`,
+    `connect-src ${connect}`,
     "form-action 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

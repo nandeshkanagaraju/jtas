@@ -45,6 +45,7 @@ describe('GET /api/health', () => {
       [
         'checkedAt',
         'dbOk',
+        'failedLastHour',
         'failedNotifications',
         'ok',
         'pendingNotifications',

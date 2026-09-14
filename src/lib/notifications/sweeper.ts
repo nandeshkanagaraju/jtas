@@ -205,7 +205,12 @@ async function recordFailure(row: DueRow, error: unknown, now: Date): Promise<De
   if (!retryable || attempts >= MAX_ATTEMPTS) {
     await prisma.notification.update({
       where: { id: row.id },
-      data: { status: 'FAILED', attemptCount: attempts, lastError: message.slice(0, 500) },
+      data: {
+        status: 'FAILED',
+        attemptCount: attempts,
+        lastError: message.slice(0, 500),
+        failedAt: now,
+      },
     });
     log.error(
       { notificationId: row.id, attempts, retryable, err: message },

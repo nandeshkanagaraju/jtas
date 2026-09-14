@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import Redis from 'ioredis';
 
 import { prisma } from '@/lib/db/prisma';
+import { raiseAlerts, schedulerAlerts, STALE_HEARTBEAT_MINUTES } from '@/lib/observability/alerts';
 import { env } from '@/lib/utils/env';
 import { minutesBetween } from '@/lib/utils/time';
 
@@ -17,9 +18,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const HEARTBEAT_KEY = 'scheduler.heartbeat';
-
-/** SDD 10.4: alert if the heartbeat is older than twenty minutes. */
-const HEARTBEAT_STALE_MINUTES = 20;
 
 /** A ping must not hang the health check behind a dead Redis. */
 const REDIS_TIMEOUT_MS = 1_500;
@@ -52,15 +50,24 @@ export async function GET() {
   let heartbeatAt: Date | null = null;
   let pendingNotifications = 0;
   let failedNotifications = 0;
+  let failedLastHour = 0;
 
   try {
     // A trivial round trip proves the pool is alive, not just the process.
     await prisma.$queryRaw`SELECT 1`;
 
-    const [heartbeat, pending, failed] = await Promise.all([
+    const [heartbeat, pending, failed, recentlyFailed] = await Promise.all([
       prisma.setting.findUnique({ where: { key: HEARTBEAT_KEY } }),
       prisma.notification.count({ where: { status: 'PENDING' } }),
       prisma.notification.count({ where: { status: 'FAILED' } }),
+      // The rate, not the total: a handful of dead addresses from last year
+      // should not read as an outage today (M11.4).
+      prisma.notification.count({
+        where: {
+          status: 'FAILED',
+          failedAt: { gte: new Date(checkedAt.getTime() - 3_600_000) },
+        },
+      }),
     ]);
 
     if (heartbeat && typeof heartbeat.value === 'string') {
@@ -70,6 +77,7 @@ export async function GET() {
 
     pendingNotifications = pending;
     failedNotifications = failed;
+    failedLastHour = recentlyFailed;
   } catch {
     dbOk = false;
   }
@@ -87,7 +95,22 @@ export async function GET() {
    */
   const schedulerOk =
     schedulerHeartbeatAgeSeconds === null ||
-    schedulerHeartbeatAgeSeconds <= HEARTBEAT_STALE_MINUTES * 60;
+    schedulerHeartbeatAgeSeconds <= STALE_HEARTBEAT_MINUTES * 60;
+
+  /*
+   * Raise the two silent failures from here.
+   *
+   * This endpoint is the one thing guaranteed to run when the worker does not,
+   * and Caddy polls it every fifteen seconds — so it is the natural watchdog
+   * for a scheduler that has stopped. `raiseAlerts` holds a cooldown so that
+   * frequency does not become the alert's own problem.
+   */
+  if (dbOk) {
+    raiseAlerts(
+      schedulerAlerts({ heartbeatAgeSeconds: schedulerHeartbeatAgeSeconds, failedLastHour }),
+      checkedAt,
+    );
+  }
 
   const ok = dbOk && schedulerOk;
 
@@ -99,8 +122,9 @@ export async function GET() {
       schedulerHeartbeatAgeSeconds,
       pendingNotifications,
       failedNotifications,
+      failedLastHour,
       checkedAt: checkedAt.toISOString(),
-      staleAfterSeconds: HEARTBEAT_STALE_MINUTES * 60,
+      staleAfterSeconds: STALE_HEARTBEAT_MINUTES * 60,
     },
     // Redis is not yet on the critical path — BullMQ is the minimal-cost
     // alternative the SDD leaves open, and the sweeper polls Postgres — so it

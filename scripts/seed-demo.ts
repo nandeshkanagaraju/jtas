@@ -70,7 +70,6 @@ const PROBLEM_TEXTS = [
   'Inspection gauge is out for calibration and due back on Monday.',
 ];
 
-
 /**
  * Demo accounts, created on first run.
  *
@@ -99,16 +98,20 @@ async function ensureDemoUsers(
   // a string that is not a bcrypt hash, so nobody can sign in as a demo user.
   const passwordHash = 'demo-account-no-login';
 
-  const wanted: Array<{ email: string; name: string; role: 'MD' | 'MEMBER'; departmentId: string | null }> =
-    [
-      { email: DEMO_MD_EMAIL, name: 'Demo MD', role: 'MD', departmentId: null },
-      ...departments.map((department) => ({
-        email: demoEmail(department.code),
-        name: `Demo ${department.code.charAt(0)}${department.code.slice(1).toLowerCase()}`,
-        role: 'MEMBER' as const,
-        departmentId: department.id,
-      })),
-    ];
+  const wanted: Array<{
+    email: string;
+    name: string;
+    role: 'MD' | 'MEMBER';
+    departmentId: string | null;
+  }> = [
+    { email: DEMO_MD_EMAIL, name: 'Demo MD', role: 'MD', departmentId: null },
+    ...departments.map((department) => ({
+      email: demoEmail(department.code),
+      name: `Demo ${department.code.charAt(0)}${department.code.slice(1).toLowerCase()}`,
+      role: 'MEMBER' as const,
+      departmentId: department.id,
+    })),
+  ];
 
   const byEmail = new Map<string, string>();
 

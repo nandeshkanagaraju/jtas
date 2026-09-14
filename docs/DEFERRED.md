@@ -5,6 +5,57 @@ One section per module, newest first.
 
 ---
 
+## M11 — Hardening, tests and deployment
+
+| Deferred | Why | Production risk if never done |
+|---|---|---|
+| Source-map upload to Sentry | `@sentry/cli`'s postinstall is declined in `pnpm-workspace.yaml` — it downloads a release binary only that upload needs, and the build has no auth token. Stack traces arrive minified. | A production stack trace names `chunk-8876.js:1:44210` rather than a file and a line. Add `SENTRY_AUTH_TOKEN` and `withSentryConfig` when somebody first needs to read one. |
+| Sentry performance tracing | `tracesSampleRate: 0`. A shop of forty generates very little traffic, and sampling would mostly mean losing the one trace somebody asks about. The latency gate (`pnpm perf`) covers the four endpoints that matter. | No distributed timing. The p95 budget is asserted in CI instead. |
+| Session replay | Off, and not a cost decision: the shop floor's screens carry customer part numbers and drawing references, and recording them to a third party is not something anybody here has agreed to. | Harder to reproduce a UI bug from a report. |
+| Alert delivery beyond Sentry and the logs | The two scheduler alerts are captured to Sentry and logged at error. There is no SMS or phone call. | An alert raised at 2 AM is read at 9 AM. Point an uptime monitor at `/api/health` — it answers 503 for the same condition — and let that page somebody. |
+| A parallel-safe end-to-end suite | `workers: 1`, always. The specs share one database and one seeded world; isolating them properly means a database per worker, which for twenty-four specs is more machinery than it saves. | The suite takes ~90 s instead of ~40 s. |
+| Restore onto a *fresh* VPS | The restore was rehearsed against the running stack, not onto an empty volume. Recorded honestly in `RUNBOOK.md`. | The commands are the same, but they have not been exercised on a cold machine. Rehearse once before go-live. |
+| Down-migrations | Prisma migrations are forward-only here. A down-migration written under pressure is how data gets lost; a restore is the answer. | A bad migration needs a restore rather than a rollback, which costs whatever was written since the last dump. |
+| Automatic secret rotation | `JWT_SECRET` and `REFRESH_SECRET` are set once in `.env.production`. Rotating them signs everybody out. | Manual, and nobody will remember. Acceptable at forty users; worth a documented quarterly task. |
+
+### Three defects the end-to-end suite found
+
+None of these were caught by 1,076 unit and integration tests, which is the argument for
+the suite existing.
+
+- **A template step waiting on the *first* step lost its dependency.** `dependsOnItemOrder`
+  is `0` for the first item and the check was a truthiness test, so every job created from
+  a template published with the whole chain actionable on day one instead of blocked — the
+  single thing the chain exists to do. Nothing below the UI could see it: the API was sent
+  `dependsOnKey: null` and did exactly as it was told.
+- **Acknowledging a problem closed the drawer the MD was about to decide in.** The shared
+  helper dismissed the sheet on every success, so "Mark as seen" — a step on the way to a
+  decision — bounced the MD back to the list.
+- **Four IST date pickers had a label pointing at nothing.** No `id`, so no accessible name.
+  A screen reader announced them as an unlabelled button, and the suite could not find them
+  either, which is how it was noticed.
+
+### A fourth, found while writing the guides
+
+**A completed job was shown as late.** `DeadlineCell` measured from *now* with no knowledge
+of whether the work was finished, so a job completed two days early whose deadline had since
+passed read "6 days late" in red — while the dashboard, correctly, counted it as on time.
+Two screens disagreeing about the same job is the fastest way to lose the MD's trust in
+both. `completionLabel` now measures completion against the deadline it had.
+
+### What M11 changed outside its own files
+
+- **`output: 'standalone'` is now opt-in** through `NEXT_OUTPUT`, set only in the Dockerfile.
+  `next start` refuses to serve a standalone build, so having it on unconditionally meant the
+  end-to-end suite could never start the app it was meant to drive.
+- **`Notification.failedAt`** is new. The hourly failure alert has to be a rate; counting
+  every `FAILED` row ever would have read a handful of dead addresses from last year as an
+  outage today. Existing rows are null and stay out of it.
+- **The CSP names Sentry's ingest host** when a browser DSN is set. Without it the policy
+  blocks the very request that reports the error.
+
+---
+
 ## M10 — Collaboration: comments and attachments
 
 | Deferred | Why | Production risk if never done |

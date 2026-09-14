@@ -28,6 +28,8 @@
     "db:reset": "tsx --env-file-if-exists=.env scripts/db-reset.ts",
     "user:reset-password": "tsx --env-file-if-exists=.env scripts/reset-password.ts",
     "seed:demo": "tsx --env-file-if-exists=.env scripts/seed-demo.ts",
+    "seed:showcase": "tsx --env-file-if-exists=.env scripts/seed-showcase.ts",
+    "docs:shots": "tsx --env-file-if-exists=.env scripts/capture-guide-shots.ts",
     "perf": "tsx --env-file-if-exists=.env scripts/perf-check.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",

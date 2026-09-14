@@ -1,0 +1,203 @@
+# Production topology — SDD section 10.2, one VPS at 2 vCPU / 4 GB.
+#
+#   caddy   the only thing on the public internet; terminates TLS
+#   app     the Next server, reachable only from caddy
+#   worker  the scheduler; reachable from nothing
+#   db      PostgreSQL 16
+#   redis   BullMQ's broker and the shared rate-limit store
+#   minio   S3-compatible attachment storage
+#   backup  nightly pg_dump to the bucket, 30-day retention
+#
+# Only caddy publishes ports. Everything else talks over the internal network,
+# so Postgres and MinIO are not addressable from outside the host even if their
+# passwords leak.
+#
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Configuration comes from .env.production — see docs/RUNBOOK.md.
+#
+# No explicit container_name anywhere: the project name below already prefixes
+# every container, and hard-coding them collides with the development stack the
+# moment both exist on one machine — which is exactly what happens when
+# somebody tests the production compose on their laptop.
+
+name: jtas-prod
+
+x-app-env: &app-env
+  NODE_ENV: production
+  TZ: UTC
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public&connection_limit=10&pool_timeout=20
+  REDIS_URL: redis://redis:6379
+  APP_BASE_URL: https://${JTAS_DOMAIN}
+  JWT_SECRET: ${JWT_SECRET}
+  REFRESH_SECRET: ${REFRESH_SECRET}
+  SMTP_HOST: ${SMTP_HOST}
+  SMTP_PORT: ${SMTP_PORT}
+  SMTP_SECURE: ${SMTP_SECURE}
+  SMTP_USER: ${SMTP_USER}
+  SMTP_PASS: ${SMTP_PASS}
+  MAIL_FROM: ${MAIL_FROM}
+  # Two endpoints. The app talks to MinIO on the Docker network; the browser
+  # reaches it through Caddy at /files. SigV4 signs the host, so a presigned
+  # URL must be signed against the public one — and the server should not have
+  # to route its own reads back out through the public name.
+  S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+  S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-https://${JTAS_FILES_DOMAIN}}
+  S3_REGION: ${S3_REGION:-ap-south-1}
+  S3_BUCKET: ${S3_BUCKET:-jtas-attachments}
+  S3_KEY: ${MINIO_ROOT_USER}
+  S3_SECRET: ${MINIO_ROOT_PASSWORD}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  SCHEDULER_INTERVAL_MINUTES: ${SCHEDULER_INTERVAL_MINUTES:-5}
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80' # the ACME challenge arrives here
+      - '443:443'
+      - '443:443/udp' # HTTP/3
+    environment:
+      JTAS_DOMAIN: ${JTAS_DOMAIN}
+      JTAS_FILES_DOMAIN: ${JTAS_FILES_DOMAIN:-files.${JTAS_DOMAIN}}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - jtas-caddy-data:/data # the certificates; losing this re-issues them
+      - jtas-caddy-config:/config
+      - jtas-caddy-logs:/var/log/caddy
+    depends_on:
+      - app
+
+  app:
+    image: jtas:${JTAS_VERSION:-latest}
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+    restart: unless-stopped
+    environment: *app-env
+    # No `ports`: the app is reachable only through caddy.
+    expose:
+      - '3000'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: jtas:${JTAS_VERSION:-latest}
+    restart: unless-stopped
+    environment: *app-env
+    command: ['node_modules/.bin/tsx', '--tsconfig', 'tsconfig.worker.json', 'worker/index.ts']
+    # The image's HEALTHCHECK probes port 3000, which the worker does not
+    # serve — inheriting it would mark the scheduler unhealthy forever. Its
+    # real health is the heartbeat, which /api/health reports and which goes
+    # red after 20 minutes (SDD 10.4, improvement I-15).
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Exactly one. Two would double every escalation — the dedupe key makes that
+    # safe, but the sweeper claims with SKIP LOCKED precisely so a second
+    # instance is a scaling decision rather than an accident.
+    deploy:
+      replicas: 1
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # C collation: deterministic ordering regardless of the host's locale.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    volumes:
+      - jtas-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Persisted: the rate-limit counters may be lost, but BullMQ's queue state
+    # should survive a restart.
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - jtas-redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    # quay.io, not Docker Hub: the docker.io/minio images sit behind a login.
+    image: quay.io/minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - jtas-minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do sleep 2; done;
+      mc mb --ignore-existing local/${S3_BUCKET:-jtas-attachments};
+      mc mb --ignore-existing local/${BACKUP_BUCKET:-jtas-backups};
+      echo 'buckets ready';
+      "
+    restart: 'no'
+
+  # Nightly pg_dump to the bucket with 30-day retention (SDD 10.4).
+  #
+  # A sidecar rather than a host cron job, so the backup ships with the stack
+  # and cannot be forgotten when the VPS is rebuilt.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      PGHOST: db
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      BACKUP_BUCKET: ${BACKUP_BUCKET:-jtas-backups}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_AT_UTC: ${BACKUP_AT_UTC:-19:30} # 01:00 IST
+    volumes:
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+    entrypoint: ['/bin/sh', '/usr/local/bin/backup.sh']
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  jtas-db-data:
+  jtas-redis-data:
+  jtas-minio-data:
+  jtas-caddy-data:
+  jtas-caddy-config:
+  jtas-caddy-logs:

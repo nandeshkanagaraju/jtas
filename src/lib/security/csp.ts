@@ -41,7 +41,9 @@ export function generateNonce(): string {
  * give back most of what the policy is for.
  */
 function storageOrigin(): string {
-  const endpoint = process.env.S3_ENDPOINT;
+  // The public endpoint when the two differ, because this directive governs
+  // what the *browser* is allowed to reach.
+  const endpoint = process.env.S3_PUBLIC_ENDPOINT || process.env.S3_ENDPOINT;
   if (!endpoint) return '';
 
   try {

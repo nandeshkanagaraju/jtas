@@ -21,6 +21,13 @@ const nextConfig: NextConfig = {
     authInterrupts: true,
   },
 
+  /*
+   * A self-contained server bundle with only the node_modules it actually
+   * imports, so the runtime image is ~200 MB rather than ~1.5 GB and does not
+   * need pnpm or a lockfile inside it (SDD 10.2: a 2 vCPU / 4 GB VPS).
+   */
+  output: 'standalone',
+
   async headers() {
     return [
       {

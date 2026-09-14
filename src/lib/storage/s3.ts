@@ -34,11 +34,27 @@ export const UPLOAD_URL_TTL_SECONDS = 15 * 60;
  */
 export const DOWNLOAD_URL_TTL_SECONDS = 5 * 60;
 
-const globalForS3 = globalThis as unknown as { jtasS3?: S3Client };
+const globalForS3 = globalThis as unknown as {
+  jtasS3?: S3Client;
+  jtasS3Public?: S3Client;
+};
 
-function client(): S3Client {
-  if (globalForS3.jtasS3) return globalForS3.jtasS3;
-
+/**
+ * Two clients, because two different callers use the URLs.
+ *
+ *   internal  the server's own reads and writes — head, ranged get, delete
+ *   public    the URLs handed to a browser
+ *
+ * They differ in production: the app reaches MinIO at `http://minio:9000` on
+ * the Docker network, while the browser reaches it at `https://<domain>/files`
+ * through Caddy. SigV4 signs the host, so a presigned URL has to be signed
+ * against the address the browser will actually call — and the server should
+ * not have to route its own traffic back out through the public name, which
+ * depends on the host hairpinning its own IP.
+ *
+ * With one endpoint configured, both are the same and nothing changes.
+ */
+function build(endpoint: string | undefined): S3Client {
   const config = env();
 
   if (!config.S3_KEY || !config.S3_SECRET || !config.S3_BUCKET) {
@@ -47,17 +63,27 @@ function client(): S3Client {
     throw new Error('Attachment storage is not configured. See S3_* in .env.example.');
   }
 
-  const created = new S3Client({
+  return new S3Client({
     region: config.S3_REGION,
-    ...(config.S3_ENDPOINT ? { endpoint: config.S3_ENDPOINT, forcePathStyle: true } : {}),
+    ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
     credentials: {
       accessKeyId: config.S3_KEY,
       secretAccessKey: config.S3_SECRET,
     },
   });
+}
 
-  globalForS3.jtasS3 = created;
-  return created;
+/** For the server's own calls. */
+function client(): S3Client {
+  globalForS3.jtasS3 ??= build(env().S3_ENDPOINT);
+  return globalForS3.jtasS3;
+}
+
+/** For URLs a browser will use. */
+function publicClient(): S3Client {
+  const config = env();
+  globalForS3.jtasS3Public ??= build(config.S3_PUBLIC_ENDPOINT || config.S3_ENDPOINT);
+  return globalForS3.jtasS3Public;
 }
 
 function bucket(): string {
@@ -90,7 +116,7 @@ export async function presignUpload(input: {
     ContentLength: input.sizeBytes,
   });
 
-  const url = await getSignedUrl(client(), command, { expiresIn: UPLOAD_URL_TTL_SECONDS });
+  const url = await getSignedUrl(publicClient(), command, { expiresIn: UPLOAD_URL_TTL_SECONDS });
 
   return { url, expiresInSeconds: UPLOAD_URL_TTL_SECONDS };
 }
@@ -118,7 +144,7 @@ export async function presignDownload(input: {
     ResponseContentDisposition: `${input.disposition ?? 'attachment'}; filename="${safeName}"`,
   });
 
-  const url = await getSignedUrl(client(), command, { expiresIn: DOWNLOAD_URL_TTL_SECONDS });
+  const url = await getSignedUrl(publicClient(), command, { expiresIn: DOWNLOAD_URL_TTL_SECONDS });
 
   return {
     url,

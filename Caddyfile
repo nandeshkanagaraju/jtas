@@ -1,0 +1,81 @@
+# Caddy, the only thing on the public internet (SDD 10.2).
+#
+# TLS is automatic: Caddy provisions and renews a Let's Encrypt certificate for
+# JTAS_DOMAIN, which is why the compose file publishes 80 as well as 443 — the
+# ACME challenge arrives on 80.
+
+{
+	email {$ACME_EMAIL}
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+{$JTAS_DOMAIN} {
+	encode zstd gzip
+
+	# One id per request, handed to the app so its logs and these lines can be
+	# joined. The app reuses the value when it is well-formed.
+	request_header X-Request-Id {http.request.uuid}
+
+	# HSTS is set by the app too; repeating it here means it is present even on
+	# a response Next never saw, such as a 502 while the app restarts.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Ample for an API body and small enough that a runaway client is refused
+	# early. Attachments do not pass through here — they go to the files
+	# subdomain below.
+	request_body {
+		max_size 2MB
+	}
+
+	reverse_proxy app:3000 {
+		health_uri /api/health
+		health_interval 15s
+		health_timeout 5s
+	}
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 20MB
+			roll_keep 10
+		}
+		format json
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Attachments.
+#
+# The object store has to be reachable *by the browser*, not only by the app:
+# an upload is a presigned PUT the browser makes and a thumbnail is a presigned
+# GET it renders. Pointing the browser at the internal `minio:9000` produces
+# URLs nothing outside Docker can resolve.
+#
+# A subdomain rather than a path on the main host, because SigV4 signs both the
+# Host header and the request path. Serving the bucket under /files means Caddy
+# must strip that prefix before MinIO sees it, and the stripped path no longer
+# matches the one that was signed — the request arrives looking tampered with,
+# and MinIO correctly answers 403. A subdomain needs no rewriting at all: Caddy
+# passes the Host and the path through untouched, which is exactly what the
+# signature covers.
+#
+# Needs its own DNS record. Caddy issues the certificate automatically.
+{$JTAS_FILES_DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# No body limit: a 25 MB DWG is a legitimate upload, and the application
+	# enforces the real cap at presign and again at registration.
+	reverse_proxy minio:9000 {
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+}

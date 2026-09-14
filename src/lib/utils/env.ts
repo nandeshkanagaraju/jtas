@@ -36,6 +36,14 @@ const envSchema = z.object({
   MAIL_FROM: z.string().default('JTAS <jtas@jaraaglobal.com>'),
 
   S3_ENDPOINT: z.string().optional(),
+  /**
+   * The endpoint a browser uses, when it differs from the one the server uses.
+   *
+   * In the production compose the app reaches MinIO on the Docker network and
+   * the browser reaches it through Caddy, so presigned URLs must be signed
+   * against the public name. Left unset, both are S3_ENDPOINT.
+   */
+  S3_PUBLIC_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().default('ap-south-1'),
   S3_BUCKET: z.string().optional(),
   S3_KEY: z.string().optional(),

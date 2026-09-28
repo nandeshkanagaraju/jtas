@@ -22,6 +22,7 @@ import { hoursBetween } from '@/lib/utils/time';
 
 import { channelFor, isRetryable } from './channels';
 import { loadEscalationConfig, loadSuppressOutsideHours, loadWorkingHours } from './config';
+import { isAllowedRecipient, mailGuardConfig, quotaStatus, suppressionReason } from './mail-guard';
 import { overdueMdKey, overdueMemberKey } from './dedupe';
 import { enqueue } from './notification-service';
 import { buildPayload } from './payloads';
@@ -53,6 +54,10 @@ export interface SweepResult {
   failed: number;
   dropped: number;
   escalated: number;
+  /** Withheld by the recipient allowlist. Written SUPPRESSED, never sent. */
+  suppressed: number;
+  /** Left PENDING because the daily cap was reached. Goes out after midnight. */
+  quotaHeld: number;
 }
 
 interface DueRow {
@@ -75,12 +80,31 @@ interface DueRow {
  * Instead each row is claimed with `SKIP LOCKED`, marked, and then sent.
  */
 export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> {
-  const result: SweepResult = { dispatched: 0, deferred: 0, failed: 0, dropped: 0, escalated: 0 };
+  const result: SweepResult = {
+    dispatched: 0,
+    deferred: 0,
+    failed: 0,
+    dropped: 0,
+    escalated: 0,
+    suppressed: 0,
+    quotaHeld: 0,
+  };
 
   const [workingHours, suppressOutside] = await Promise.all([
     loadWorkingHours(),
     loadSuppressOutsideHours(),
   ]);
+
+  /*
+   * The guards are read once per pass, not once per row. The allowlist is
+   * static for the life of the process, and the quota is a running count this
+   * loop is itself the only writer of — so it is tracked locally as rows are
+   * sent rather than re-queried, which would cost a round trip per message to
+   * learn a number we already know.
+   */
+  const { allowlist, cap } = mailGuardConfig();
+  const quota = await quotaStatus(prisma, cap, now);
+  let sentThisPass = 0;
 
   /*
    * Claim a batch. FOR UPDATE SKIP LOCKED means a second worker takes the next
@@ -118,17 +142,45 @@ export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> 
       }
     }
 
-    const outcome = await deliver(row, now);
+    /*
+     * The daily cap. Checked before the send and before the allowlist, because
+     * a row held for quota must stay exactly as it is: still PENDING, still
+     * unattempted, so the pass after midnight picks it up untouched. Only
+     * mail counts against it — an in-app row costs nothing to deliver.
+     */
+    if (row.channel === 'EMAIL' && quota.sentToday + sentThisPass >= quota.cap) {
+      result.quotaHeld++;
+      continue;
+    }
+
+    const outcome = await deliver(row, now, allowlist);
     result[outcome]++;
+    if (outcome === 'dispatched' && row.channel === 'EMAIL') sentThisPass++;
+  }
+
+  if (result.quotaHeld > 0) {
+    log.warn(
+      {
+        held: result.quotaHeld,
+        cap: quota.cap,
+        sentToday: quota.sentToday + sentThisPass,
+        resetsAt: quota.resetsAt,
+      },
+      'daily mail cap reached; remaining rows stay PENDING until the IST day rolls over',
+    );
   }
 
   return result;
 }
 
-type DeliveryOutcome = 'dispatched' | 'failed' | 'dropped';
+type DeliveryOutcome = 'dispatched' | 'failed' | 'dropped' | 'suppressed';
 
 /** Renders and sends one row, recording the outcome. */
-async function deliver(row: DueRow, now: Date): Promise<DeliveryOutcome> {
+async function deliver(
+  row: DueRow,
+  now: Date,
+  allowlist: readonly string[],
+): Promise<DeliveryOutcome> {
   const payload = await buildPayload(row, now);
 
   if (!payload) {
@@ -153,6 +205,37 @@ async function deliver(row: DueRow, now: Date): Promise<DeliveryOutcome> {
       data: { status: 'SUPPRESSED', lastError: 'The recipient is no longer active.' },
     });
     return 'dropped';
+  }
+
+  /*
+   * The allowlist. Placed here rather than inside the email channel on
+   * purpose: this is the one point every row of every type passes through, so
+   * a channel added later — push, WhatsApp — cannot be written in a way that
+   * forgets it. The row is still rendered first, so what is stored is exactly
+   * what would have been sent, and the in-app inbox shows the real message
+   * rather than a placeholder.
+   */
+  const addressed = row.channel === 'EMAIL' ? user.email : null;
+
+  if (addressed !== null && !isAllowedRecipient(addressed, allowlist)) {
+    const rendered = await renderTemplate(payload);
+
+    await prisma.notification.update({
+      where: { id: row.id },
+      data: {
+        status: 'SUPPRESSED',
+        // Not sentAt: nothing was sent, and the daily cap counts on sentAt.
+        subject: rendered.subject,
+        body: rendered.text,
+        lastError: suppressionReason(addressed),
+      },
+    });
+
+    log.info(
+      { notificationId: row.id, type: row.type, to: addressed },
+      'suppressed: recipient is not on the allowlist',
+    );
+    return 'suppressed';
   }
 
   try {

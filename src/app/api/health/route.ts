@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import Redis from 'ioredis';
 
 import { prisma } from '@/lib/db/prisma';
+import { mailGuardConfig, quotaStatus, suppressedToday } from '@/lib/notifications/mail-guard';
 import { raiseAlerts, schedulerAlerts, STALE_HEARTBEAT_MINUTES } from '@/lib/observability/alerts';
 import { env } from '@/lib/utils/env';
 import { minutesBetween } from '@/lib/utils/time';
@@ -51,12 +52,14 @@ export async function GET() {
   let pendingNotifications = 0;
   let failedNotifications = 0;
   let failedLastHour = 0;
+  let mailQuota: Awaited<ReturnType<typeof quotaStatus>> | null = null;
+  let suppressedTodayCount = 0;
 
   try {
     // A trivial round trip proves the pool is alive, not just the process.
     await prisma.$queryRaw`SELECT 1`;
 
-    const [heartbeat, pending, failed, recentlyFailed] = await Promise.all([
+    const [heartbeat, pending, failed, recentlyFailed, quota, suppressed] = await Promise.all([
       prisma.setting.findUnique({ where: { key: HEARTBEAT_KEY } }),
       prisma.notification.count({ where: { status: 'PENDING' } }),
       prisma.notification.count({ where: { status: 'FAILED' } }),
@@ -68,6 +71,12 @@ export async function GET() {
           failedAt: { gte: new Date(checkedAt.getTime() - 3_600_000) },
         },
       }),
+      // The mail guards (M12): how much of today's allowance is left, and how
+      // much the allowlist has withheld. Both are on the health endpoint
+      // because both fail silently — a cap quietly reached and a roster
+      // quietly off the list look identical from the outside: no mail.
+      quotaStatus(prisma, mailGuardConfig().cap, checkedAt),
+      suppressedToday(prisma, checkedAt),
     ]);
 
     if (heartbeat && typeof heartbeat.value === 'string') {
@@ -78,6 +87,8 @@ export async function GET() {
     pendingNotifications = pending;
     failedNotifications = failed;
     failedLastHour = recentlyFailed;
+    mailQuota = quota;
+    suppressedTodayCount = suppressed;
   } catch {
     dbOk = false;
   }
@@ -123,6 +134,11 @@ export async function GET() {
       pendingNotifications,
       failedNotifications,
       failedLastHour,
+      mailSentToday: mailQuota?.sentToday ?? null,
+      mailDailyCap: mailQuota?.cap ?? null,
+      mailQuotaRemaining: mailQuota?.remaining ?? null,
+      mailQuotaResetsAt: mailQuota?.resetsAt.toISOString() ?? null,
+      suppressedToday: suppressedTodayCount,
       checkedAt: checkedAt.toISOString(),
       staleAfterSeconds: STALE_HEARTBEAT_MINUTES * 60,
     },

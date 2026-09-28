@@ -12,50 +12,84 @@ export const DEFAULT_MD_EMAIL = 'md@jaraaglobal.com';
 export const DEFAULT_MEMBER_EMAIL = 'production@jaraaglobal.com';
 
 /**
- * Resolves the MD and Production member addresses.
+ * Every seeded account, and the variable that may repoint it.
  *
- * They can be pointed at real mailboxes for testing, so escalations and
- * assignments can be read where they would really land — but **never in
- * production**. A laptop that happens to carry SEED_MD_EMAIL in its shell and
- * then seeds the client's database would otherwise make a personal Gmail
- * address the Managing Director of record: the account that receives every
- * escalation, and the one whose password reset controls the system. The
- * override is ignored there and the ignoring is announced, because silently
- * doing the right thing teaches nobody that the variable is set.
+ * All ten are listed, not the two that happened to need overriding first. The
+ * production guard below ignores the whole table, so a machine carrying any of
+ * them cannot seed a personal address into the client's database — the earlier
+ * version named only two variables, which would have let the other eight
+ * through the moment they existed.
  *
- * Kept in the environment rather than written into the roster below, so a
- * personal address is never committed to a repository that ships to the client.
+ * Unset, each falls back to its go-live `@jaraaglobal.com` address, so pointing
+ * a department at a real mailbox later is a `.env` edit and nothing more.
+ */
+export const SEED_EMAIL_OVERRIDES = [
+  { variable: 'SEED_MD_EMAIL', fallback: DEFAULT_MD_EMAIL },
+  { variable: 'SEED_ADMIN_EMAIL', fallback: 'admin@jaraaglobal.com' },
+  { variable: 'SEED_PLANNING_EMAIL', fallback: 'planning@jaraaglobal.com' },
+  { variable: 'SEED_PURCHASE_EMAIL', fallback: 'purchase@jaraaglobal.com' },
+  { variable: 'SEED_STORE_EMAIL', fallback: 'store@jaraaglobal.com' },
+  { variable: 'SEED_MEMBER_EMAIL', fallback: DEFAULT_MEMBER_EMAIL },
+  { variable: 'SEED_QUALITY_EMAIL', fallback: 'quality@jaraaglobal.com' },
+  { variable: 'SEED_DISPATCH_EMAIL', fallback: 'dispatch@jaraaglobal.com' },
+  { variable: 'SEED_ACCOUNTS_EMAIL', fallback: 'accounts@jaraaglobal.com' },
+  { variable: 'SEED_HR_EMAIL', fallback: 'hr@jaraaglobal.com' },
+] as const;
+
+export type SeedEmailVariable = (typeof SEED_EMAIL_OVERRIDES)[number]['variable'];
+
+/**
+ * Resolves all ten addresses, honouring the environment outside production.
+ *
+ * @returns each variable's effective address, keyed by variable name.
+ */
+export function resolveAllSeedEmails(
+  env: NodeJS.ProcessEnv = process.env,
+  warn: (message: string) => void = console.warn,
+): Record<SeedEmailVariable, string> {
+  const isProduction = env.NODE_ENV === 'production';
+
+  const ignored = SEED_EMAIL_OVERRIDES.filter(({ variable }) => env[variable]?.trim()).map(
+    ({ variable }) => variable,
+  );
+
+  if (isProduction && ignored.length > 0) {
+    warn(
+      `\n  !!  NODE_ENV=production: ignoring ${ignored.join(', ')}.\n` +
+        `  !!  Seeding the go-live roster instead — ${DEFAULT_MD_EMAIL} is the MD.\n` +
+        `  !!  Unset ${ignored.length === 1 ? 'it' : 'them'} on this machine if that was not deliberate.\n`,
+    );
+  }
+
+  return Object.fromEntries(
+    SEED_EMAIL_OVERRIDES.map(({ variable, fallback }) => [
+      variable,
+      isProduction ? fallback : env[variable]?.trim() || fallback,
+    ]),
+  ) as Record<SeedEmailVariable, string>;
+}
+
+/**
+ * The MD and Production member addresses.
+ *
+ * Kept as a named pair because those two are the ones pointed at real
+ * mailboxes during testing, and because its tests are the record of *why* the
+ * production guard exists: a laptop carrying SEED_MD_EMAIL that then seeds the
+ * client's database would otherwise make a personal Gmail address the Managing
+ * Director of record — the account that receives every escalation, and the one
+ * whose password reset controls the system.
+ *
+ * Delegates to `resolveAllSeedEmails` so there is one guard rather than two.
  */
 export function resolveSeedEmails(
   env: NodeJS.ProcessEnv = process.env,
   warn: (message: string) => void = console.warn,
 ): { mdEmail: string; memberEmail: string } {
-  const overrides = [
-    ['SEED_MD_EMAIL', env.SEED_MD_EMAIL?.trim()],
-    ['SEED_MEMBER_EMAIL', env.SEED_MEMBER_EMAIL?.trim()],
-  ] as const;
-
-  if (env.NODE_ENV === 'production') {
-    const ignored = overrides.filter(([, value]) => value).map(([name]) => name);
-
-    if (ignored.length > 0) {
-      warn(
-        `\n  !!  NODE_ENV=production: ignoring ${ignored.join(' and ')}.\n` +
-          `  !!  Seeding the go-live roster instead — ${DEFAULT_MD_EMAIL} is the MD.\n` +
-          `  !!  Unset ${ignored.join(' and ')} on this machine if that was not deliberate.\n`,
-      );
-    }
-
-    return { mdEmail: DEFAULT_MD_EMAIL, memberEmail: DEFAULT_MEMBER_EMAIL };
-  }
-
-  return {
-    mdEmail: overrides[0][1] || DEFAULT_MD_EMAIL,
-    memberEmail: overrides[1][1] || DEFAULT_MEMBER_EMAIL,
-  };
+  const all = resolveAllSeedEmails(env, warn);
+  return { mdEmail: all.SEED_MD_EMAIL, memberEmail: all.SEED_MEMBER_EMAIL };
 }
 
-const { mdEmail: MD_EMAIL, memberEmail: MEMBER_EMAIL } = resolveSeedEmails();
+const EMAILS = resolveAllSeedEmails();
 
 export interface SeedUser {
   name: string;
@@ -65,49 +99,49 @@ export interface SeedUser {
 }
 
 export const SEED_USERS: SeedUser[] = [
-  { name: 'Managing Director', email: MD_EMAIL, role: 'MD', departmentCode: null },
-  { name: 'System Admin', email: 'admin@jaraaglobal.com', role: 'ADMIN', departmentCode: null },
+  { name: 'Managing Director', email: EMAILS.SEED_MD_EMAIL, role: 'MD', departmentCode: null },
+  { name: 'System Admin', email: EMAILS.SEED_ADMIN_EMAIL, role: 'ADMIN', departmentCode: null },
   {
     name: 'Planning Member',
-    email: 'planning@jaraaglobal.com',
+    email: EMAILS.SEED_PLANNING_EMAIL,
     role: 'MEMBER',
     departmentCode: 'PLANNING',
   },
   {
     name: 'Purchase Member',
-    email: 'purchase@jaraaglobal.com',
+    email: EMAILS.SEED_PURCHASE_EMAIL,
     role: 'MEMBER',
     departmentCode: 'PURCHASE',
   },
   {
     name: 'Store Member',
-    email: 'store@jaraaglobal.com',
+    email: EMAILS.SEED_STORE_EMAIL,
     role: 'MEMBER',
     departmentCode: 'STORE',
   },
   {
     name: 'Production Member',
-    email: MEMBER_EMAIL,
+    email: EMAILS.SEED_MEMBER_EMAIL,
     role: 'MEMBER',
     departmentCode: 'PRODUCTION',
   },
   {
     name: 'Quality Member',
-    email: 'quality@jaraaglobal.com',
+    email: EMAILS.SEED_QUALITY_EMAIL,
     role: 'MEMBER',
     departmentCode: 'QUALITY',
   },
   {
     name: 'Dispatch Member',
-    email: 'dispatch@jaraaglobal.com',
+    email: EMAILS.SEED_DISPATCH_EMAIL,
     role: 'MEMBER',
     departmentCode: 'DISPATCH',
   },
   {
     name: 'Accounts Member',
-    email: 'accounts@jaraaglobal.com',
+    email: EMAILS.SEED_ACCOUNTS_EMAIL,
     role: 'MEMBER',
     departmentCode: 'ACCOUNTS',
   },
-  { name: 'HR Member', email: 'hr@jaraaglobal.com', role: 'MEMBER', departmentCode: 'HR' },
+  { name: 'HR Member', email: EMAILS.SEED_HR_EMAIL, role: 'MEMBER', departmentCode: 'HR' },
 ];

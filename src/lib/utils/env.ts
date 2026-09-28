@@ -35,6 +35,17 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().default('JTAS <jtas@jaraaglobal.com>'),
 
+  /**
+   * The recipient allowlist, comma-separated. Empty means no restriction.
+   *
+   * Not parsed into an array here: `parseAllowlist` in
+   * `lib/notifications/mail-guard.ts` owns the splitting, so the rule about
+   * never normalising a plus-tag lives in one place with its tests.
+   */
+  MAIL_ALLOWLIST: z.string().optional(),
+  /** Daily send ceiling. Defaults to 250, under Brevo's free 300. */
+  MAIL_DAILY_CAP: z.coerce.number().int().positive().default(250),
+
   S3_ENDPOINT: z.string().optional(),
   /**
    * The endpoint a browser uses, when it differs from the one the server uses.

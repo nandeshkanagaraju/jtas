@@ -18,6 +18,12 @@ interface HealthBody {
   pendingNotifications: number;
   failedNotifications: number;
   staleAfterSeconds: number;
+  /** The mail guards (M12). Null only when the database check itself failed. */
+  mailSentToday: number | null;
+  mailDailyCap: number | null;
+  mailQuotaRemaining: number | null;
+  mailQuotaResetsAt: string | null;
+  suppressedToday: number;
 }
 
 async function health() {
@@ -47,16 +53,42 @@ describe('GET /api/health', () => {
         'dbOk',
         'failedLastHour',
         'failedNotifications',
+        // The mail guards (M12). Both fail silently — a daily cap quietly
+        // reached and a roster quietly off the allowlist look identical from
+        // outside: no mail arrives — so both are on the health endpoint.
+        'mailDailyCap',
+        'mailQuotaRemaining',
+        'mailQuotaResetsAt',
+        'mailSentToday',
         'ok',
         'pendingNotifications',
         'redisOk',
         'schedulerHeartbeatAgeSeconds',
         'staleAfterSeconds',
+        'suppressedToday',
       ].sort(),
     );
     expect(body.ok).toBe(true);
     expect(body.dbOk).toBe(true);
     expect(body.schedulerHeartbeatAgeSeconds).toBeLessThan(5);
+  });
+
+  it('reports the remaining daily mail allowance', async () => {
+    await writeHeartbeat(testDb);
+    const { body } = await health();
+
+    // Non-null on a healthy database; they are nullable only for the branch
+    // where the database check itself failed, which is a separate test.
+    const { mailDailyCap, mailSentToday, mailQuotaRemaining, mailQuotaResetsAt } = body;
+    expect(mailDailyCap).not.toBeNull();
+    expect(mailSentToday).not.toBeNull();
+    expect(mailQuotaResetsAt).not.toBeNull();
+
+    expect(mailDailyCap!).toBeGreaterThan(0);
+    expect(mailQuotaRemaining).toBe(mailDailyCap! - mailSentToday!);
+    // The allowance resets at the next IST midnight, which is in the future.
+    expect(new Date(mailQuotaResetsAt!).getTime()).toBeGreaterThan(Date.now());
+    expect(body.suppressedToday).toBeGreaterThanOrEqual(0);
   });
 
   it('goes 503 once the heartbeat passes twenty minutes', async () => {

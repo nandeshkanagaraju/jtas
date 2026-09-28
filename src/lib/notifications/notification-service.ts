@@ -239,21 +239,37 @@ export interface InboxItem {
   readAt: Date | null;
   sentAt: Date | null;
   createdAt: Date;
+  /** Why the email was withheld, when it was. Null on everything else. */
+  suppressedReason: string | null;
 }
 
 /**
- * A user's notifications, newest first.
+ * Statuses the inbox shows.
  *
- * Only rows that have actually been sent, or are in-app by nature — a queued
- * email due next Tuesday is not something the recipient should see now.
+ * SENT and IN_APP are the obvious two — a queued email due next Tuesday is not
+ * something the recipient should see now.
+ *
+ * SUPPRESSED is here because a withheld mail still happened. When the
+ * allowlist holds delivery back, the notification was raised correctly and the
+ * only thing that did not occur is the send; hiding the row would make a flow
+ * under test look broken, which is the opposite of what the guard is for. The
+ * row carries its reason in `lastError`, surfaced as `suppressedReason` so the
+ * screen can say why rather than showing a message that appears delivered.
  */
+const INBOX_STATUSES: Prisma.NotificationWhereInput['OR'] = [
+  { status: 'SENT' },
+  { status: 'SUPPRESSED' },
+  { channel: 'IN_APP' },
+];
+
+/** A user's notifications, newest first. */
 export async function listNotifications(
   userId: string,
   options: { unreadOnly?: boolean; limit?: number } = {},
 ): Promise<{ data: InboxItem[]; unreadCount: number }> {
   const where: Prisma.NotificationWhereInput = {
     userId,
-    OR: [{ status: 'SENT' }, { channel: 'IN_APP' }],
+    OR: INBOX_STATUSES,
     ...(options.unreadOnly ? { readAt: null } : {}),
   };
 
@@ -272,14 +288,25 @@ export async function listNotifications(
         readAt: true,
         sentAt: true,
         createdAt: true,
+        status: true,
+        lastError: true,
       },
     }),
     prisma.notification.count({
-      where: { userId, readAt: null, OR: [{ status: 'SENT' }, { channel: 'IN_APP' }] },
+      where: { userId, readAt: null, OR: INBOX_STATUSES },
     }),
   ]);
 
-  return { data, unreadCount };
+  return {
+    data: data.map(({ status, lastError, ...item }) => ({
+      ...item,
+      // Only a suppression reason is shown. `lastError` on a SENT row holds the
+      // provider id, and on a failed one a transport error — neither is the
+      // recipient's business.
+      suppressedReason: status === 'SUPPRESSED' ? lastError : null,
+    })),
+    unreadCount,
+  };
 }
 
 /**

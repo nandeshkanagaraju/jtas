@@ -223,8 +223,56 @@ over a populated database without a manual drop, and the commands in step 3
 work as written when piped through `docker compose exec`.
 
 What it did not prove: a restore onto a *fresh* VPS with an empty volume. That
-path is the same commands, but it has not been exercised. Rehearse it once
-before the first go-live, and record the result here.
+gap is now closed — see the second rehearsal below.
+
+### Restore rehearsal — onto an empty database
+
+The path the first rehearsal left untested, and the one that matters most: a
+restore where nothing exists yet, as on a rebuilt VPS or a new volume. It was
+worth doing on its own merits, and a live episode made the case — a second
+container runtime on the development machine held a volume of the same name, so
+the real database appeared to have been destroyed when it had only been looked
+for in the wrong place. The question "can we actually get it back" should not
+first be asked under that kind of pressure.
+
+| | |
+| --- | --- |
+| **When** | 28 September 2026 |
+| **Against** | `jtas_dev` on the Colima stack — 29 users, 723 jobs, 4,267 subtasks, 1,356 audit rows |
+| **Dump** | `pg_dump --clean --if-exists --no-owner --no-privileges -Fp \| gzip -9`, byte for byte what `scripts/backup.sh` runs. 331 KB |
+| **Target** | `jtas_restore_test`, created empty — 0 tables before the restore |
+| **Method** | `gunzip -c dump.sql.gz \| psql -d jtas_restore_test`, the pipeline from step 3 |
+| **Result** | **0 errors.** Every table matched the source exactly |
+
+Row-for-row, source against restored:
+
+| Table | Rows | | Table | Rows |
+| --- | --- | --- | --- | --- |
+| User | 29 ✓ | | Problem | 371 ✓ |
+| Job | 723 ✓ | | Setting | 16 ✓ |
+| Subtask | 4,267 ✓ | | Department | 8 ✓ |
+| AuditLog | 1,356 ✓ | | RefreshToken | 115 ✓ |
+| Notification | 4 ✓ | | Holiday, Comment, Attachment | 3 / 1 / 2 ✓ |
+
+Beyond the counts, which only prove bytes moved:
+
+- **34 constraints and 50 indexes** rebuilt, so referential integrity is real
+  rather than a table of orphans that happens to be the right size.
+- `prisma migrate status` against the restored database: **"Database schema is
+  up to date"** — no drift, no pending migration.
+- The application's own Prisma client read it: the MD resolved, the completed
+  lifecycle job came back with its subtask, and the demo/real split held at 710
+  and 13. A restore the app cannot open is not a restore.
+
+What this closes: `--clean --if-exists` was written for applying over a
+populated database, and `DROP ... IF EXISTS` against an empty one is a no-op
+rather than an error, so the same dump serves both paths. No separate
+empty-target procedure is needed.
+
+What it still does not prove: a restore across machines, where the target
+PostgreSQL is a different minor version or a different architecture. Both dumps
+here were taken and applied by the same server. Before go-live, take one dump
+from the production VPS and apply it locally once.
 
 ---
 

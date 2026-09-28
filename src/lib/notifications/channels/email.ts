@@ -14,6 +14,8 @@ import { env } from '@/lib/utils/env';
 import { getSettingArray, getSettingNumber, getSettingString } from '@/lib/services/settings';
 import { moduleLogger } from '@/lib/utils/logger';
 
+import { isAllowedRecipient, mailGuardConfig } from '../mail-guard';
+
 import {
   PermanentChannelError,
   TransientChannelError,
@@ -150,8 +152,17 @@ export const emailChannel: NotificationChannel = {
        * SDD 3.4's `mail.md_recipients` — "extra CC addresses". Copied on the
        * MD-facing types only: a member does not need the accountant on their
        * reminder, and copying everything would make the CC meaningless.
+       *
+       * Filtered through the allowlist, because the dispatcher's check sees
+       * the recipient and knows nothing about a CC list loaded from an
+       * operator-editable setting. Without this, adding an address on the
+       * settings screen would put mail in front of it that the guard was
+       * holding back.
        */
-      const cc = MD_FACING.has(notification.type) ? config.mdRecipients : [];
+      const { allowlist } = mailGuardConfig();
+      const cc = (MD_FACING.has(notification.type) ? config.mdRecipients : []).filter((address) =>
+        isAllowedRecipient(address, allowlist),
+      );
 
       const info = await transporter.sendMail({
         from: config.from,

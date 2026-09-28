@@ -20,7 +20,7 @@ import { writeAudit } from '@/lib/services/audit-service';
 import { moduleLogger } from '@/lib/utils/logger';
 import { hoursBetween } from '@/lib/utils/time';
 
-import { channelFor, isRetryable } from './channels';
+import { channelFor, isRetryable, ProviderQuotaError } from './channels';
 import { loadEscalationConfig, loadSuppressOutsideHours, loadWorkingHours } from './config';
 import { isAllowedRecipient, mailGuardConfig, quotaStatus, suppressionReason } from './mail-guard';
 import { overdueMdKey, overdueMemberKey } from './dedupe';
@@ -154,6 +154,24 @@ export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> 
     }
 
     const outcome = await deliver(row, now, allowlist);
+
+    /*
+     * The provider says its own allowance is gone. Same posture as our cap —
+     * the row stays PENDING, untouched — but we only learn it by being told,
+     * so the remainder of the batch is held rather than asked one at a time.
+     */
+    if (outcome === 'providerQuota') {
+      result.quotaHeld++;
+      log.warn(
+        { notificationId: row.id },
+        'the mail provider reported its daily quota is exhausted; holding the rest of this pass',
+      );
+      for (const remaining of claimed.slice(claimed.indexOf(row) + 1)) {
+        if (remaining.channel === 'EMAIL') result.quotaHeld++;
+      }
+      break;
+    }
+
     result[outcome]++;
     if (outcome === 'dispatched' && row.channel === 'EMAIL') sentThisPass++;
   }
@@ -173,7 +191,7 @@ export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> 
   return result;
 }
 
-type DeliveryOutcome = 'dispatched' | 'failed' | 'dropped' | 'suppressed';
+type DeliveryOutcome = 'dispatched' | 'failed' | 'dropped' | 'suppressed' | 'providerQuota';
 
 /** Renders and sends one row, recording the outcome. */
 async function deliver(
@@ -269,6 +287,20 @@ async function deliver(
 
     return 'dispatched';
   } catch (error) {
+    /*
+     * A provider quota refusal is not this row's fault and must not count
+     * against its attempts: left alone, it goes out when the allowance resets.
+     * Only the error text is recorded, so the reason is visible without the
+     * row looking like it failed.
+     */
+    if (error instanceof ProviderQuotaError) {
+      await prisma.notification.update({
+        where: { id: row.id },
+        data: { lastError: error.message.slice(0, 500) },
+      });
+      return 'providerQuota';
+    }
+
     return recordFailure(row, error, now);
   }
 }

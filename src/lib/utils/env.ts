@@ -46,6 +46,18 @@ const envSchema = z.object({
   /** Daily send ceiling. Defaults to 250, under Brevo's free 300. */
   MAIL_DAILY_CAP: z.coerce.number().int().positive().default(250),
 
+  /**
+   * Which EMAIL adapter the registry resolves to.
+   *
+   * `smtp` is the default so local development stays pointed at Mailpit and a
+   * developer's setup is unaffected by this existing at all.
+   */
+  MAIL_PROVIDER: z.enum(['smtp', 'brevo']).default('smtp'),
+  /** Brevo transactional API key. Required only when MAIL_PROVIDER=brevo. */
+  BREVO_API_KEY: z.string().optional(),
+  /** Display name on outbound mail from the Brevo adapter. */
+  MAIL_FROM_NAME: z.string().default('JTAS'),
+
   S3_ENDPOINT: z.string().optional(),
   /**
    * The endpoint a browser uses, when it differs from the one the server uses.

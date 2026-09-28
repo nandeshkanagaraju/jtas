@@ -52,6 +52,24 @@ export class TransientChannelError extends Error {
   }
 }
 
+/**
+ * The provider's own allowance is gone for the day.
+ *
+ * Neither transient nor permanent, which is why it is its own type. Retrying
+ * inside the hour is pointless — the limit does not move until the provider's
+ * day rolls over — but the message is perfectly good and must not be failed.
+ * The sweeper stops the pass on this and leaves the row PENDING, exactly as it
+ * does for our own `MAIL_DAILY_CAP`; the difference is only who counted.
+ */
+export class ProviderQuotaError extends Error {
+  readonly retryable = true;
+
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'ProviderQuotaError';
+  }
+}
+
 /** A failure no amount of retrying will fix — a bad address, a rejected domain. */
 export class PermanentChannelError extends Error {
   readonly retryable = false;

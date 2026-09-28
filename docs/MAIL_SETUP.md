@@ -35,11 +35,11 @@ distinct error that stops the pass and leaves the row `PENDING`.
 ```dotenv
 MAIL_PROVIDER="brevo"
 BREVO_API_KEY="xkeysib-..."          # Brevo → SMTP & API → API keys
-MAIL_FROM="nandeshjeyalakshmi@gmail.com"
+MAIL_FROM="you@example.com"
 MAIL_FROM_NAME="JTAS"
 
 # Guards. See section 4.
-MAIL_ALLOWLIST="nandeshjeyalakshmi@gmail.com,nandeshkanagaraju08@gmail.com"
+MAIL_ALLOWLIST="you@example.com,member@example.com"
 MAIL_DAILY_CAP="250"
 ```
 
@@ -76,13 +76,17 @@ is Google's privilege, not ours. So Brevo **substitutes its own subdomain** and
 sends anyway:
 
 ```
-we set        MAIL_FROM = nandeshjeyalakshmi@gmail.com   (verified, active)
-Brevo sent as nandeshjeyalakshmi@12289361.brevosend.com  (<user_id>.brevosend.com)
+we set        MAIL_FROM = you@gmail.com            (verified, active)
+Brevo sent as you@12289361.brevosend.com           (<user_id>.brevosend.com)
 ```
 
 Gmail then received mail from an unknown, unwarmed subdomain claiming to
 represent a Gmail user, and dropped both messages silently. Not spam, not
 Promotions — **absent**, with `in:anywhere` finding nothing.
+
+The `gmail.com` above is the point, not an incidental detail: the substitution
+happens for *any* domain absent from the authenticated list, and a freemail
+domain can never be on it.
 
 What makes this expensive is how thoroughly it looks like success at every
 layer we control:
@@ -146,7 +150,7 @@ appears in that user's in-app inbox, so a flow can be tested end to end without
 a message leaving the building. Empty disables the guard — the production
 posture, once the roster is real.
 
-**The full address is matched, including any plus-tag.** `you+hr@gmail.com` is
+**The full address is matched, including any plus-tag.** `you+hr@example.com` is
 **not** covered by `you@gmail.com` being on the list, even though Gmail
 delivers both to the same inbox. This is deliberate and tested: the roster is
 headed for plus-addressed mailboxes, and a matcher that collapsed the tag would

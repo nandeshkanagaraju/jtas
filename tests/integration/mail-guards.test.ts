@@ -22,8 +22,8 @@ import {
 } from './helpers/db';
 import { restoreMail, sentMails, useCapturingMail } from './helpers/mail';
 
-const ALLOWED = 'nandeshjeyalakshmi@gmail.com';
-const TAGGED = 'nandeshjeyalakshmi+hr@gmail.com';
+const ALLOWED = 'you@example.com';
+const TAGGED = 'you+hr@example.com';
 
 let allowed: Awaited<ReturnType<typeof createTestUser>>;
 let offList: Awaited<ReturnType<typeof createTestUser>>;

@@ -4,7 +4,7 @@
  * The rule exists because the roster is intended to move to Gmail
  * plus-addresses — `+hr@`, `+store@` — which are real, deliverable mailboxes
  * that all land in one inbox. A matcher that "helpfully" normalised
- * `nandeshjeyalakshmi+hr@gmail.com` down to `nandeshjeyalakshmi@gmail.com`
+ * `you+hr@example.com` down to `you@example.com`
  * would treat every one of them as the allowlisted address and mail all seven,
  * which is exactly the blast the allowlist is there to prevent. Gmail's own
  * delivery collapses the tag; this matcher must not.
@@ -19,8 +19,8 @@ import {
   suppressionReason,
 } from '@/lib/notifications/mail-guard';
 
-const ALLOWED = 'nandeshjeyalakshmi@gmail.com';
-const ALLOWLIST = [ALLOWED, 'nandeshkanagaraju08@gmail.com'];
+const ALLOWED = 'you@example.com';
+const ALLOWLIST = [ALLOWED, 'member@example.com'];
 
 describe('parseAllowlist', () => {
   it('splits, trims and lowercases', () => {
@@ -45,7 +45,7 @@ describe('isAllowedRecipient', () => {
 
   it('allows an address on the list, whatever its case', () => {
     expect(isAllowedRecipient(ALLOWED, ALLOWLIST)).toBe(true);
-    expect(isAllowedRecipient('NandeshJeyalakshmi@Gmail.com', ALLOWLIST)).toBe(true);
+    expect(isAllowedRecipient('You@Example.com', ALLOWLIST)).toBe(true);
     expect(isAllowedRecipient(`  ${ALLOWED}  `, ALLOWLIST)).toBe(true);
   });
 
@@ -60,28 +60,28 @@ describe('isAllowedRecipient', () => {
    * is on the list.
    */
   it.each([
-    'nandeshjeyalakshmi+hr@gmail.com',
-    'nandeshjeyalakshmi+planning@gmail.com',
-    'nandeshjeyalakshmi+purchase@gmail.com',
-    'nandeshjeyalakshmi+store@gmail.com',
-    'nandeshjeyalakshmi+quality@gmail.com',
-    'nandeshjeyalakshmi+dispatch@gmail.com',
-    'nandeshjeyalakshmi+accounts@gmail.com',
-    'nandeshjeyalakshmi+admin@gmail.com',
+    'you+hr@example.com',
+    'you+planning@example.com',
+    'you+purchase@example.com',
+    'you+store@example.com',
+    'you+quality@example.com',
+    'you+dispatch@example.com',
+    'you+accounts@example.com',
+    'you+admin@example.com',
   ])('does NOT collapse %s to the bare allowlisted address', (tagged) => {
     expect(isAllowedRecipient(tagged, ALLOWLIST)).toBe(false);
   });
 
   it('allows a plus-tagged address when that exact tag is listed', () => {
-    const tagged = 'nandeshjeyalakshmi+hr@gmail.com';
+    const tagged = 'you+hr@example.com';
     expect(isAllowedRecipient(tagged, [tagged])).toBe(true);
     // and still not its bare form, in the other direction
     expect(isAllowedRecipient(ALLOWED, [tagged])).toBe(false);
   });
 
   it('does not match on a prefix or a substring', () => {
-    expect(isAllowedRecipient('nandeshjeyalakshmi@gmail.com.evil.com', ALLOWLIST)).toBe(false);
-    expect(isAllowedRecipient('xnandeshjeyalakshmi@gmail.com', ALLOWLIST)).toBe(false);
+    expect(isAllowedRecipient('you@example.com.evil.com', ALLOWLIST)).toBe(false);
+    expect(isAllowedRecipient('xyou@example.com', ALLOWLIST)).toBe(false);
   });
 });
 

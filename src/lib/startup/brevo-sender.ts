@@ -4,7 +4,7 @@
  * This exists because of a failure that looked like success at every layer we
  * control. `MAIL_FROM` was a verified Brevo sender — added, confirmed by email,
  * `active: true` — and Brevo sent the mail as
- * `nandeshjeyalakshmi@12289361.brevosend.com` instead. It will not send with a
+ * `you@12289361.brevosend.com` instead. It will not send with a
  * From domain it cannot authenticate, and `gmail.com` can never be
  * authenticated by us, so it substitutes `<user_id>.brevosend.com` and sends
  * anyway. Gmail received mail from an unknown subdomain claiming to represent a

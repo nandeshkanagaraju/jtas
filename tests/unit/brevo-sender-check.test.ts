@@ -3,7 +3,7 @@
  *
  * Written after the failure it prevents. `MAIL_FROM` was a verified, active
  * Brevo sender on `gmail.com`; Brevo sent as
- * `nandeshjeyalakshmi@12289361.brevosend.com` and Gmail dropped it silently.
+ * `you@12289361.brevosend.com` and Gmail dropped it silently.
  * Every layer reported success — 201 from the API, row SENT, "Sent" in Brevo's
  * log, credits charged — and only the log's From column showed it.
  *
@@ -100,7 +100,7 @@ describe('MAIL_PROVIDER=brevo — an unauthenticated domain stops the boot', () 
   /** The exact case that happened. */
   it('refuses a verified gmail.com sender, and says why it can never work', async () => {
     const result = await checkBrevoSenderDomain(
-      { ...BREVO_ENV, MAIL_FROM: 'nandeshjeyalakshmi@gmail.com' },
+      { ...BREVO_ENV, MAIL_FROM: 'you@example.com' },
       async () => [],
     );
 

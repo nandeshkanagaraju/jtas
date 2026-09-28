@@ -120,6 +120,18 @@ model User {
   departmentId       String?
   department         Department? @relation(fields: [departmentId], references: [id])
   isActive           Boolean     @default(true)
+  /// Seeded demonstration or showcase account, not a real person.
+  ///
+  /// Additive to SDD section 3.3, and the companion to `Job.isDemo`. That flag
+  /// stopped the sweeper chasing demonstration *work*; this one stops it
+  /// mailing demonstration *people*. Both are needed, because recipients are
+  /// chosen by role rather than by job: `pnpm seed:demo` and
+  /// `pnpm seed:showcase` each create an MD, so every digest and every overdue
+  /// escalation was addressed to three Managing Directors, two of which do not
+  /// exist. Against Mailpit that is invisible; against a real relay it is two
+  /// hard bounces per escalation, counted against the sending reputation of
+  /// the one address that does exist.
+  isDemo             Boolean     @default(false)
   mustChangePassword Boolean     @default(true)
   failedLoginCount   Int         @default(0)
   lockedUntil        DateTime?

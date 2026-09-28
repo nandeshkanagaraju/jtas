@@ -34,6 +34,41 @@ export interface EnqueueInput {
 }
 
 /**
+ * Drops demonstration accounts from a recipient list.
+ *
+ * This sits inside `enqueue` rather than at any of the places that *choose*
+ * recipients, and that is the whole point. There are three separate role-based
+ * queries — `problemRecipientIds`, the digest's own, and the sweeper's
+ * `commanders` — plus a dozen sites that address a subtask's assignee
+ * directly. Filtering at each of them is a rule to remember every time a
+ * notification type is added; filtering here is a property of the table,
+ * because this function holds the only INSERT into "Notification" in the
+ * codebase. `tests/integration/demo-recipient-isolation.test.ts` asserts both
+ * halves of that: every enum member is covered, and no second inserter exists.
+ *
+ * Demo accounts get no row at all, not a suppressed one. A suppressed row is
+ * how a *real* person who is off the mail allowlist stays visible in their own
+ * in-app inbox; a demo account has nobody to read one.
+ */
+async function realRecipients(db: Db, userIds: readonly string[]): Promise<string[]> {
+  const real = await db.user.findMany({
+    where: { id: { in: [...userIds] }, isDemo: false },
+    select: { id: true },
+  });
+
+  if (real.length !== userIds.length) {
+    log.debug(
+      { requested: userIds.length, real: real.length },
+      'demonstration accounts dropped from a recipient list',
+    );
+  }
+
+  // Preserves the caller's order, which the dedupe keys and the tests rely on.
+  const keep = new Set(real.map((row) => row.id));
+  return userIds.filter((id) => keep.has(id));
+}
+
+/**
  * Inserts notification rows, ignoring any that already exist.
  *
  * `ON CONFLICT (dedupeKey) DO NOTHING` is the idempotency guarantee of SDD 5.2:
@@ -47,10 +82,13 @@ export interface EnqueueInput {
 export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
   if (input.userIds.length === 0) return 0;
 
+  const userIds = await realRecipients(db, input.userIds);
+  if (userIds.length === 0) return 0;
+
   const scheduledFor = input.scheduledFor ?? new Date();
   const channel: NotifChannel = input.channel ?? 'EMAIL';
 
-  const values = input.userIds.map(
+  const values = userIds.map(
     (userId) =>
       Prisma.sql`(
       ${crypto.randomUUID()},
@@ -78,9 +116,9 @@ export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
     ON CONFLICT ("dedupeKey") DO NOTHING
   `;
 
-  if (inserted !== input.userIds.length) {
+  if (inserted !== userIds.length) {
     log.debug(
-      { type: input.type, entityId: input.entityId, requested: input.userIds.length, inserted },
+      { type: input.type, entityId: input.entityId, requested: userIds.length, inserted },
       'some notifications were already queued',
     );
   }

@@ -118,10 +118,11 @@ async function ensureDemoUsers(
   for (const user of wanted) {
     const row = await prisma.user.upsert({
       where: { email: user.email },
-      create: { ...user, passwordHash, mustChangePassword: true, isActive: true },
-      // Nothing to update — an existing demo account is already right, and
-      // rewriting it would churn updatedAt on every run.
-      update: {},
+      create: { ...user, passwordHash, mustChangePassword: true, isActive: true, isDemo: true },
+      // `isDemo` is the one thing worth repairing on an existing row: an
+      // account seeded before the flag existed is still a demo account, and
+      // leaving it false would keep it on the MD mailing list.
+      update: { isDemo: true },
       select: { id: true },
     });
     byEmail.set(user.email, row.id);

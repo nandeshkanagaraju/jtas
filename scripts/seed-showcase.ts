@@ -420,6 +420,9 @@ async function ensurePeople(
         passwordHash: await bcrypt.hash(password, 10),
         mustChangePassword: true,
         isActive: true,
+        // A showcase account is a demo account: it exists to make the screens
+        // look inhabited, and must never receive mail. See User.isDemo.
+        isDemo: true,
       },
       select: { id: true },
     });

@@ -110,6 +110,7 @@ export interface TestUserOptions {
   password?: string;
   role?: Role;
   isActive?: boolean;
+  isDemo?: boolean;
   mustChangePassword?: boolean;
   departmentId?: string | null;
   failedLoginCount?: number;
@@ -133,6 +134,7 @@ export async function createTestUser(options: TestUserOptions = {}) {
       passwordHash: await hashPassword(password),
       role: options.role ?? 'MEMBER',
       isActive: options.isActive ?? true,
+      isDemo: options.isDemo ?? false,
       mustChangePassword: options.mustChangePassword ?? false,
       failedLoginCount: options.failedLoginCount ?? 0,
       lockedUntil: options.lockedUntil ?? null,

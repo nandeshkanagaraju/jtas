@@ -58,8 +58,11 @@ beforeEach(async () => {
   await resetAuthTables();
   useCapturingMail();
 
-  delete process.env.MAIL_ALLOWLIST;
-  delete process.env.MAIL_DAILY_CAP;
+  // Assigned, never deleted: under Vitest a `delete` on process.env does not
+  // take effect, so a deleting teardown leaves the guard live for every file
+  // that runs after this one.
+  process.env.MAIL_ALLOWLIST = '';
+  process.env.MAIL_DAILY_CAP = '250';
 
   department = await createTestDepartment({ code: 'PRODUCTION', name: 'Production' });
   allowed = await createTestUser({ email: ALLOWED, departmentId: department.id });
@@ -69,8 +72,8 @@ beforeEach(async () => {
 
 afterEach(() => {
   restoreMail();
-  delete process.env.MAIL_ALLOWLIST;
-  delete process.env.MAIL_DAILY_CAP;
+  process.env.MAIL_ALLOWLIST = '';
+  process.env.MAIL_DAILY_CAP = '250';
 });
 
 describe('the recipient allowlist', () => {

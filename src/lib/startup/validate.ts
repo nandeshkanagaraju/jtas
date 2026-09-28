@@ -15,10 +15,12 @@ import { prisma } from '@/lib/db/prisma';
 import { env } from '@/lib/utils/env';
 import { moduleLogger } from '@/lib/utils/logger';
 
+import { checkBrevoSenderDomain } from './brevo-sender';
+
 const log = moduleLogger('startup');
 
 export interface ConfigProblem {
-  scope: 'env' | 'setting' | 'database';
+  scope: 'env' | 'setting' | 'database' | 'mail';
   key: string;
   message: string;
   /** What the system will use instead, when it can carry on. */
@@ -121,6 +123,21 @@ export async function checkConfiguration(): Promise<ConfigReport> {
       key: 'working_hours',
       message: `The working day starts at ${start} and ends at ${end}. Reminders held for working hours would never be released.`,
     });
+  }
+
+  /*
+   * Will the mail provider actually send as MAIL_FROM?
+   *
+   * Last, because it is the only check that touches the network, and it makes
+   * no call at all unless MAIL_PROVIDER=brevo — `smtp` against Mailpit boots
+   * offline, exactly as before.
+   */
+  const senderCheck = await checkBrevoSenderDomain();
+
+  if (senderCheck.severity === 'error') {
+    errors.push({ scope: 'mail', key: 'MAIL_FROM', message: senderCheck.message });
+  } else if (senderCheck.severity === 'warning') {
+    warnings.push({ scope: 'mail', key: 'MAIL_FROM', message: senderCheck.message });
   }
 
   return { ok: errors.length === 0, errors, warnings };

@@ -39,7 +39,7 @@ MAIL_FROM="nandeshjeyalakshmi@gmail.com"
 MAIL_FROM_NAME="JTAS"
 
 # Guards. See section 4.
-MAIL_ALLOWLIST="nandeshjeyalakshmi@gmail.com,nandeshkanagaraju@gmail.com"
+MAIL_ALLOWLIST="nandeshjeyalakshmi@gmail.com,nandeshkanagaraju08@gmail.com"
 MAIL_DAILY_CAP="250"
 ```
 
@@ -65,22 +65,70 @@ Until this is done every send returns `401`/`403`, which the adapter classifies
 as permanent — so the row fails on the first attempt rather than retrying.
 That is deliberate: a misconfigured sender is not a transient condition.
 
-### A Gmail from-address cannot demonstrate domain delivery
+### ⚠ A verified freemail sender is silently rewritten — and nothing tells you
 
-`nandeshjeyalakshmi@gmail.com` is fine for proving the plumbing works — the
-adapter, the retry mapping, the guards, the deep links. It proves nothing about
-deliverability for the client, and it cannot, for two reasons:
+**This was observed, not theorised. It cost a full debugging cycle.**
 
-- **The envelope domain is not ours.** Brevo sends on behalf of a Gmail
-  address, so the receiving server evaluates `gmail.com`'s policy, not
-  `jaraaglobal.com`'s. Gmail publishes `p=none` DMARC, which is why this is
-  tolerated at all; a domain with a stricter policy would reject it outright.
-- **It will land in Promotions or Spam more often than a verified domain
-  would**, and no amount of tuning the message changes that while the sender is
-  a free mailbox relayed by a third party.
+A `@gmail.com` sender can be verified, show `active: true`, and still never be
+used as the From address. Brevo will not send with a From domain it cannot
+authenticate, and nobody can authenticate `gmail.com` — publishing DNS for it
+is Google's privilege, not ours. So Brevo **substitutes its own subdomain** and
+sends anyway:
 
-Treat the Gmail sender as scaffolding. The real test of deliverability happens
-after section 5, and not before.
+```
+we set        MAIL_FROM = nandeshjeyalakshmi@gmail.com   (verified, active)
+Brevo sent as nandeshjeyalakshmi@12289361.brevosend.com  (<user_id>.brevosend.com)
+```
+
+Gmail then received mail from an unknown, unwarmed subdomain claiming to
+represent a Gmail user, and dropped both messages silently. Not spam, not
+Promotions — **absent**, with `in:anywhere` finding nothing.
+
+What makes this expensive is how thoroughly it looks like success at every
+layer we control:
+
+| Where you look | What it says | Reality |
+| --- | --- | --- |
+| Our adapter | `201`, `messageId` returned, row `SENT` | Accepted, not delivered |
+| `/v3/smtp/statistics/events` | `requests` only — no bounce, no block, no defer | Silence is not success |
+| `/v3/smtp/statistics/aggregatedReport` | `requests 2, delivered 0`, all else `0` | The only honest signal |
+| Account credits | `300 → 298` | Charged regardless |
+| Brevo Logs UI, status column | **"Sent"** | Sent *as something else* |
+| Brevo Logs UI, **From column** | `...@12289361.brevosend.com` | ← the only place it is visible |
+| `/v3/senders` | `active: true`, no other state | No hint of substitution |
+
+There is no error, no warning, and no field on the sender record that says
+"this address will be rewritten". The `requests`-without-`delivered` pattern is
+easy to misread as a queue still draining, or as an account pending review; it
+is neither.
+
+**The one API call that would have caught it before sending:**
+
+```bash
+curl -s -H "api-key: $BREVO_API_KEY" https://api.brevo.com/v3/senders/domains
+# {"domains":[],"count":0}   ← no authenticated domain: every From will be rewritten
+```
+
+An empty `domains` list means nothing you put in `MAIL_FROM` will survive,
+whatever `/v3/senders` claims. Check the **From column** in Logs after any
+first send to a new provider, and check `senders/domains` before one.
+
+### So a Gmail from-address proves less than it appears to
+
+It is still useful scaffolding — it exercises the adapter, the error mapping,
+the retry and quota logic, the allowlist, the templates and the deep links, all
+of which were confirmed working by the run above. What it cannot do is deliver
+mail or demonstrate deliverability, because:
+
+- **The From domain is never ours.** Either Brevo rewrites it to
+  `<user_id>.brevosend.com`, as it did, or — with a domain we do control — it
+  sends aligned. There is no third option in which `gmail.com` works.
+- **`gmail.com` publishes `v=DMARC1; p=none; sp=quarantine`.** Relayed through
+  Brevo, neither SPF nor DKIM aligns with `gmail.com`, so the message is
+  unauthenticated mail claiming to be from Gmail, arriving at Gmail. `p=none`
+  is the only reason it is not rejected outright.
+
+The real test of deliverability happens after section 5, and not before.
 
 ---
 
@@ -220,6 +268,8 @@ notification row id.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
+| **Rows `SENT`, Brevo logs say "Sent", nothing arrives, `in:anywhere` finds nothing** | **From rewritten to `<user_id>.brevosend.com` because no domain is authenticated** | **Section 3 — check the From column in Logs and `/v3/senders/domains`; the fix is section 5** |
+| `requests` logged but `delivered` stays 0, no bounce | Same as above. Silence is the symptom | Section 3 |
 | Every row `FAILED` on the first attempt, `401` | Key wrong, or sender not verified | Section 3 |
 | Rows stay `PENDING`, log says daily cap | `MAIL_DAILY_CAP` reached | Expected; they go out after IST midnight |
 | Rows `SUPPRESSED`, reason names the address | Not on `MAIL_ALLOWLIST` | Expected during testing; section 4 |

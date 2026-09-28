@@ -20,7 +20,7 @@ import {
 } from '@/lib/notifications/mail-guard';
 
 const ALLOWED = 'nandeshjeyalakshmi@gmail.com';
-const ALLOWLIST = [ALLOWED, 'nandeshkanagaraju@gmail.com'];
+const ALLOWLIST = [ALLOWED, 'nandeshkanagaraju08@gmail.com'];
 
 describe('parseAllowlist', () => {
   it('splits, trims and lowercases', () => {

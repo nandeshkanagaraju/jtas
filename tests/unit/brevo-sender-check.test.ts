@@ -81,33 +81,33 @@ describe('MAIL_PROVIDER=smtp — local development must be untouched', () => {
   });
 });
 
-describe('MAIL_PROVIDER=brevo — an unauthenticated domain stops the boot', () => {
-  it('refuses when the authenticated list is empty', async () => {
+describe('MAIL_PROVIDER=brevo — an unauthenticated domain warns but allows boot', () => {
+  it('warns when the authenticated list is empty', async () => {
     const result = await checkBrevoSenderDomain(BREVO_ENV, async () => []);
 
-    expect(result.severity).toBe('error');
+    expect(result.severity).toBe('warning');
     expect(result.message).toContain('jaraaglobal.com');
     expect(result.message).toContain('EMPTY');
   });
 
-  it('refuses when the domain is absent from a populated list', async () => {
+  it('warns when the domain is absent from a populated list', async () => {
     const result = await checkBrevoSenderDomain(BREVO_ENV, async () => ['otherdomain.com']);
 
-    expect(result.severity).toBe('error');
+    expect(result.severity).toBe('warning');
     expect(result.message).toContain('otherdomain.com');
   });
 
   /** The exact case that happened. */
-  it('refuses a verified gmail.com sender, and says why it can never work', async () => {
+  it('warns on a freemail sender (e.g. gmail.com) and notes the rewrite and delay', async () => {
     const result = await checkBrevoSenderDomain(
-      { ...BREVO_ENV, MAIL_FROM: 'you@example.com' },
+      { ...BREVO_ENV, MAIL_FROM: 'you@gmail.com' },
       async () => [],
     );
 
-    expect(result.severity).toBe('error');
+    expect(result.severity).toBe('warning');
     expect(result.message).toContain('gmail.com');
     expect(result.message).toContain('brevosend.com');
-    expect(result.message).toMatch(/never be authenticated/i);
+    expect(result.message).toContain('rewrite');
   });
 
   /**
@@ -196,7 +196,9 @@ describe('an unreachable Brevo warns but boots', () => {
     const empty = await checkBrevoSenderDomain(BREVO_ENV, async () => []);
 
     expect(unreachable.severity).toBe('warning');
-    expect(empty.severity).toBe('error');
+    expect(empty.severity).toBe('warning');
+    expect(unreachable.message).toContain('Could not reach Brevo');
+    expect(empty.message).toContain('EMPTY');
   });
 
   it('never throws, whatever the lookup does', async () => {

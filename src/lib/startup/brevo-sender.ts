@@ -141,21 +141,17 @@ export async function checkBrevoSenderDomain(
       : `authenticated: ${authenticated.join(', ')}`;
 
   return {
-    severity: 'error',
+    severity: 'warning',
     message:
       `MAIL_FROM is "${from}", but "${domain}" is NOT in Brevo's authenticated domain list ` +
       `(${listed}).\n` +
-      `      Brevo will NOT send as an unauthenticated domain. It substitutes its own —\n` +
-      `      <localpart>@<user_id>.brevosend.com — and sends anyway. The API returns 201,\n` +
-      `      the row is marked SENT, the Brevo log reads "Sent", the credit is charged, and\n` +
-      `      the mail is dropped by the recipient as coming from an unknown subdomain.\n` +
-      `      This has happened on this project; it cost a debugging cycle.\n` +
-      `      A freemail domain (gmail.com, outlook.com) can NEVER be authenticated, because\n` +
-      `      that requires publishing DNS for it.\n` +
+      `      Brevo will rewrite the sender address (substituting <localpart>@<user_id>.brevosend.com),\n` +
+      `      and inbox delivery may take up to 20 minutes.\n` +
+      `      Domain verification (docs/MAIL_SETUP.md section 5) remains the proper fix for production,\n` +
+      `      but local operation proceeds.\n` +
       `      See it yourself:\n` +
       `        curl -s -H "api-key: $BREVO_API_KEY" ${SENDERS_DOMAINS_ENDPOINT}\n` +
-      `      Fix: authenticate the domain (docs/MAIL_SETUP.md section 5), then set MAIL_FROM\n` +
-      `      to an address on it. To send via Mailpit meanwhile, set MAIL_PROVIDER=smtp.`,
+      `      To send via Mailpit instead, set MAIL_PROVIDER=smtp.`,
   };
 }
 

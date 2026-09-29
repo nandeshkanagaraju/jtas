@@ -17,8 +17,12 @@ import { config } from 'dotenv';
 
 config({ path: '.env', quiet: true });
 
-// Must be set before the application's Prisma client is imported.
+// Must be set before the application's Prisma client or channels are imported.
 process.env.DATABASE_URL = (process.env.DATABASE_URL ?? '').replace(/(_dev|_test)(\?|$)/, '_e2e$2');
+process.env.MAIL_PROVIDER = 'smtp';
+process.env.BREVO_API_KEY = '';
+process.env.MAIL_ALLOWLIST = '';
+process.env.MAIL_DAILY_CAP = '250';
 
 async function main() {
   const [action, instant] = process.argv.slice(2);

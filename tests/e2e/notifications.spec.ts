@@ -23,6 +23,7 @@ import { overdueMdKey, overdueMemberKey, reminderKey } from '../../src/lib/notif
 import { fromISTInput } from '../../src/lib/utils/time';
 
 import { ACCOUNTS, e2ePrisma } from './fixtures/seed';
+import { clearMailpit, getMailpitMessages } from './fixtures/mailpit';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -128,7 +129,7 @@ test('the reminder is scheduled at the deadline minus the lead, with the right k
 });
 
 test('a reminder fires once however many times the sweeper runs', async () => {
-  const { prisma, subtask, member } = await makeSubtask('2027-07-10T18:00');
+  const { prisma, job, subtask, member } = await makeSubtask('2027-07-10T18:00');
 
   try {
     schedule(subtask.id);
@@ -136,6 +137,8 @@ test('a reminder fires once however many times the sweeper runs', async () => {
     await prisma.notification.deleteMany({
       where: { entityId: subtask.id, type: 'SUBTASK_ASSIGNED' },
     });
+
+    await clearMailpit();
 
     const at = new Date(subtask.deadline.getTime() - 360 * 60_000);
 
@@ -150,6 +153,16 @@ test('a reminder fires once however many times the sweeper runs', async () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].status).toBe('SENT');
     expect(rows[0].userId).toBe(member.id);
+
+    // Assert against Mailpit: exactly one reminder message received for this job/subtask
+    const mails = await getMailpitMessages();
+    const reminderMails = mails.filter(
+      (m) =>
+        m.To.some((t) => t.Address.toLowerCase() === ACCOUNTS.production.toLowerCase()) &&
+        m.Subject.includes(job.jobCode),
+    );
+    expect(reminderMails).toHaveLength(1);
+    expect(reminderMails[0].Subject).toContain('Due in 6 h');
   } finally {
     await prisma.$disconnect();
   }
@@ -163,6 +176,8 @@ test('an overdue subtask produces one member mail and one per commander', async 
   try {
     await prisma.subtask.update({ where: { id: subtask.id }, data: { deadline } });
     await prisma.notification.deleteMany({ where: { entityId: subtask.id } });
+
+    await clearMailpit();
 
     const { escalated } = sweep('escalate');
     expect(escalated).toBeGreaterThanOrEqual(1);
@@ -201,6 +216,21 @@ test('an overdue subtask produces one member mail and one per commander', async 
     const row = await prisma.subtask.findUniqueOrThrow({ where: { id: subtask.id } });
     expect(toMember[0].dedupeKey).toBe(overdueMemberKey(subtask.id, row.escalationCount));
     expect(toMd[0].dedupeKey).toBe(overdueMdKey(subtask.id, row.escalationCount, md.id));
+
+    // Assert against Mailpit: both emails captured by SMTP
+    const mails = await getMailpitMessages();
+    const memberMail = mails.find(
+      (m) =>
+        m.To.some((t) => t.Address.toLowerCase() === ACCOUNTS.production.toLowerCase()) &&
+        m.Subject === toMember[0].subject,
+    );
+    const mdMail = mails.find(
+      (m) =>
+        m.To.some((t) => t.Address.toLowerCase() === ACCOUNTS.md.toLowerCase()) &&
+        m.Subject === toMd[0].subject,
+    );
+    expect(memberMail).toBeDefined();
+    expect(mdMail).toBeDefined();
   } finally {
     await prisma.$disconnect();
   }

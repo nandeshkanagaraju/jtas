@@ -35,10 +35,15 @@ if (E2E_DATABASE_URL && !process.env.PW_SKIP_DB_SETUP) {
  * available: the row it just created is still PENDING, because a different
  * database was swept.
  *
- * Set before the config is exported, so every worker Playwright forks inherits
- * it.
- */
 if (E2E_DATABASE_URL) process.env.DATABASE_URL = E2E_DATABASE_URL;
+
+/*
+ * Force SMTP against Mailpit for the entire E2E suite. Brevo is never called.
+ */
+process.env.MAIL_PROVIDER = 'smtp';
+process.env.BREVO_API_KEY = '';
+process.env.MAIL_ALLOWLIST = '';
+process.env.MAIL_DAILY_CAP = '250';
 
 /*
  * Its own port.
@@ -124,6 +129,10 @@ export default defineConfig({
       // Where the app thinks it is. The CSP is derived from this — a mismatched
       // value is how `upgrade-insecure-requests` ends up on a plain-http origin.
       APP_BASE_URL: E2E_BASE_URL,
+      MAIL_PROVIDER: 'smtp',
+      BREVO_API_KEY: '',
+      MAIL_ALLOWLIST: '',
+      MAIL_DAILY_CAP: '250',
     } as Record<string, string>,
     // Never reuse: the port is the suite's own, so anything already on it is
     // a leftover from a killed run rather than something to adopt.

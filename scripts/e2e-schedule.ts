@@ -8,6 +8,10 @@ import { config } from 'dotenv';
 config({ path: '.env', quiet: true });
 
 process.env.DATABASE_URL = (process.env.DATABASE_URL ?? '').replace(/(_dev|_test)(\?|$)/, '_e2e$2');
+process.env.MAIL_PROVIDER = 'smtp';
+process.env.BREVO_API_KEY = '';
+process.env.MAIL_ALLOWLIST = '';
+process.env.MAIL_DAILY_CAP = '250';
 
 async function main() {
   const subtaskId = process.argv[2];

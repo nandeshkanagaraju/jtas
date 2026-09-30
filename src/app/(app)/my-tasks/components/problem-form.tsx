@@ -52,10 +52,10 @@ export function ProblemForm({
 
   return (
     <div className="space-y-3">
-      <p className="text-base font-semibold text-[#1c2430]">Report problem</p>
+      <p className="text-base font-semibold text-[#f3f5f8]">Report problem</p>
 
       <fieldset className="space-y-2" disabled={busy}>
-        <legend className="text-base text-[#1c2430]">Severity</legend>
+        <legend className="text-base text-[#f3f5f8]">Severity</legend>
         <div className="flex flex-wrap gap-2">
           {SEVERITIES.map((option) => {
             const selected = severity === option.value;
@@ -66,10 +66,10 @@ export function ProblemForm({
                 aria-pressed={selected}
                 onClick={() => setSeverity(option.value)}
                 className={cn(
-                  'min-h-11 rounded-sm border-2 px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]',
+                  'min-h-11 rounded-sm border-2 px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]',
                   selected
-                    ? 'border-[#1c2430] bg-[#1c2430] text-white'
-                    : 'border-[#d5dbe3] bg-[#f4f6f8] text-[#1c2430]',
+                    ? 'border-[#d6f25a] bg-[#d6f25a] text-[#14180a]'
+                    : 'border-[#313743] bg-[#262b36] text-[#f3f5f8]',
                 )}
               >
                 {option.label}
@@ -80,7 +80,7 @@ export function ProblemForm({
       </fieldset>
 
       <div className="space-y-1.5">
-        <label htmlFor="problem-note" className="text-base text-[#1c2430]">
+        <label htmlFor="problem-note" className="text-base text-[#f3f5f8]">
           What stopped the work?
         </label>
         <Textarea
@@ -95,7 +95,7 @@ export function ProblemForm({
           className="text-base"
         />
         {short ? (
-          <p className="text-sm text-[#1c2430]">
+          <p className="text-sm text-[#f3f5f8]">
             {remaining} more {remaining === 1 ? 'character' : 'characters'}. Say what stopped the
             work.
           </p>
@@ -105,7 +105,7 @@ export function ProblemForm({
       <div className="flex gap-2">
         <Button
           type="button"
-          className="h-auto min-h-12 flex-1 rounded-sm bg-[#1c2430] text-base font-semibold text-white shadow-none hover:bg-[#1c2430] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430] motion-reduce:transition-none"
+          className="h-auto min-h-12 flex-1 rounded-lg bg-[#d6f25a] text-base font-semibold text-[#14180a] shadow-none hover:bg-[#d6f25a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a] motion-reduce:transition-none"
           disabled={busy || short}
           onClick={() => onSubmit({ note: note.trim(), severity })}
         >
@@ -114,7 +114,7 @@ export function ProblemForm({
         <Button
           type="button"
           variant="outline"
-          className="h-auto min-h-12 rounded-sm border-2 border-[#1c2430] bg-[#f4f6f8] text-base text-[#1c2430] shadow-none hover:bg-[#f4f6f8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430] motion-reduce:transition-none"
+          className="h-auto min-h-12 rounded-lg border border-[#313743] bg-[#262b36] text-base text-[#f3f5f8] shadow-none hover:bg-[#262b36] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a] motion-reduce:transition-none"
           onClick={onCancel}
           disabled={busy}
         >

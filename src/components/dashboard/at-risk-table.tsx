@@ -14,7 +14,7 @@ import { formatIST } from '@/lib/utils/time';
  */
 
 const ROW =
-  'block border-b border-[#d5dbe3] py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]';
+  'mt-3 block rounded-xl border border-[#313743] bg-[#262b36] px-4 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a]';
 
 export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number }) {
   const hidden = Math.max(0, total - jobs.length);
@@ -23,14 +23,14 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
     <section aria-labelledby="at-risk">
       <h2
         id="at-risk"
-        className="flex items-baseline justify-between gap-4 border-b border-[#d5dbe3] pb-2 text-base font-semibold text-[#1c2430]"
+        className="flex items-baseline justify-between gap-4 border-b border-[#313743] py-3 text-sm font-semibold text-[#f3f5f8]"
       >
         <span>Jobs at risk</span>
-        <span className="tabular">{jobs.length}</span>
+        <span className="font-mono text-sm font-medium text-[#aeb6c3]">{jobs.length}</span>
       </h2>
 
       {jobs.length === 0 ? (
-        <p className="border-b border-[#d5dbe3] py-3 text-base text-[#1c2430]">
+        <p className="border-b border-[#313743] py-4 text-sm leading-6 text-[#aeb6c3]">
           Every live job is on track.
         </p>
       ) : (
@@ -39,22 +39,22 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
             <li key={job.id}>
               <Link href={`/jobs/${job.id}`} className={ROW}>
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="tabular text-xl font-semibold text-[#1c2430]">
+                  <span className="font-mono text-sm font-medium text-[#f3f5f8]">
                     {job.jobCode}
                   </span>
                   <span
                     className={
                       job.status === 'DELAYED'
-                        ? 'text-base font-semibold text-[#9f1239]'
-                        : 'text-base font-semibold text-[#92400e]'
+                        ? 'rounded-full bg-[#fb7185]/15 px-2 py-0.5 text-xs font-semibold text-[#fb7185]'
+                        : 'rounded-full bg-[#fbbf24]/15 px-2 py-0.5 text-xs font-semibold text-[#fbbf24]'
                     }
                   >
                     {job.status === 'DELAYED' ? 'Delayed' : 'At risk'}
                   </span>
                 </div>
-                <p className="mt-1 text-base font-semibold text-[#1c2430]">{job.title}</p>
-                <p className="mt-1 text-base text-[#1c2430]">{holding(job)}</p>
-                <p className="mt-1 text-sm text-[#1c2430]">
+                <p className="mt-2 text-sm leading-6 font-semibold text-[#f3f5f8]">{job.title}</p>
+                <p className="mt-1 text-sm leading-6 text-[#f3f5f8]">{holding(job)}</p>
+                <p className="mt-1 text-sm leading-6 text-[#aeb6c3]">
                   Due {formatIST(new Date(job.overallDeadline), 'd MMM')}
                 </p>
               </Link>
@@ -64,10 +64,10 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
       )}
 
       {hidden > 0 ? (
-        <p className="border-b border-[#d5dbe3] py-3 text-base">
+        <p className="border-b border-[#313743] py-4 text-sm leading-6">
           <Link
             href="/jobs"
-            className="text-[#1c2430] underline decoration-[#d5dbe3] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]"
+            className="text-[#f3f5f8] underline decoration-[#313743] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
           >
             {hidden === 1 ? '1 more job' : `${hidden} more jobs`}
           </Link>

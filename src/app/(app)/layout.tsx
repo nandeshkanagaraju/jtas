@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { AppHeader } from '@/components/shared/app-header';
+import { AppShell } from '@/components/shared/app-shell';
 import type { NavItem } from '@/components/shared/main-nav';
 import { Toaster } from '@/components/ui/sonner';
 import { can } from '@/lib/auth/policy';
@@ -23,22 +23,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <AppHeader
+    <>
+      <AppShell
         name={session.name}
         email={session.email}
         role={session.role}
         nav={nav}
         unreadNotifications={inbox.unreadCount}
-      />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
-
+      >
+        {children}
+      </AppShell>
       {/*
         Bottom-centre on a phone: a toast at the top would sit under the sticky
         summary strip, and one in a corner is easy to miss with a glove on.
       */}
       <Toaster position="bottom-center" richColors closeButton />
-    </div>
+    </>
   );
 }
 
@@ -53,7 +53,7 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
   const nav: NavItem[] = [];
 
   if (can(session, 'dashboard:md', undefined)) {
-    nav.push({ href: '/dashboard', label: 'Dashboard', icon: 'jobs' });
+    nav.push({ href: '/dashboard', label: 'Dashboard', icon: 'dashboard' });
   }
 
   // Every role that can see a job at all gets the jobs list; it scopes itself.

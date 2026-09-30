@@ -4,14 +4,9 @@ import Link from 'next/link';
 
 import { Ban, ChevronDown, Pause, Pencil, Play, ScrollText, Send } from 'lucide-react';
 
-import {
-  DeadlineCell,
-  JobProgress,
-  JobStatusBadge,
-  PriorityBadge,
-} from '@/app/(app)/jobs/components/job-badges';
+import { JobProgress } from '@/app/(app)/jobs/components/job-badges';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,9 +14,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
 import type { JobRowDto } from '@/lib/api/jobs-client';
+import { completionLabel, deadlineLabel } from '@/lib/utils/relative-time';
 import { formatIST } from '@/lib/utils/time';
+
+const STATUS_WORD: Record<string, { label: string; className: string }> = {
+  DRAFT: { label: 'Draft', className: 'text-[#f3f5f8]' },
+  IN_PROGRESS: { label: 'In progress', className: 'text-[#f3f5f8]' },
+  AT_RISK: { label: 'At risk', className: 'text-[#fbbf24]' },
+  DELAYED: { label: 'Delayed', className: 'text-[#fb7185]' },
+  ON_HOLD: { label: 'On hold', className: 'text-[#f3f5f8]' },
+  COMPLETED: { label: 'Completed', className: 'text-[#0f5132]' },
+  CANCELLED: { label: 'Cancelled', className: 'text-[#f3f5f8]' },
+};
+
+const PRIORITY_WORD: Record<string, string> = {
+  LOW: 'Low',
+  NORMAL: 'Normal',
+  HIGH: 'High',
+  URGENT: 'Urgent',
+};
 
 export interface JobPermissions {
   edit: boolean;
@@ -32,18 +44,40 @@ export interface JobPermissions {
   viewAudit: boolean;
 }
 
-/** One labelled fact in the header card. */
-function Fact({ label, value }: { label: string; value: React.ReactNode }) {
+/**
+ * One line of a traveller: a small label, a dotted rule, the value at the right.
+ *
+ * `machine` is for a code, a number, or a timestamp. A name or a sentence stays
+ * in Outfit.
+ */
+function Fact({
+  label,
+  value,
+  machine = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  machine?: boolean;
+}) {
   return (
-    <div className="space-y-0.5">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="text-sm font-medium">{value ?? '—'}</dd>
+    <div className="flex items-baseline border-b border-dotted border-[#313743] py-2.5">
+      <dt className="bg-background w-28 shrink-0 pr-3 text-[11px] font-medium tracking-[0.16em] text-[#aeb6c3] uppercase sm:w-36">
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          'bg-background ml-auto min-w-0 pl-3 text-right text-base text-[#f3f5f8]',
+          machine && 'font-mono',
+        )}
+      >
+        {value ?? '—'}
+      </dd>
     </div>
   );
 }
 
 /**
- * The job header card and the MD action menu.
+ * The job header and the MD action menu.
  *
  * Which actions appear follows the job's status as well as the caller's
  * permissions — publishing a published job or holding a draft are refused by
@@ -72,111 +106,113 @@ export function JobHeader({
   const isOnHold = job.status === 'ON_HOLD';
   const isClosed = job.status === 'CANCELLED' || job.status === 'COMPLETED';
 
+  const deadline = new Date(job.overallDeadline);
+  const when = job.completedAt
+    ? completionLabel(deadline, new Date(job.completedAt))
+    : deadlineLabel(deadline);
+  const status = STATUS_WORD[job.status] ?? { label: job.status, className: 'text-[#f3f5f8]' };
+  const whenClass =
+    when.tone === 'overdue'
+      ? 'text-[#fb7185]'
+      : when.tone === 'urgent' || when.tone === 'soon'
+        ? 'text-[#fbbf24]'
+        : 'text-[#f3f5f8]';
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-1">
-            <div className="text-muted-foreground flex items-center gap-2 text-sm">
-              <span className="tabular">{job.jobCode}</span>
-              {permissions.viewAudit ? (
-                /*
-                 * The full trace, not just the JOB rows: the work happened on
-                 * the subtasks, and "why was this three weeks late" is answered
-                 * there. Only offered to whoever may read the log at all.
-                 */
-                <Link
-                  href={`/audit?job=${job.id}`}
-                  className="hover:text-foreground inline-flex items-center gap-1 text-xs underline-offset-4 hover:underline"
-                >
-                  <ScrollText className="size-3.5" />
-                  Full history
-                </Link>
-              ) : null}
-            </div>
-            <CardTitle className="text-xl">{job.title}</CardTitle>
-            <CardDescription className="flex flex-wrap items-center gap-2">
-              <JobStatusBadge status={job.status} />
-              <PriorityBadge priority={job.priority} />
-              {job.publishedAt ? (
-                <span className="text-xs">Published {formatIST(new Date(job.publishedAt))}</span>
-              ) : (
-                <span className="text-xs">Not published yet</span>
-              )}
-            </CardDescription>
-          </div>
-
-          {permissions.edit && !isClosed ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={busy}>
-                  Actions
-                  <ChevronDown className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onSelect={onToggleEdit}>
-                  <Pencil className="size-4" />
-                  {editing ? 'Stop editing' : 'Edit details'}
-                </DropdownMenuItem>
-
-                {isDraft && permissions.publish ? (
-                  <DropdownMenuItem onSelect={onPublish}>
-                    <Send className="size-4" />
-                    Publish job
-                  </DropdownMenuItem>
-                ) : null}
-
-                {!isDraft && permissions.hold ? (
-                  <DropdownMenuItem onSelect={onToggleHold}>
-                    {isOnHold ? <Play className="size-4" /> : <Pause className="size-4" />}
-                    {isOnHold ? 'Resume job' : 'Put on hold'}
-                  </DropdownMenuItem>
-                ) : null}
-
-                {permissions.cancel ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={onCancel}>
-                      <Ban className="size-4" />
-                      Cancel job
-                    </DropdownMenuItem>
-                  </>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
+    <header>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1">
+          <p className="font-mono text-xl font-medium tracking-tight text-[#f3f5f8]">
+            {job.jobCode}
+          </p>
+          <h1 className="text-xl font-semibold text-[#f3f5f8]">{job.title}</h1>
+          {permissions.viewAudit ? (
+            <Link
+              href={`/audit?job=${job.id}`}
+              className="inline-flex min-h-11 items-center gap-1 text-sm text-[#f3f5f8] underline decoration-[#313743] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
+            >
+              <ScrollText className="size-3.5" />
+              Full history
+            </Link>
           ) : null}
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <Fact label="Customer" value={job.customerName} />
-          <Fact label="Part number" value={job.partNumber} />
-          <Fact label="Drawing" value={job.drawingNumber} />
-          <Fact label="Quantity" value={job.quantity} />
-          <Fact
-            label="Overall deadline"
-            value={<DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />}
-          />
-        </dl>
+        {permissions.edit && !isClosed ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={busy}>
+                Actions
+                <ChevronDown className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={onToggleEdit}>
+                <Pencil className="size-4" />
+                {editing ? 'Stop editing' : 'Edit details'}
+              </DropdownMenuItem>
 
-        {job.description ? (
-          <>
-            <Separator />
-            <p className="text-muted-foreground text-sm whitespace-pre-wrap">{job.description}</p>
-          </>
+              {isDraft && permissions.publish ? (
+                <DropdownMenuItem onSelect={onPublish}>
+                  <Send className="size-4" />
+                  Publish job
+                </DropdownMenuItem>
+              ) : null}
+
+              {!isDraft && permissions.hold ? (
+                <DropdownMenuItem onSelect={onToggleHold}>
+                  {isOnHold ? <Play className="size-4" /> : <Pause className="size-4" />}
+                  {isOnHold ? 'Resume job' : 'Put on hold'}
+                </DropdownMenuItem>
+              ) : null}
+
+              {permissions.cancel ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onSelect={onCancel}>
+                    <Ban className="size-4" />
+                    Cancel job
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
+      </div>
 
-        <Separator />
+      <dl className="mt-6">
+        <Fact label="Status" value={<span className={status.className}>{status.label}</span>} />
+        <Fact label="Priority" value={PRIORITY_WORD[job.priority] ?? job.priority} />
+        <Fact label="Customer" value={job.customerName} />
+        <Fact label="Part number" value={job.partNumber} machine />
+        <Fact label="Drawing" value={job.drawingNumber} machine />
+        <Fact label="Quantity" value={job.quantity} machine />
+        <Fact
+          label="Deadline"
+          value={
+            <>
+              <span className="font-mono">{formatIST(deadline)}</span>{' '}
+              <span className={whenClass}>{when.text}</span>
+            </>
+          }
+        />
+        <Fact
+          label="Published"
+          machine={job.publishedAt != null}
+          value={job.publishedAt ? formatIST(new Date(job.publishedAt)) : 'Not published yet'}
+        />
+      </dl>
 
-        <div className="flex flex-wrap items-center gap-6">
-          <JobProgress progress={job.progress} />
-          <div className="text-muted-foreground text-xs">
-            Created by {job.createdBy.name} · {formatIST(new Date(job.createdAt))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      {job.description ? (
+        <p className="mt-4 text-base whitespace-pre-wrap text-[#f3f5f8]">{job.description}</p>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap items-center gap-6">
+        <JobProgress progress={job.progress} />
+        <p className="text-sm text-[#f3f5f8]">
+          Created by {job.createdBy.name}{' '}
+          <span className="font-mono">{formatIST(new Date(job.createdAt))}</span>
+        </p>
+      </div>
+    </header>
   );
 }

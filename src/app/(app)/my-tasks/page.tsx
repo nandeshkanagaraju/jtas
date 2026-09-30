@@ -21,7 +21,7 @@ export default async function MyTasksPage() {
   const result = await getMyTasks(session.id);
 
   return (
-    <div className="-mx-4 -my-6 min-h-full bg-[#f4f6f8] px-4 py-4 sm:-mx-6 sm:px-6">
+    <div className="-mx-4 -my-6 min-h-full px-4 py-4 sm:-mx-8 sm:-my-8 sm:px-8">
       <MyTasksScreen
         initial={{
           ...result,

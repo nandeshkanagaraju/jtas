@@ -96,11 +96,11 @@ export function RangePicker({
   if (plain) {
     return (
       <div>
-        <p className="tabular text-sm text-[#1c2430]">
+        <p className="font-mono text-sm text-[#aeb6c3]">
           {from} to {to}
           {pending ? ', updating' : ''}
         </p>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {PRESETS.map((preset) => {
             const range = preset.compute(today);
             const active = range.from === from && range.to === to;
@@ -113,10 +113,10 @@ export function RangePicker({
                 onClick={() => select(preset)}
                 disabled={pending}
                 className={cn(
-                  'min-h-11 px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430] disabled:opacity-50',
+                  'min-h-11 rounded-lg border px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a] disabled:opacity-50',
                   active
-                    ? 'bg-[#1c2430] text-white'
-                    : 'border-2 border-[#1c2430] bg-[#f4f6f8] text-[#1c2430]',
+                    ? 'border-[#d6f25a] bg-[#d6f25a] text-[#14180a]'
+                    : 'border-[#313743] bg-[#262b36] text-[#f3f5f8]',
                 )}
               >
                 {preset.label}

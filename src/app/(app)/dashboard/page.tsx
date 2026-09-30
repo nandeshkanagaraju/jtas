@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { forbidden } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -10,8 +11,14 @@ import { RangePicker } from '@/components/dashboard/range-picker';
 import { Skeleton } from '@/components/ui/skeleton';
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
-import { mdDashboard, parseRange } from '@/lib/services/analytics';
+import {
+  mdDashboard,
+  parseRange,
+  type AttentionProblem,
+  type AttentionSubtask,
+} from '@/lib/services/analytics';
 import { formatElapsed } from '@/lib/utils/duration';
+import { formatIST } from '@/lib/utils/time';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 export const dynamic = 'force-dynamic';
@@ -47,31 +54,84 @@ export default async function DashboardPage({
           : '.');
 
   return (
-    <div className="-mx-4 -my-6 min-h-full bg-[#f4f6f8] px-4 py-4 sm:-mx-6 sm:px-6">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <AttentionLists
-          problems={data.attention.problems}
-          overdueSubtasks={data.attention.overdueSubtasks}
-          openProblems={data.kpis.openProblems}
-          overdueTotal={data.kpis.overdueSubtasks}
-        />
+    <div className="space-y-8">
+      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] tracking-[0.16em] text-[#aeb6c3] uppercase">
+            {formatIST(new Date(), 'EEE d MMM')}
+          </p>
+          <h1 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-[#f3f5f8]">
+            <Count n={data.kpis.openProblems} urgent={data.kpis.openProblems > 0} />{' '}
+            {data.kpis.openProblems === 1 ? 'problem' : 'problems'}
+            <span className="font-normal text-[#aeb6c3]">, </span>
+            <Count n={data.kpis.overdueSubtasks} urgent={data.kpis.overdueSubtasks > 0} />{' '}
+            {data.kpis.overdueSubtasks === 1 ? 'deadline slipped' : 'deadlines slipped'}
+          </h1>
+          <StartHere
+            problem={data.attention.problems[0]}
+            late={data.attention.overdueSubtasks[0]}
+          />
+        </div>
+      </header>
+      <AttentionLists
+        problems={data.attention.problems}
+        overdueSubtasks={data.attention.overdueSubtasks}
+        openProblems={data.kpis.openProblems}
+        overdueTotal={data.kpis.overdueSubtasks}
+      />
 
-        <div className="border-t border-[#d5dbe3] pt-4">
+      <div className="space-y-8 rounded-lg border border-[#313743] bg-[#1e222b] px-5 pt-2 pb-6">
+        <div className="space-y-4 pt-4">
           <KpiTiles kpis={data.kpis} />
-          <p className="mt-2 text-sm text-[#1c2430]">{onTime}</p>
-          <div className="mt-3">
+          <p className="text-sm leading-6 text-[#aeb6c3]">{onTime}</p>
+          <div>
             <Suspense fallback={<Skeleton className="h-11 w-64" />}>
               <RangePicker from={data.range.from} to={data.range.to} plain />
             </Suspense>
           </div>
         </div>
-
         <AtRiskTable jobs={data.jobsAtRisk} total={data.kpis.atRiskJobs + data.kpis.delayedJobs} />
-
-        <div className="border-t border-[#d5dbe3] pt-4">
-          <OnTimeTrend trend={data.trend} />
-        </div>
+        <OnTimeTrend trend={data.trend} />
       </div>
     </div>
   );
 }
+
+function Count({ n, urgent }: { n: number; urgent: boolean }) {
+  return <span className={urgent ? 'font-mono text-[#fb7185]' : 'font-mono'}>{n}</span>;
+}
+
+function StartHere({
+  problem,
+  late,
+}: {
+  problem: AttentionProblem | undefined;
+  late: AttentionSubtask | undefined;
+}) {
+  if (problem) {
+    return (
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#aeb6c3]">
+        Start with{' '}
+        <Link href={`/problems?open=${problem.id}`} className={START}>
+          {problem.jobCode}
+        </Link>
+        , {problem.departmentName}, {problem.assigneeName}. {problem.description}
+      </p>
+    );
+  }
+  if (late) {
+    return (
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#aeb6c3]">
+        Furthest behind is{' '}
+        <Link href={`/tasks/${late.id}`} className={START}>
+          {late.jobCode}
+        </Link>
+        , {late.departmentName}, {late.assigneeName}, {formatElapsed(late.overdueHours * 60)} late.
+      </p>
+    );
+  }
+  return <p className="mt-2 text-sm leading-6 text-[#aeb6c3]">Nothing is waiting on you.</p>;
+}
+
+const START =
+  'font-mono text-[#f3f5f8] underline decoration-[#313743] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a]';

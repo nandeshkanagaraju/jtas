@@ -13,7 +13,7 @@ import { formatIST } from '@/lib/utils/time';
 import { ProblemForm, type Severity } from './problem-form';
 
 const ACTION =
-  'h-auto min-h-12 rounded-sm px-3 text-base font-semibold whitespace-normal motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]';
+  'h-auto min-h-12 rounded-sm px-3 text-base font-semibold whitespace-normal motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]';
 
 /**
  * One job on the traveller.
@@ -54,8 +54,8 @@ export function TaskCard({
   return (
     <article
       className={cn(
-        'border-b border-[#d5dbe3] py-4',
-        overdue && 'border-l-[3px] border-l-[#9f1239] pl-3',
+        'border-b border-[#313743] py-4',
+        overdue && 'border-l-[3px] border-l-[#fb7185] pl-3',
       )}
     >
       <div className="xl:flex xl:items-start xl:gap-8">
@@ -63,7 +63,7 @@ export function TaskCard({
           <div className="flex items-center justify-between gap-4 xl:justify-start">
             <Link
               href={`/tasks/${task.id}`}
-              className="inline-flex min-h-11 items-center text-xl font-semibold tracking-tight text-[#1c2430] tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]"
+              className="inline-flex min-h-11 items-center text-xl font-semibold tracking-tight text-[#f3f5f8] tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
             >
               {task.jobCode}
               <span className="sr-only">, details</span>
@@ -72,25 +72,25 @@ export function TaskCard({
           </div>
 
           {task.partNumber ? (
-            <p className="mt-1 text-base font-semibold text-[#1c2430] tabular-nums">
+            <p className="mt-1 text-base font-semibold text-[#f3f5f8] tabular-nums">
               {task.partNumber}
             </p>
           ) : null}
 
-          <p className="mt-2 text-base text-[#1c2430]">{task.title}</p>
+          <p className="mt-2 text-base text-[#f3f5f8]">{task.title}</p>
 
-          <p className="mt-2 text-base font-semibold text-[#1c2430]">
+          <p className="mt-2 text-base font-semibold text-[#f3f5f8]">
             <Countdown
               deadline={task.deadline}
-              className="text-base font-semibold !text-[#1c2430]"
+              className="text-base font-semibold !text-[#f3f5f8]"
             />
           </p>
-          <p className="text-sm text-[#1c2430] tabular-nums">
+          <p className="text-sm text-[#f3f5f8] tabular-nums">
             {formatIST(new Date(task.deadline))}
           </p>
 
           {blocked && task.dependency ? (
-            <p className="mt-3 text-base text-[#1c2430]">
+            <p className="mt-3 text-base text-[#f3f5f8]">
               Waiting on {task.dependency.departmentName} — {task.dependency.title}, due{' '}
               {formatIST(new Date(task.dependency.deadline), 'd MMM')}.
             </p>
@@ -115,7 +115,7 @@ export function TaskCard({
                   variant="outline"
                   className={cn(
                     ACTION,
-                    'w-full border-2 border-[#1c2430] bg-[#f4f6f8] text-[#1c2430] shadow-none hover:bg-[#f4f6f8]',
+                    'w-full rounded-lg border border-[#313743] bg-[#262b36] text-[#f3f5f8] shadow-none hover:bg-[#262b36]',
                   )}
                   disabled={busy}
                   onClick={() => onAction('START')}
@@ -128,7 +128,10 @@ export function TaskCard({
                 className={cn('grid gap-2', task.requiresApproval ? 'grid-cols-1' : 'grid-cols-2')}
               >
                 <Button
-                  className={cn(ACTION, 'bg-[#1c2430] text-white shadow-none hover:bg-[#1c2430]')}
+                  className={cn(
+                    ACTION,
+                    'rounded-lg bg-[#d6f25a] text-[#14180a] shadow-none hover:bg-[#d6f25a]',
+                  )}
                   disabled={busy}
                   onClick={() => onAction('COMPLETE')}
                 >
@@ -138,7 +141,7 @@ export function TaskCard({
                   variant="outline"
                   className={cn(
                     ACTION,
-                    'border-2 border-[#1c2430] bg-[#f4f6f8] text-[#1c2430] shadow-none hover:bg-[#f4f6f8]',
+                    'rounded-lg border border-[#313743] bg-[#262b36] text-[#f3f5f8] shadow-none hover:bg-[#262b36]',
                   )}
                   disabled={busy}
                   onClick={() => setReporting(true)}
@@ -159,12 +162,12 @@ function stampFor(
   section: BucketName,
   flags: { blocked: boolean; done: boolean; waiting: boolean; reported: boolean; overdue: boolean },
 ): { label: string; className: string } {
-  if (flags.done) return { label: 'Done', className: 'text-[#0f5132]' };
-  if (flags.blocked) return { label: 'Blocked', className: 'text-[#1c2430]' };
-  if (flags.reported) return { label: 'Problem reported', className: 'text-[#1c2430]' };
-  if (flags.waiting) return { label: 'With the MD', className: 'text-[#1c2430]' };
-  if (flags.overdue) return { label: 'Overdue', className: 'text-[#9f1239]' };
-  if (section === 'dueToday') return { label: 'Due today', className: 'text-[#92400e]' };
-  if (task.status === 'IN_PROGRESS') return { label: 'In progress', className: 'text-[#0f5132]' };
-  return { label: 'Not started', className: 'text-[#1c2430]' };
+  if (flags.done) return { label: 'Done', className: 'text-[#d6f25a]' };
+  if (flags.blocked) return { label: 'Blocked', className: 'text-[#f3f5f8]' };
+  if (flags.reported) return { label: 'Problem reported', className: 'text-[#f3f5f8]' };
+  if (flags.waiting) return { label: 'With the MD', className: 'text-[#f3f5f8]' };
+  if (flags.overdue) return { label: 'Overdue', className: 'text-[#fb7185]' };
+  if (section === 'dueToday') return { label: 'Due today', className: 'text-[#fbbf24]' };
+  if (task.status === 'IN_PROGRESS') return { label: 'In progress', className: 'text-[#d6f25a]' };
+  return { label: 'Not started', className: 'text-[#f3f5f8]' };
 }

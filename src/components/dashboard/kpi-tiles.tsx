@@ -12,7 +12,7 @@ import type { KpiCounts } from '@/lib/services/analytics';
  */
 
 const LINK =
-  'text-[#1c2430] underline decoration-[#d5dbe3] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]';
+  'text-[#f3f5f8] underline decoration-[#313743] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a]';
 
 export function KpiTiles({ kpis }: { kpis: KpiCounts }) {
   const waiting =
@@ -33,7 +33,7 @@ export function KpiTiles({ kpis }: { kpis: KpiCounts }) {
   ];
 
   return (
-    <p className="text-sm leading-7 text-[#1c2430]">
+    <p className="text-sm leading-6 text-[#aeb6c3]">
       {items.map((item, index) => (
         <span key={item.href}>
           {index > 0 ? ', ' : null}

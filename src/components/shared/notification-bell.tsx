@@ -55,14 +55,14 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       href="/notifications"
       aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
       className={cn(
-        'relative flex min-h-11 min-w-11 items-center justify-center rounded-md transition-colors',
-        'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+        'relative flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[#aeb6c3] transition-colors',
+        'hover:bg-[#1e222b] hover:text-[#f3f5f8]',
       )}
     >
       <Bell className="size-4" />
       {unread > 0 ? (
         <Badge
-          className="bg-state-progress absolute top-1 right-0 h-4 min-w-4 justify-center px-1 text-[10px] text-white tabular-nums"
+          className="absolute top-1 right-0 h-5 min-w-5 justify-center bg-[#d6f25a] px-1 text-xs text-[#14180a] tabular-nums"
           aria-hidden
         >
           {unread > 99 ? '99+' : unread}

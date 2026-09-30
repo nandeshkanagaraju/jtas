@@ -1,13 +1,27 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { IBM_Plex_Mono, Outfit, Syne } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
 
 import './globals.css';
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-outfit',
+  display: 'swap',
+});
+
+const syne = Syne({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-syne',
+  display: 'swap',
+});
+
+const plex = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex',
   display: 'swap',
 });
 
@@ -43,7 +57,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body
+        className={`${outfit.variable} ${syne.variable} ${plex.variable} font-sans antialiased`}
+      >
         {children}
         <ServiceWorkerRegistration />
       </body>

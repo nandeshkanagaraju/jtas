@@ -132,7 +132,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
         ))}
       </div>
 
-      <div className="mt-8 border-t border-[#d5dbe3]">
+      <div className="mt-8 border-t border-[#313743]">
         {FOLDED_GROUPS.map((name) => {
           const tasks = data.buckets[name];
           const expanded = open[name] === true;
@@ -144,7 +144,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
                   type="button"
                   aria-expanded={expanded}
                   onClick={() => setOpen((current) => ({ ...current, [name]: !expanded }))}
-                  className="flex min-h-12 w-full items-baseline justify-between gap-4 border-b border-[#d5dbe3] py-3 text-left text-base text-[#1c2430] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]"
+                  className="flex min-h-12 w-full items-baseline justify-between gap-4 border-b border-[#313743] py-3 text-left text-base text-[#f3f5f8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
                 >
                   <span className="font-semibold">{GROUP_LABELS[name]}</span>
                   <span className="tabular text-base font-semibold">{tasks.length}</span>
@@ -176,13 +176,13 @@ function Group({
     payload?: { note: string; severity: Severity },
   ) => void;
 }) {
-  const countTone = name === 'overdue' && tasks.length > 0 ? 'text-[#9f1239]' : 'text-[#1c2430]';
+  const countTone = name === 'overdue' && tasks.length > 0 ? 'text-[#fb7185]' : 'text-[#f3f5f8]';
 
   return (
     <section aria-labelledby={`tasks-${name}`}>
       <h2
         id={`tasks-${name}`}
-        className="flex items-baseline justify-between gap-4 border-b border-[#d5dbe3] py-3 text-base font-semibold text-[#1c2430]"
+        className="flex items-baseline justify-between gap-4 border-b border-[#313743] py-3 text-base font-semibold text-[#f3f5f8]"
       >
         <span>{GROUP_LABELS[name]}</span>
         <span className={`tabular ${countTone}`}>{tasks.length}</span>
@@ -208,7 +208,7 @@ function TaskList({
   ) => void;
 }) {
   if (tasks.length === 0) {
-    return <p className="py-4 text-base text-[#1c2430]">{EMPTY_STATES[name]}</p>;
+    return <p className="py-4 text-base text-[#f3f5f8]">{EMPTY_STATES[name]}</p>;
   }
 
   return (

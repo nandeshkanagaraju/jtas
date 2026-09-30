@@ -684,6 +684,18 @@ Neutral slate base; semantic colours only for state (`emerald` complete, `amber`
 problem/at-risk, `rose` overdue, `sky` in progress). Inter for UI, tabular numerals
 for deadlines. Minimum 44 px touch targets. Dark mode not required in Phase 1.
 
+### 7.5 Deadline and reminder entry
+A deadline is a date plus a time, both in IST. The time field accepts any minute
+(`HH:mm`). Quarter hours (`:00`, `:15`, `:30`, `:45`) stay as suggestions, not as
+the only values the field will take.
+
+The browser sends a naive `YYYY-MM-DDTHH:mm` string. The server converts it once
+with `fromISTInput` and stores UTC. Display uses `formatIST`, so a time typed as
+9:07 PM IST is stored as 15:37 UTC and shown again as 9:07 PM IST.
+
+Reminder lead is entered in whole minutes, from 1 minute up, and stored as
+`reminderLeadMinutes`. The number shown in the field is that stored value.
+
 ---
 
 ## 8. Security design

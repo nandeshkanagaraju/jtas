@@ -80,7 +80,7 @@ export function PlanWizard({
           assigneeId: candidate?.id ?? '',
           title: item.title,
           deadline,
-          reminderLeadHours: Math.round(item.reminderLeadMinutes / 60),
+          reminderLeadMinutes: item.reminderLeadMinutes,
           requiresApproval: false,
           // `!= null`, not truthiness: order 0 is the first step of the
           // template, and a step that waits for it would otherwise be applied
@@ -111,7 +111,7 @@ export function PlanWizard({
           assigneeId: row.assigneeId,
           title: row.title,
           deadline: row.deadline,
-          reminderLeadMinutes: Math.round(row.reminderLeadHours * 60),
+          reminderLeadMinutes: row.reminderLeadMinutes,
           requiresApproval: row.requiresApproval,
           dependsOnKey: row.dependsOnKey,
           // FR-23: the server refuses a late deadline until a reason is given.

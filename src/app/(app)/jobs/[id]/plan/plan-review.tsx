@@ -70,7 +70,7 @@ export function PlanReview({
                 </div>
                 <p className="truncate font-medium">{row.title || 'Untitled'}</p>
                 <p className="text-muted-foreground text-xs">
-                  {assignee?.name ?? 'Unassigned'} · remind {row.reminderLeadHours} h before
+                  {assignee?.name ?? 'Unassigned'} · remind {row.reminderLeadMinutes} min before
                 </p>
               </div>
 

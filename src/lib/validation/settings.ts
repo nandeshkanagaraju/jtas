@@ -40,7 +40,7 @@ const templateItemSchema = z.object({
   departmentId: z.string().min(1, 'Choose a department.'),
   title: z.string().trim().min(3, 'Give the step a title.').max(200),
   offsetHoursBeforeDue: z.number().int().min(0).max(8_760),
-  reminderLeadMinutes: z.number().int().min(15).max(10_080).default(360),
+  reminderLeadMinutes: z.number().int().min(1).max(10_080).default(360),
   dependsOnItemOrder: z.number().int().min(0).nullable().default(null),
 });
 

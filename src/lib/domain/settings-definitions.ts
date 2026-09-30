@@ -73,7 +73,7 @@ export const SETTING_DEFINITIONS = [
     group: 'reminders',
     label: 'Default reminder lead time',
     help: 'How long before a deadline the reminder goes out, unless a subtask overrides it.',
-    schema: z.number().int().min(15).max(10_080),
+    schema: z.number().int().min(1).max(10_080),
     default: 360,
     caution:
       'Applies to subtasks published from now on. Reminders already scheduled keep their time.',

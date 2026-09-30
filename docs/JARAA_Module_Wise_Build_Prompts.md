@@ -216,8 +216,8 @@ Deliver:
    - /jobs: list with status chips, priority, deadline with a "due in" relative label,
      progress as completed/total subtasks, search and filters, empty state.
    - /jobs/new: step 1 of a wizard (details) — title, customer, part number, drawing
-     number, quantity, priority, overall deadline (date + time picker, IST, 15-minute
-     steps), description. Saves as DRAFT and routes to step 2 (placeholder until M4).
+     number, quantity, priority, overall deadline (date + time picker, IST, any
+     minute, with 15-minute suggestions), description. Saves as DRAFT and routes to step 2 (placeholder until M4).
    - /jobs/[id]: header card (code, customer, part, drawing, quantity, priority,
      deadline, derived status badge), MD action menu (edit, hold, cancel, publish),
      and placeholder slots for the subtask timeline and activity feed.

@@ -26,7 +26,7 @@ export interface SubtaskRowDraft {
   assigneeId: string;
   title: string;
   deadline: string;
-  reminderLeadHours: number;
+  reminderLeadMinutes: number;
   requiresApproval: boolean;
   dependsOnKey: string | null;
 }
@@ -95,7 +95,7 @@ export function SubtaskBuilder({
         assigneeId: '',
         title: '',
         deadline: '',
-        reminderLeadHours: 6,
+        reminderLeadMinutes: 360,
         requiresApproval: false,
         dependsOnKey: null,
       },
@@ -226,14 +226,15 @@ export function SubtaskBuilder({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Remind (hours before)</Label>
+                  <Label className="text-xs">Remind (minutes before)</Label>
                   <Input
                     type="number"
-                    min={0.25}
+                    min={1}
                     step={1}
-                    value={row.reminderLeadHours}
+                    aria-label="Remind minutes before"
+                    value={row.reminderLeadMinutes}
                     onChange={(event) =>
-                      update(index, { reminderLeadHours: Number(event.target.value) })
+                      update(index, { reminderLeadMinutes: Number(event.target.value) })
                     }
                   />
                 </div>

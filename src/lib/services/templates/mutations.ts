@@ -76,8 +76,8 @@ export function validateTemplate(input: TemplateInput): void {
       fields[`${at}.offsetHoursBeforeDue`] = ['Hours before the deadline, zero or more.'];
     }
 
-    if (item.reminderLeadMinutes < 15 || item.reminderLeadMinutes > 10_080) {
-      fields[`${at}.reminderLeadMinutes`] = ['Between 15 minutes and a week.'];
+    if (item.reminderLeadMinutes < 1 || item.reminderLeadMinutes > 10_080) {
+      fields[`${at}.reminderLeadMinutes`] = ['Between 1 minute and a week.'];
     }
 
     const dependsOn = item.dependsOnItemOrder;

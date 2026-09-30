@@ -42,7 +42,7 @@ const titleSchema = z
   .max(200, 'Use at most 200 characters.');
 
 /**
- * 15 minutes to 30 days, in minutes. Stored per subtask (FR-21, I-09).
+ * 1 minute to 30 days, in minutes. Stored per subtask (FR-21, I-09).
  *
  * Optional rather than defaulted to 360. A default here would resolve before
  * the service ever sees the request, so `reminder.default_lead_minutes` — the
@@ -52,7 +52,7 @@ const titleSchema = z
 const reminderLeadSchema = z.coerce
   .number()
   .int()
-  .min(15, 'Give at least 15 minutes of warning.')
+  .min(1, 'Give at least 1 minute of warning.')
   .max(43_200, 'That is more than 30 days.')
   .optional();
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  QUICK_PICK_MINUTES,
   TIME_STEP_MINUTES,
   buildTimeOptions,
   splitIstValue,
@@ -8,9 +9,10 @@ import {
 import { fromISTInput } from '@/lib/utils/time';
 
 describe('buildTimeOptions', () => {
-  it('covers the day in 15-minute steps', () => {
+  it('suggests the day in 15-minute steps', () => {
     const options = buildTimeOptions();
-    expect(TIME_STEP_MINUTES).toBe(15);
+    expect(QUICK_PICK_MINUTES).toBe(15);
+    expect(TIME_STEP_MINUTES).toBe(1);
     expect(options).toHaveLength((24 * 60) / 15);
     expect(options[0]).toBe('00:00');
     expect(options[1]).toBe('00:15');

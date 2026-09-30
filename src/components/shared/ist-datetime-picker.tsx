@@ -1,18 +1,12 @@
 'use client';
 
 import { CalendarIcon } from 'lucide-react';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 /**
@@ -25,13 +19,17 @@ import { cn } from '@/lib/utils';
  * exactly what was chosen, and the server converts it once with `fromISTInput`
  * (architecture rule 1).
  *
- * Time is offered in 15-minute steps — nobody sets a shop-floor deadline for
- * 16:37, and a coarse list is far faster to operate on a phone than a spinner.
+ * The field accepts any minute. Fifteen-minute marks stay as suggestions in
+ * the datalist, which is what a shop-floor deadline usually wants, without
+ * refusing 21:07 when somebody is testing a reminder.
  */
-export const TIME_STEP_MINUTES = 15;
+export const QUICK_PICK_MINUTES = 15;
 
-/** `["00:00", "00:15", … "23:45"]`. */
-export function buildTimeOptions(stepMinutes = TIME_STEP_MINUTES): string[] {
+/** The `<input type="time">` step, in minutes. `step` on that input is seconds. */
+export const TIME_STEP_MINUTES = 1;
+
+/** `["00:00", "00:15", … "23:45"]` at the default step. */
+export function buildTimeOptions(stepMinutes = QUICK_PICK_MINUTES): string[] {
   const options: string[] = [];
   for (let minutes = 0; minutes < 24 * 60; minutes += stepMinutes) {
     const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
@@ -81,7 +79,8 @@ export function IstDateTimePicker({
   minDate?: Date;
 }) {
   const { date, time } = splitIstValue(value);
-  const timeOptions = useMemo(() => buildTimeOptions(), []);
+  const suggestions = useMemo(() => buildTimeOptions(QUICK_PICK_MINUTES), []);
+  const listId = useId();
 
   const selected = fromDateKey(date);
   const floor = minDate ?? new Date(new Date().setHours(0, 0, 0, 0));
@@ -124,22 +123,25 @@ export function IstDateTimePicker({
         </PopoverContent>
       </Popover>
 
-      <Select
-        value={time || undefined}
-        onValueChange={(next) => onChange(`${date || toDateKey(new Date())}T${next}`)}
+      <Input
+        type="time"
+        step={TIME_STEP_MINUTES * 60}
+        list={listId}
+        aria-label="Time (IST)"
+        value={time}
         disabled={disabled}
-      >
-        <SelectTrigger className="w-28" aria-label="Time (IST)">
-          <SelectValue placeholder="Time" />
-        </SelectTrigger>
-        <SelectContent className="max-h-64">
-          {timeOptions.map((option) => (
-            <SelectItem key={option} value={option} className="tabular">
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        className="tabular w-32"
+        onChange={(event) => {
+          const next = event.target.value;
+          if (!/^\d{2}:\d{2}$/.test(next)) return;
+          onChange(`${date || toDateKey(new Date())}T${next}`);
+        }}
+      />
+      <datalist id={listId}>
+        {suggestions.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
     </div>
   );
 }

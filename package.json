@@ -31,6 +31,7 @@
     "user:rename-email": "pnpm preflight && tsx --env-file-if-exists=.env scripts/rename-user-email.ts",
     "user:reset-password": "tsx --env-file-if-exists=.env scripts/reset-password.ts",
     "suppress-escalation": "pnpm preflight && tsx --env-file-if-exists=.env scripts/suppress-escalation.ts",
+    "explain:subtask": "pnpm preflight && tsx --env-file-if-exists=.env scripts/explain-subtask.ts",
     "seed:demo": "pnpm preflight && tsx --env-file-if-exists=.env scripts/seed-demo.ts",
     "seed:showcase": "pnpm preflight && tsx --env-file-if-exists=.env scripts/seed-showcase.ts",
     "docs:shots": "tsx --env-file-if-exists=.env scripts/capture-guide-shots.ts",

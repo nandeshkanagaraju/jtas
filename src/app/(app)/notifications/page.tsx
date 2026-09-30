@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic';
  * The in-app inbox (SDD section 7.1).
  *
  * A backup for the email, not a replacement: PDD section 12 lists "mail lands
- * in spam and nobody sees it" as a risk, and this is the mitigation. Everything
- * here was also sent.
+ * in spam and nobody sees it" as a risk, and this is the mitigation. A row
+ * the sweeper withheld is shown here with the reason, instead of disappearing.
  */
 export default async function NotificationsPage() {
   const session = await requireActiveSession();

@@ -175,8 +175,13 @@ describe('publishing a job schedules exactly what SDD 5.1 says', () => {
     });
 
     // Firing it now would tell somebody their deadline is in six hours when it
-    // is in four.
+    // is in four. The row is recorded as suppressed so the miss is visible.
     expect(await pendingOf(subtask.id, 'DEADLINE_REMINDER')).toHaveLength(0);
+    const suppressed = await testDb.notification.findMany({
+      where: { entityId: subtask.id, type: 'DEADLINE_REMINDER', status: 'SUPPRESSED' },
+    });
+    expect(suppressed).toHaveLength(1);
+    expect(suppressed[0]?.lastError).toContain('Not scheduled');
     expect(await pendingOf(subtask.id, 'SUBTASK_ASSIGNED')).toHaveLength(1);
   });
 });

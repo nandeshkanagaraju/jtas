@@ -27,6 +27,7 @@ import { overdueMdKey, overdueMemberKey } from './dedupe';
 import { enqueue } from './notification-service';
 import { buildPayload } from './payloads';
 import { renderTemplate } from './templates';
+import { CHASEABLE_SUBTASK_STATUSES, EXCLUDED_OVERDUE_JOB_STATUSES } from './sweep-filters';
 import { isSuppressible, nextWorkingSlot } from './working-hours';
 
 const log = moduleLogger('sweeper');
@@ -46,7 +47,7 @@ export const MAX_ATTEMPTS = 5;
  * MD. `ON_HOLD`, `COMPLETED` and `CANCELLED` are absent because there is
  * nothing to chase.
  */
-const CHASEABLE: SubtaskStatus[] = ['PENDING', 'IN_PROGRESS', 'BLOCKED', 'AWAITING_APPROVAL'];
+const CHASEABLE: readonly SubtaskStatus[] = CHASEABLE_SUBTASK_STATUSES;
 
 export interface SweepResult {
   dispatched: number;
@@ -367,14 +368,16 @@ async function recordFailure(row: DueRow, error: unknown, now: Date): Promise<De
  */
 export async function escalateOverdue(now: Date = new Date()): Promise<number> {
   const { intervalMinutes, maxCount } = await loadEscalationConfig();
+  // Query bound only: a row is due when lastEscalatedAt is strictly before this.
+  // The next chase is lastEscalatedAt + interval, which is what the explainer prints.
   const cutoff = new Date(now.getTime() - intervalMinutes * 60_000);
 
   const overdue = await prisma.subtask.findMany({
     where: {
       deadline: { lt: now },
-      status: { in: CHASEABLE },
+      status: { in: [...CHASEABLE] },
       job: {
-        status: { notIn: ['ON_HOLD', 'CANCELLED', 'DRAFT', 'COMPLETED'] },
+        status: { notIn: [...EXCLUDED_OVERDUE_JOB_STATUSES] },
         isDemo: false,
       },
       escalationCount: { lt: maxCount },

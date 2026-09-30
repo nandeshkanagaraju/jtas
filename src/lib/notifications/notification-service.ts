@@ -14,6 +14,7 @@ import { prisma, type Db } from '@/lib/db/prisma';
 import { moduleLogger } from '@/lib/utils/logger';
 
 import { assignedKey, reminderKey } from './dedupe';
+import { skippedReminderReason } from './sweep-filters';
 
 const log = moduleLogger('notifications');
 
@@ -31,6 +32,14 @@ export interface EnqueueInput {
   /** One per recipient; the caller builds it from `./dedupe`. */
   dedupeKeyFor: (userId: string) => string;
   scheduledFor?: Date;
+  /**
+   * Defaults to PENDING. SUPPRESSED is for a notification that was raised
+   * correctly and must stay visible, but must never be dispatched — a reminder
+   * whose moment had already passed, for example.
+   */
+  status?: 'PENDING' | 'SUPPRESSED';
+  /** Required when status is SUPPRESSED: the inbox shows this as the reason. */
+  lastError?: string | null;
 }
 
 /**
@@ -87,6 +96,7 @@ export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
 
   const scheduledFor = input.scheduledFor ?? new Date();
   const channel: NotifChannel = input.channel ?? 'EMAIL';
+  const status = input.status ?? 'PENDING';
 
   const values = userIds.map(
     (userId) =>
@@ -101,9 +111,10 @@ export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
       ${input.entityId},
       ${input.dedupeKeyFor(userId)},
       ${scheduledFor},
-      'PENDING'::"NotifStatus",
+      ${status}::"NotifStatus",
       0,
-      now()
+      now(),
+      ${input.lastError ?? null}
     )`,
   );
 
@@ -111,7 +122,7 @@ export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
     INSERT INTO "Notification"
       ("id", "userId", "type", "channel", "subject", "body",
        "entityType", "entityId", "dedupeKey", "scheduledFor",
-       "status", "attemptCount", "createdAt")
+       "status", "attemptCount", "createdAt", "lastError")
     VALUES ${Prisma.join(values)}
     ON CONFLICT ("dedupeKey") DO NOTHING
   `;
@@ -140,9 +151,10 @@ export interface SchedulableSubtask {
  *   ASSIGNED  now
  *   REMINDER  deadline − reminderLeadMinutes
  *
- * A reminder whose moment has already passed is skipped rather than queued in
- * the past: it would fire immediately and tell somebody their deadline is in
- * six hours when it is in one.
+ * A reminder whose moment has already passed is recorded as SUPPRESSED rather
+ * than omitted. Queuing it in the past would fire immediately and tell
+ * somebody their deadline is in six hours when it is in one. Omitting the row
+ * made the same case look like the sweeper had not run yet.
  */
 export async function scheduleForSubtask(
   db: Db,
@@ -165,10 +177,29 @@ export async function scheduleForSubtask(
   const remindAt = new Date(subtask.deadline.getTime() - subtask.reminderLeadMinutes * 60_000);
 
   if (remindAt.getTime() <= now.getTime()) {
-    log.debug(
+    const reason = skippedReminderReason({
+      reminderLeadMinutes: subtask.reminderLeadMinutes,
+      remindAt,
+      savedAt: now,
+    });
+
+    log.info(
       { subtaskId: subtask.id, remindAt },
-      'reminder moment already passed; not scheduling',
+      'reminder moment already passed; recorded as suppressed',
     );
+
+    await enqueue(db, {
+      type: 'DEADLINE_REMINDER',
+      userIds: [subtask.assigneeId],
+      entityType: 'SUBTASK',
+      entityId: subtask.id,
+      subject: 'Reminder was not scheduled',
+      body: reason,
+      dedupeKeyFor: () => reminderKey(subtask.id, subtask.deadline),
+      scheduledFor: remindAt,
+      status: 'SUPPRESSED',
+      lastError: reason,
+    });
     return;
   }
 

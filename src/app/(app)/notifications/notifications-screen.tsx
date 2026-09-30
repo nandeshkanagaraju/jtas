@@ -21,6 +21,7 @@ interface NotificationDto {
   readAt: string | null;
   sentAt: string | null;
   createdAt: string;
+  suppressedReason: string | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -46,6 +47,7 @@ export function NotificationsScreen({
   const router = useRouter();
   const [inbox, setInbox] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const withheld = inbox.data.filter((item) => item.suppressedReason).length;
 
   function markOne(id: string) {
     // Optimistic: the row is read the moment it is opened, and a failed call
@@ -90,9 +92,11 @@ export function NotificationsScreen({
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
           <p className="text-muted-foreground text-sm">
-            {inbox.unreadCount === 0
-              ? 'Nothing unread.'
-              : `${inbox.unreadCount} unread. Everything here was emailed to you as well.`}
+            {withheld > 0
+              ? `${withheld} ${withheld === 1 ? 'email was' : 'emails were'} withheld. The reason is on the row.`
+              : inbox.unreadCount === 0
+                ? 'Nothing unread.'
+                : `${inbox.unreadCount} unread.`}
           </p>
         </div>
 
@@ -139,6 +143,9 @@ export function NotificationsScreen({
                 <p className="text-muted-foreground mt-0.5 line-clamp-2 text-sm whitespace-pre-wrap">
                   {item.body}
                 </p>
+                {item.suppressedReason ? (
+                  <p className="text-state-overdue mt-2 text-sm">{item.suppressedReason}</p>
+                ) : null}
               </Link>
             </li>
           ))}

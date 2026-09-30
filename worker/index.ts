@@ -41,13 +41,15 @@ async function tick(): Promise<void> {
     const total =
       result.dispatched + result.deferred + result.failed + result.dropped + result.escalated;
 
-    // Only log a pass that did something; a quiet five-minute tick should not
-    // fill the log it would otherwise be searched in.
-    if (total > 0 || digested > 0) {
-      log.info({ ...result, digested, durationMs: Date.now() - startedAt }, 'sweep complete');
-    } else {
-      log.debug({ durationMs: Date.now() - startedAt }, 'sweep complete, nothing to do');
-    }
+    // Every pass says so, including a quiet one. A worker that only logs when
+    // it sends something looks identical to a worker that has died, which is
+    // the failure this process exists to make visible.
+    log.info(
+      { ...result, digested, durationMs: Date.now() - startedAt },
+      total > 0 || digested > 0
+        ? 'worker alive and sweeping; sweep complete'
+        : 'worker alive and sweeping; nothing due',
+    );
   } catch (error) {
     log.error({ err: error }, 'sweep failed; will retry on the next interval');
   }
@@ -80,7 +82,13 @@ async function main() {
   const { SCHEDULER_INTERVAL_MINUTES } = env();
   const intervalMs = SCHEDULER_INTERVAL_MINUTES * 60_000;
 
-  log.info({ intervalMinutes: SCHEDULER_INTERVAL_MINUTES }, 'JTAS worker starting');
+  log.info(
+    {
+      intervalMinutes: SCHEDULER_INTERVAL_MINUTES,
+      healthField: 'schedulerHeartbeatAgeSeconds',
+    },
+    'JTAS worker alive and sweeping',
+  );
 
   // Run once immediately so a fresh deploy publishes a heartbeat without
   // waiting a full interval for the health check to go green.

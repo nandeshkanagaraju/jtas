@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { formatDuration } from '@/lib/utils/duration';
+import { formatElapsed } from '@/lib/utils/duration';
 import type { AttentionProblem, AttentionSubtask } from '@/lib/services/analytics';
 
 /**
@@ -9,13 +9,12 @@ import type { AttentionProblem, AttentionSubtask } from '@/lib/services/analytic
  * Problems someone raised, then deadlines that have already slipped. Both are
  * capped. A longer list is a link to the rest, not a second page of rows.
  *
- * How long something has waited is `formatDuration`. The same function the
- * mail and My tasks use, so "6 hours" and "2 days" cannot drift into a third
- * wording here.
+ * How long something has waited is `formatElapsed`. A 17-day-old problem
+ * reads as "2 weeks", not as a count of leftover minutes.
  */
 
 function waiting(hours: number): string {
-  return formatDuration(hours * 60);
+  return formatElapsed(hours * 60);
 }
 
 function severityClass(severity: string): string {

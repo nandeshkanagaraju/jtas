@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { formatDuration } from '@/lib/utils/duration';
+import { formatElapsed } from '@/lib/utils/duration';
 import type { KpiCounts } from '@/lib/services/analytics';
 
 /**
@@ -17,7 +17,7 @@ const LINK =
 export function KpiTiles({ kpis }: { kpis: KpiCounts }) {
   const waiting =
     kpis.openProblemsOlderThan24h > 0
-      ? `, ${kpis.openProblemsOlderThan24h} waiting over ${formatDuration(24 * 60)}`
+      ? `, ${kpis.openProblemsOlderThan24h} waiting over ${formatElapsed(24 * 60)}`
       : '';
 
   const items: { href: string; text: string }[] = [

@@ -6,7 +6,7 @@
  * the relative label carries the urgency and the absolute time stays alongside
  * it for precision.
  */
-import { formatDuration } from './duration';
+import { formatElapsed } from './duration';
 import { hoursBetween } from './time';
 
 export type DeadlineTone = 'overdue' | 'urgent' | 'soon' | 'normal';
@@ -18,22 +18,9 @@ export interface DeadlineLabel {
   overdue: boolean;
 }
 
-/**
- * Under two weeks this is `formatDuration`. Past that, weeks and months,
- * because "in 51 hours" is useful and "in 4 months" is more useful than
- * "in 128 days".
- */
+/** Time until or since a deadline. Precision decays; see `formatElapsed`. */
 function describe(hours: number): string {
-  const minutes = Math.abs(hours) * 60;
-  const days = Math.round(minutes / (24 * 60));
-
-  if (days >= 14) {
-    const weeks = Math.round(days / 7);
-    if (weeks < 9) return `${weeks} weeks`;
-    return `${Math.round(days / 30)} months`;
-  }
-
-  return formatDuration(minutes);
+  return formatElapsed(Math.abs(hours) * 60);
 }
 
 /**

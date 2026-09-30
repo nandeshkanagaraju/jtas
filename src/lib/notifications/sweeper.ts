@@ -18,6 +18,7 @@ import { prisma, type Db } from '@/lib/db/prisma';
 import { recomputeJobStatus } from '@/lib/services/jobs';
 import { writeAudit } from '@/lib/services/audit-service';
 import { moduleLogger } from '@/lib/utils/logger';
+import { formatElapsed } from '@/lib/utils/duration';
 import { hoursBetween } from '@/lib/utils/time';
 
 import { channelFor, isRetryable, ProviderQuotaError } from './channels';
@@ -416,7 +417,7 @@ export async function escalateOverdue(now: Date = new Date()): Promise<number> {
         entityType: 'SUBTASK',
         entityId: subtask.id,
         subject: 'Please complete the work',
-        body: `${subtask.title} is ${delayHours} hours past its deadline.`,
+        body: `${subtask.title} is ${formatElapsed(delayHours * 60)} past its deadline.`,
         dedupeKeyFor: () => overdueMemberKey(subtask.id, n),
         scheduledFor: now,
       });
@@ -428,7 +429,7 @@ export async function escalateOverdue(now: Date = new Date()): Promise<number> {
         entityType: 'SUBTASK',
         entityId: subtask.id,
         subject: 'A task has crossed its deadline',
-        body: `${subtask.title} is ${delayHours} hours past its deadline.`,
+        body: `${subtask.title} is ${formatElapsed(delayHours * 60)} past its deadline.`,
         dedupeKeyFor: (userId) => overdueMdKey(subtask.id, n, userId),
         scheduledFor: now,
       });

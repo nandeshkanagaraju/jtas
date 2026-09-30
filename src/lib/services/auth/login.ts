@@ -8,6 +8,7 @@ import { verifyPassword } from '@/lib/auth/password';
 import { prisma } from '@/lib/db/prisma';
 import { unauthenticated } from '@/lib/errors';
 import { tryWriteAudit, writeAudit } from '@/lib/services/audit-service';
+import { formatElapsed } from '@/lib/utils/duration';
 import { moduleLogger } from '@/lib/utils/logger';
 import { addMinutes } from '@/lib/utils/time';
 import type { LoginInput } from '@/lib/validation/auth';
@@ -79,9 +80,7 @@ export async function login(input: LoginInput, ctx: RequestContext): Promise<Log
       ipAddress: ctx.ipAddress,
     });
     throw unauthenticated(
-      `This account is locked after too many failed attempts. Try again in ${minutesLeft} minute${
-        minutesLeft === 1 ? '' : 's'
-      }.`,
+      `This account is locked after too many failed attempts. Try again in ${formatElapsed(minutesLeft)}.`,
     );
   }
 

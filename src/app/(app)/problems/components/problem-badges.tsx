@@ -2,7 +2,7 @@ import type { ProblemSeverity, ProblemStatus } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { formatDuration } from '@/lib/utils/duration';
+import { formatElapsed } from '@/lib/utils/duration';
 
 /**
  * Severity colour, loudest first.
@@ -48,7 +48,7 @@ export function ProblemStatusBadge({ status }: { status: ProblemStatus }) {
  * mitigation for the inbox becoming a graveyard.
  */
 export function ProblemAge({ ageHours, isStale }: { ageHours: number; isStale: boolean }) {
-  const label = formatDuration(ageHours * 60);
+  const label = formatElapsed(ageHours * 60);
 
   return (
     <span

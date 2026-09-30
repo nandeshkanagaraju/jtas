@@ -548,8 +548,10 @@ receive a typed payload. Wording is in `lib/notifications/templates/`.
 
 **`DEADLINE_REMINDER`** — subject: `[JTAS] Due in {duration}: {jobCode} – {subtaskTitle}`
 
-`{duration}` is the shared duration formatter (`15 minutes`, `1 hour`, `6 hours`,
-`1 hour 30 minutes`, `2 days`). The subject and the body use that one function.
+`{duration}` is how long until the deadline (`formatElapsed`: `15 minutes`,
+`1 hour 30 minutes`, `6 hours`, `2 days`, `2 weeks`). The subject and the body
+use that one function. A reminder lead the user typed stays on `formatDuration`,
+which does not drop units.
 Same structure, phrased as a heads-up, with **Mark completed** and **Report problem**
 deep links.
 

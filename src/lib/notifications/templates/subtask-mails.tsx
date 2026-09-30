@@ -7,7 +7,7 @@
  */
 import { Section, Text } from '@react-email/components';
 
-import { formatDuration } from '@/lib/utils/duration';
+import { formatDuration, formatElapsed } from '@/lib/utils/duration';
 
 import { ActionButton, COLORS, EmailLayout, FactTable, Heading, Paragraph } from './layout';
 import { subtaskLink } from './links';
@@ -63,10 +63,8 @@ export function SubtaskAssignedEmail(payload: AssignedPayload) {
 
 export function DeadlineReminderEmail(payload: ReminderPayload) {
   return (
-    <EmailLayout
-      preview={`Due in ${formatDuration(payload.minutesLeft)} — ${payload.subtaskTitle}`}
-    >
-      <Heading>Due in {formatDuration(payload.minutesLeft)}</Heading>
+    <EmailLayout preview={`Due in ${formatElapsed(payload.minutesLeft)} — ${payload.subtaskTitle}`}>
+      <Heading>Due in {formatElapsed(payload.minutesLeft)}</Heading>
       <Paragraph>Dear {payload.assigneeName},</Paragraph>
       <Paragraph>
         Your task <strong>{payload.subtaskTitle}</strong> is due on{' '}
@@ -106,7 +104,7 @@ export function OverdueMemberEmail(payload: OverdueMemberPayload) {
       </Paragraph>
 
       <FactTable
-        rows={[...subtaskFacts(payload), ['Delay', formatDuration(payload.delayMinutes)]]}
+        rows={[...subtaskFacts(payload), ['Delay', formatElapsed(payload.delayMinutes)]]}
       />
 
       <ActionButton href={subtaskLink(payload.subtaskId, 'complete')} label="Update task now" />

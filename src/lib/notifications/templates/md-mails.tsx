@@ -6,7 +6,7 @@
  */
 import { Section, Text } from '@react-email/components';
 
-import { formatDuration } from '@/lib/utils/duration';
+import { formatElapsed } from '@/lib/utils/duration';
 
 import { ActionButton, COLORS, EmailLayout, FactTable, Heading, Paragraph } from './layout';
 import { jobLink, problemInboxLink, subtaskLink } from './links';
@@ -42,7 +42,7 @@ export function OverdueMdEmail(payload: OverdueMdPayload) {
           ['Department', payload.departmentName],
           ['Assigned to', payload.assigneeName],
           ['Deadline', payload.deadlineIst],
-          ['Delay', formatDuration(payload.delayMinutes)],
+          ['Delay', formatElapsed(payload.delayMinutes)],
           ['Current status', payload.status],
         ]}
       />
@@ -232,7 +232,7 @@ function DigestSection({
                   {row.subtaskTitle}
                   <br />
                   <span style={{ color: COLORS.muted }}>
-                    {row.deadlineIst} · {formatDuration(row.minutes)}
+                    {row.deadlineIst} · {formatElapsed(row.minutes)}
                   </span>
                 </td>
               </tr>

@@ -11,7 +11,7 @@
  */
 import PDFDocument from 'pdfkit';
 
-import { formatDuration } from '@/lib/utils/duration';
+import { formatElapsed } from '@/lib/utils/duration';
 import { formatIST } from '@/lib/utils/time';
 
 import type { JobReport, ProblemRow, SubtaskRow } from './queries';
@@ -54,7 +54,7 @@ const SUBTASK_COLUMNS: ColumnSpec<SubtaskRow>[] = [
     header: 'Delay',
     width: 90,
     align: 'right',
-    value: (r) => (r.actualCompletion ? formatDuration(r.delayHours * 60) : '—'),
+    value: (r) => (r.actualCompletion ? formatElapsed(r.delayHours * 60) : '—'),
     emphasise: (r) => r.delayHours > 0,
   },
 ];

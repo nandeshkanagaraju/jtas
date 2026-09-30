@@ -68,7 +68,16 @@ export const PRESETS: Preset[] = [
   },
 ];
 
-export function RangePicker({ from, to }: { from: string; to: string }) {
+export function RangePicker({
+  from,
+  to,
+  plain = false,
+}: {
+  from: string;
+  to: string;
+  /** Dashboard only. Reports keeps the compact control. */
+  plain?: boolean;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -82,6 +91,41 @@ export function RangePicker({ from, to }: { from: string; to: string }) {
     search.set('to', next.to);
 
     startTransition(() => router.push(`?${search.toString()}`));
+  }
+
+  if (plain) {
+    return (
+      <div>
+        <p className="tabular text-sm text-[#1c2430]">
+          {from} to {to}
+          {pending ? ', updating' : ''}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {PRESETS.map((preset) => {
+            const range = preset.compute(today);
+            const active = range.from === from && range.to === to;
+
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                aria-pressed={active}
+                onClick={() => select(preset)}
+                disabled={pending}
+                className={cn(
+                  'min-h-11 px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430] disabled:opacity-50',
+                  active
+                    ? 'bg-[#1c2430] text-white'
+                    : 'border-2 border-[#1c2430] bg-[#f4f6f8] text-[#1c2430]',
+                )}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   return (

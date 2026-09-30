@@ -1,113 +1,47 @@
 import Link from 'next/link';
-import {
-  AlertTriangle,
-  Briefcase,
-  CalendarClock,
-  CheckCircle2,
-  Clock,
-  TriangleAlert,
-} from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils/duration';
 import type { KpiCounts } from '@/lib/services/analytics';
 
 /**
- * The six tiles (build spec M8.3).
+ * The six counts, as one line.
  *
- * Each is a link, not a card with a number on it: a count the MD cannot open is
- * a number they have to go and look for somewhere else, which is how dashboards
- * become decoration.
+ * Each count is still a link. A number the MD cannot open is a number he has
+ * to go and look for. They sit under the two lists, in a lighter weight,
+ * because they are not what he opened the page to decide.
  */
-interface Tile {
-  label: string;
-  value: number;
-  href: string;
-  icon: typeof Briefcase;
-  /** Shown under the number when there is something worth saying. */
-  note?: string;
-  tone: 'neutral' | 'warn' | 'bad' | 'good';
-}
 
-const TONE: Record<Tile['tone'], string> = {
-  neutral: 'text-foreground',
-  good: 'text-state-complete',
-  warn: 'text-state-problem',
-  bad: 'text-state-overdue',
-};
+const LINK =
+  'text-[#1c2430] underline decoration-[#d5dbe3] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]';
 
 export function KpiTiles({ kpis }: { kpis: KpiCounts }) {
-  const tiles: Tile[] = [
+  const waiting =
+    kpis.openProblemsOlderThan24h > 0
+      ? `, ${kpis.openProblemsOlderThan24h} waiting over ${formatDuration(24 * 60)}`
+      : '';
+
+  const items: { href: string; text: string }[] = [
+    { href: '/jobs?status=active', text: `${kpis.activeJobs} active` },
+    { href: '/jobs?status=AT_RISK', text: `${kpis.atRiskJobs} at risk` },
+    { href: '/jobs?status=DELAYED', text: `${kpis.delayedJobs} delayed` },
+    { href: '/jobs?filter=overdue', text: `${kpis.overdueSubtasks} overdue` },
     {
-      label: 'Active jobs',
-      value: kpis.activeJobs,
-      href: '/jobs?status=active',
-      icon: Briefcase,
-      tone: 'neutral',
-    },
-    {
-      label: 'At risk',
-      value: kpis.atRiskJobs,
-      href: '/jobs?status=AT_RISK',
-      icon: TriangleAlert,
-      tone: kpis.atRiskJobs > 0 ? 'warn' : 'neutral',
-    },
-    {
-      label: 'Delayed',
-      value: kpis.delayedJobs,
-      href: '/jobs?status=DELAYED',
-      icon: CalendarClock,
-      tone: kpis.delayedJobs > 0 ? 'bad' : 'neutral',
-    },
-    {
-      label: 'Overdue subtasks',
-      value: kpis.overdueSubtasks,
-      href: '/jobs?filter=overdue',
-      icon: Clock,
-      tone: kpis.overdueSubtasks > 0 ? 'bad' : 'neutral',
-    },
-    {
-      label: 'Open problems',
-      value: kpis.openProblems,
       href: '/problems',
-      icon: AlertTriangle,
-      // The age is the part that matters: two problems raised this morning is a
-      // normal day, two raised on Tuesday is a decision nobody made.
-      note:
-        kpis.openProblemsOlderThan24h > 0
-          ? `${kpis.openProblemsOlderThan24h} waiting over 24 h`
-          : undefined,
-      tone: kpis.openProblemsOlderThan24h > 0 ? 'bad' : kpis.openProblems > 0 ? 'warn' : 'neutral',
+      text: `${kpis.openProblems} open ${kpis.openProblems === 1 ? 'problem' : 'problems'}${waiting}`,
     },
-    {
-      label: 'Completed',
-      value: kpis.completedThisMonth,
-      href: '/jobs?status=COMPLETED',
-      icon: CheckCircle2,
-      note: 'in this range',
-      tone: 'good',
-    },
+    { href: '/jobs?status=COMPLETED', text: `${kpis.completedThisMonth} completed` },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {tiles.map((tile) => (
-        <Link
-          key={tile.label}
-          href={tile.href}
-          className="hover:bg-accent/40 focus-visible:ring-ring group rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-        >
-          <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
-            <tile.icon className="size-3.5" />
-            <span className="truncate">{tile.label}</span>
-          </div>
-
-          <p className={cn('tabular mt-2 text-3xl font-semibold', TONE[tile.tone])}>{tile.value}</p>
-
-          {tile.note ? (
-            <p className="text-muted-foreground mt-1 text-xs leading-tight">{tile.note}</p>
-          ) : null}
-        </Link>
+    <p className="text-sm leading-7 text-[#1c2430]">
+      {items.map((item, index) => (
+        <span key={item.href}>
+          {index > 0 ? ', ' : null}
+          <Link href={item.href} className={LINK}>
+            {item.text}
+          </Link>
+        </span>
       ))}
-    </div>
+    </p>
   );
 }

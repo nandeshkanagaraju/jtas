@@ -38,37 +38,40 @@ export default async function DashboardPage({
   const range = parseRange({ from: params.from, to: params.to });
   const data = await mdDashboard(range);
 
+  const onTime =
+    data.onTimeCompletionPercent === null
+      ? 'Nothing has been completed in this range yet.'
+      : `${data.onTimeCompletionPercent}% of ${data.completedInRange} completed subtasks were on time` +
+        (data.averageDelayHours > 0
+          ? `, averaging ${formatDuration(data.averageDelayHours * 60)} late.`
+          : '.');
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
-            {data.onTimeCompletionPercent === null
-              ? 'Nothing has been completed in this range yet.'
-              : `${data.onTimeCompletionPercent}% of ${data.completedInRange} completed subtasks were on time` +
-                (data.averageDelayHours > 0
-                  ? `, averaging ${formatDuration(data.averageDelayHours * 60)} late.`
-                  : '.')}
-          </p>
+    <div className="-mx-4 -my-6 min-h-full bg-[#f4f6f8] px-4 py-4 sm:-mx-6 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <AttentionLists
+          problems={data.attention.problems}
+          overdueSubtasks={data.attention.overdueSubtasks}
+          openProblems={data.kpis.openProblems}
+          overdueTotal={data.kpis.overdueSubtasks}
+        />
+
+        <div className="border-t border-[#d5dbe3] pt-4">
+          <KpiTiles kpis={data.kpis} />
+          <p className="mt-2 text-sm text-[#1c2430]">{onTime}</p>
+          <div className="mt-3">
+            <Suspense fallback={<Skeleton className="h-11 w-64" />}>
+              <RangePicker from={data.range.from} to={data.range.to} plain />
+            </Suspense>
+          </div>
         </div>
 
-        <Suspense fallback={<Skeleton className="h-7 w-64" />}>
-          <RangePicker from={data.range.from} to={data.range.to} />
-        </Suspense>
+        <AtRiskTable jobs={data.jobsAtRisk} total={data.kpis.atRiskJobs + data.kpis.delayedJobs} />
+
+        <div className="border-t border-[#d5dbe3] pt-4">
+          <OnTimeTrend trend={data.trend} />
+        </div>
       </div>
-
-      <KpiTiles kpis={data.kpis} />
-
-      {/* Above the charts: these are the two lists that ask for a decision. */}
-      <AttentionLists
-        problems={data.attention.problems}
-        overdueSubtasks={data.attention.overdueSubtasks}
-      />
-
-      <AtRiskTable jobs={data.jobsAtRisk} />
-
-      <OnTimeTrend trend={data.trend} />
     </div>
   );
 }

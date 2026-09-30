@@ -312,6 +312,6 @@ test('g — the dashboard reflects the on-time percentage', async ({ page }) => 
   await signIn(page, ACCOUNTS.md);
   await page.goto('/dashboard');
 
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('heading', { name: 'Problems' })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(expected)).toBeVisible({ timeout: 20_000 });
 });

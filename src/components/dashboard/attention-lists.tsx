@@ -1,127 +1,165 @@
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/utils/duration';
 import type { AttentionProblem, AttentionSubtask } from '@/lib/services/analytics';
 
 /**
- * "Needs your attention" (build spec M8.3).
+ * The two lists the MD opens the dashboard to read (build spec M8.3).
  *
- * Above the fold and before the charts, because these two lists are the only
- * part of the dashboard that asks the MD to do something today. A trend line is
- * for the end of the month; an unacknowledged blocker is for now.
+ * Problems someone raised, then deadlines that have already slipped. Both are
+ * capped. A longer list is a link to the rest, not a second page of rows.
+ *
+ * How long something has waited is `formatDuration`. The same function the
+ * mail and My tasks use, so "6 hours" and "2 days" cannot drift into a third
+ * wording here.
  */
-const SEVERITY_TONE: Record<string, string> = {
-  BLOCKER: 'bg-state-overdue/10 text-state-overdue border-state-overdue/30',
-  HIGH: 'bg-state-overdue/10 text-state-overdue border-state-overdue/30',
-  MEDIUM: 'bg-state-problem/10 text-state-problem border-state-problem/30',
-  LOW: 'bg-muted text-muted-foreground',
-};
 
-function age(hours: number): string {
+function waiting(hours: number): string {
   return formatDuration(hours * 60);
 }
+
+function severityClass(severity: string): string {
+  if (severity === 'BLOCKER') return 'text-[#9f1239]';
+  if (severity === 'HIGH') return 'text-[#92400e]';
+  return 'text-[#1c2430]';
+}
+
+function chased(count: number): string {
+  if (count === 0) return 'not chased yet';
+  return count === 1 ? 'chased 1 time' : `chased ${count} times`;
+}
+
+const ROW =
+  'block border-b border-[#d5dbe3] py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]';
 
 export function AttentionLists({
   problems,
   overdueSubtasks,
+  openProblems,
+  overdueTotal,
 }: {
   problems: AttentionProblem[];
   overdueSubtasks: AttentionSubtask[];
+  /** Shop-wide totals. The lists themselves stop at eight. */
+  openProblems: number;
+  overdueTotal: number;
 }) {
+  const sideBySide = problems.length > 0 && overdueSubtasks.length > 0;
+
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-lg border" aria-labelledby="attention-problems">
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 id="attention-problems" className="flex items-center gap-2 text-sm font-semibold">
-            <AlertTriangle className="text-state-problem size-4" />
-            Problems waiting on you
-          </h2>
-          <Link href="/problems" className="text-muted-foreground hover:text-foreground text-xs">
-            All problems
-          </Link>
-        </header>
-
-        {problems.length === 0 ? (
-          <Empty icon={CheckCircle2}>Nothing open. Every problem raised has been dealt with.</Empty>
-        ) : (
-          <ul className="divide-y">
-            {problems.map((problem) => (
-              <li key={problem.id}>
-                <Link
-                  href={`/problems?open=${problem.id}`}
-                  className="hover:bg-accent/40 block px-4 py-3 transition-colors"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={cn('text-xs', SEVERITY_TONE[problem.severity])}
-                    >
-                      {problem.severity}
-                    </Badge>
-                    <span className="tabular text-xs font-medium">{problem.jobCode}</span>
-                    <span className="text-muted-foreground text-xs">{problem.departmentName}</span>
-                    <span className="text-muted-foreground tabular ml-auto text-xs">
-                      {age(problem.ageHours)}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-sm">{problem.description}</p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="rounded-lg border" aria-labelledby="attention-overdue">
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 id="attention-overdue" className="flex items-center gap-2 text-sm font-semibold">
-            <Clock className="text-state-overdue size-4" />
-            Overdue subtasks
-          </h2>
-        </header>
-
-        {overdueSubtasks.length === 0 ? (
-          <Empty icon={CheckCircle2}>Nothing is past its deadline.</Empty>
-        ) : (
-          <ul className="divide-y">
-            {overdueSubtasks.map((subtask) => (
-              <li key={subtask.id}>
-                <Link
-                  href={`/jobs/${subtask.jobId}`}
-                  className="hover:bg-accent/40 block px-4 py-3 transition-colors"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="tabular text-xs font-medium">{subtask.jobCode}</span>
-                    <span className="text-muted-foreground text-xs">{subtask.departmentName}</span>
-                    <span className="text-state-overdue tabular ml-auto text-xs font-semibold">
-                      {age(subtask.overdueHours)} late
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-sm">{subtask.title}</p>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    {subtask.assigneeName}
-                    {subtask.escalationCount > 0
-                      ? ` · chased ${subtask.escalationCount}×`
-                      : ' · not chased yet'}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+    <div className={sideBySide ? 'grid items-start gap-10 lg:grid-cols-2' : 'space-y-8'}>
+      <ProblemList problems={problems} total={openProblems} />
+      <DeadlineList subtasks={overdueSubtasks} total={overdueTotal} />
     </div>
   );
 }
 
-function Empty({ icon: Icon, children }: { icon: typeof CheckCircle2; children: React.ReactNode }) {
+function ProblemList({ problems, total }: { problems: AttentionProblem[]; total: number }) {
+  const hidden = Math.max(0, total - problems.length);
+
   return (
-    <div className="text-muted-foreground flex flex-col items-center gap-2 px-4 py-10 text-center">
-      <Icon className="text-state-complete size-6" />
-      <p className="max-w-xs text-sm">{children}</p>
-    </div>
+    <section aria-labelledby="attention-problems">
+      <h2
+        id="attention-problems"
+        className="flex items-baseline justify-between gap-4 border-b border-[#d5dbe3] pb-2 text-base font-semibold text-[#1c2430]"
+      >
+        <span>Problems</span>
+        <span className="tabular">{problems.length}</span>
+      </h2>
+
+      {problems.length === 0 ? (
+        <p className="border-b border-[#d5dbe3] py-3 text-base text-[#1c2430]">
+          Nothing is waiting on you.
+        </p>
+      ) : (
+        <ul>
+          {problems.map((problem) => (
+            <li key={problem.id}>
+              <Link href={`/problems?open=${problem.id}`} className={ROW}>
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="tabular text-xl font-semibold text-[#1c2430]">
+                    {problem.jobCode}
+                  </span>
+                  <span className={`text-base font-semibold ${severityClass(problem.severity)}`}>
+                    {problem.severity}
+                  </span>
+                </div>
+                <p className="mt-1 text-base text-[#1c2430]">
+                  {problem.departmentName}, waiting {waiting(problem.ageHours)}
+                </p>
+                <p className="mt-1 line-clamp-2 text-base text-[#1c2430]">{problem.description}</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {hidden > 0 ? (
+        <p className="border-b border-[#d5dbe3] py-3 text-base">
+          <Link
+            href="/problems"
+            className="text-[#1c2430] underline decoration-[#d5dbe3] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]"
+          >
+            {hidden === 1 ? '1 more in the inbox' : `${hidden} more in the inbox`}
+          </Link>
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function DeadlineList({ subtasks, total }: { subtasks: AttentionSubtask[]; total: number }) {
+  const hidden = Math.max(0, total - subtasks.length);
+
+  return (
+    <section aria-labelledby="attention-overdue">
+      <h2
+        id="attention-overdue"
+        className="flex items-baseline justify-between gap-4 border-b border-[#d5dbe3] pb-2 text-base font-semibold text-[#1c2430]"
+      >
+        <span>Deadlines that slipped</span>
+        <span className={subtasks.length > 0 ? 'tabular text-[#9f1239]' : 'tabular'}>
+          {subtasks.length}
+        </span>
+      </h2>
+
+      {subtasks.length === 0 ? (
+        <p className="border-b border-[#d5dbe3] py-3 text-base text-[#1c2430]">
+          No deadline has slipped.
+        </p>
+      ) : (
+        <ul>
+          {subtasks.map((subtask) => (
+            <li key={subtask.id}>
+              <Link href={`/jobs/${subtask.jobId}`} className={ROW}>
+                <div className="sm:flex sm:items-baseline sm:justify-between sm:gap-4">
+                  <span className="tabular text-xl font-semibold text-[#1c2430]">
+                    {subtask.jobCode}
+                  </span>
+                  <p className="mt-1 text-base font-semibold text-[#9f1239] sm:mt-0">
+                    {waiting(subtask.overdueHours)} late
+                  </p>
+                </div>
+                <p className="mt-1 text-base font-semibold text-[#1c2430]">{subtask.title}</p>
+                <p className="mt-1 text-base text-[#1c2430]">
+                  {subtask.departmentName}, {chased(subtask.escalationCount)}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {hidden > 0 ? (
+        <p className="border-b border-[#d5dbe3] py-3 text-base">
+          <Link
+            href="/jobs?filter=overdue"
+            className="text-[#1c2430] underline decoration-[#d5dbe3] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]"
+          >
+            {hidden === 1 ? '1 more past its deadline' : `${hidden} more past their deadline`}
+          </Link>
+        </p>
+      ) : null}
+    </section>
   );
 }

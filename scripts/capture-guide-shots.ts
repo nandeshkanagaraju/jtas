@@ -69,7 +69,7 @@ const SHOTS: Shot[] = [
     name: 'md-dashboard',
     as: 'md@showcase.invalid',
     path: '/dashboard',
-    waitFor: 'Dashboard',
+    waitFor: 'Deadlines that slipped',
   },
   {
     name: 'md-problems',

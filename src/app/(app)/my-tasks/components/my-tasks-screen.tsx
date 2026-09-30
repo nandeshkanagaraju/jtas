@@ -1,21 +1,28 @@
 'use client';
 
-import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ApiError } from '@/lib/api/client';
 import { changeSubtaskStatusRequest } from '@/lib/api/subtasks-client';
 import { fetchMyTasks, type MyTaskDto, type MyTasksDto } from '@/lib/api/my-tasks-client';
 import { BUCKET_ORDER, type BucketName } from '@/lib/domain/task-buckets';
-import { cn } from '@/lib/utils';
 
 import { TaskCard } from './task-card';
 import type { Severity } from './problem-form';
 
-const BUCKET_LABELS: Record<BucketName, string> = {
+/** Overdue and due today stay open. The rest is a count until asked for. */
+const OPEN_GROUPS: BucketName[] = ['overdue', 'dueToday'];
+
+const FOLDED_GROUPS: BucketName[] = [
+  'dueThisWeek',
+  'blocked',
+  'awaitingApproval',
+  'later',
+  'recentlyCompleted',
+];
+
+const GROUP_LABELS: Record<BucketName, string> = {
   overdue: 'Overdue',
   dueToday: 'Due today',
   dueThisWeek: 'This week',
@@ -25,32 +32,27 @@ const BUCKET_LABELS: Record<BucketName, string> = {
   recentlyCompleted: 'Done',
 };
 
-/** Wording a person would use, per bucket. */
 const EMPTY_STATES: Record<BucketName, string> = {
-  overdue: 'Nothing is late. Keep it that way.',
-  dueToday: 'Nothing due today.',
-  dueThisWeek: 'Nothing due in the next seven days.',
-  blocked: 'Nothing is waiting on somebody else.',
-  awaitingApproval: 'Nothing is sitting with the MD.',
-  later: 'Nothing further out.',
-  recentlyCompleted: 'Nothing finished in the last week yet.',
+  overdue: 'Nothing is overdue.',
+  dueToday: 'Nothing is due today.',
+  dueThisWeek: 'Nothing is due this week.',
+  blocked: 'Nothing is waiting on another department.',
+  awaitingApproval: 'Nothing is with the MD.',
+  later: 'Nothing is due later.',
+  recentlyCompleted: 'Nothing finished this week.',
 };
 
 export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
   const [data, setData] = useState<MyTasksDto>(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<BucketName>(() => firstNonEmpty(initial));
+  const [open, setOpen] = useState<Partial<Record<BucketName, boolean>>>({});
 
   const reload = useCallback(async () => {
-    setLoading(true);
     try {
       setData(await fetchMyTasks());
     } catch {
       // A failed refresh leaves the last good list on screen; the next action
       // will reload again. Nothing is lost.
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -89,16 +91,22 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
         severity: payload?.severity,
       });
 
+      const freed = result.unblocked.length;
       toast.success(
         action === 'COMPLETE'
           ? task.requiresApproval
-            ? 'Sent to the MD for approval.'
-            : 'Marked completed.'
+            ? 'Sent for approval.'
+            : 'Completed.'
           : action === 'START'
-            ? 'Started.'
-            : 'The MD has been told.',
-        result.unblocked.length > 0
-          ? { description: `${result.unblocked.length} task is no longer blocked.` }
+            ? 'Work started.'
+            : 'Problem reported.',
+        freed > 0
+          ? {
+              description:
+                freed === 1
+                  ? '1 task is no longer blocked.'
+                  : `${freed} tasks are no longer blocked.`,
+            }
           : undefined,
       );
 
@@ -107,100 +115,115 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
       // Roll back to exactly what was on screen before.
       setData(snapshot);
       toast.error(
-        error instanceof ApiError ? error.message : 'Could not reach the server. Try again.',
+        error instanceof ApiError
+          ? error.message
+          : 'Not saved. Check the connection and try again.',
       );
     } finally {
       setBusyId(null);
     }
   }
 
-  const { summary } = data;
-
   return (
-    <div className="space-y-4">
-      {/* Sticky summary strip: the three numbers that decide what to do next. */}
-      <div className="bg-background/95 sticky top-14 z-10 -mx-4 border-b px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <Stat label="Overdue" value={summary.overdue} tone="overdue" />
-          <Stat label="Due today" value={summary.dueToday} tone="urgent" />
-          <Stat label="Open problems" value={summary.openProblems} tone="problem" />
-          {loading ? <Loader2 className="text-muted-foreground size-4 animate-spin" /> : null}
-        </div>
+    <div className="mx-auto max-w-6xl">
+      <div className="space-y-8">
+        {OPEN_GROUPS.map((name) => (
+          <Group key={name} name={name} tasks={data.buckets[name]} busyId={busyId} onAction={act} />
+        ))}
       </div>
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as BucketName)}>
-        {/*
-          Scrolls sideways rather than wrapping. Wrapping fought the base
-          component's fixed 36px height and the second row landed on top of the
-          first card; a single scrolling strip is also the pattern a phone user
-          already knows, and it keeps every tab at a 44px touch target.
-        */}
-        <TabsList className="-mx-4 w-[calc(100%+2rem)] justify-start gap-1 overflow-x-auto rounded-none px-4 group-data-[orientation=horizontal]/tabs:h-auto sm:mx-0 sm:w-full sm:rounded-lg sm:px-[3px]">
-          {BUCKET_ORDER.map((name) => (
-            <TabsTrigger key={name} value={name} className="min-h-11 shrink-0 gap-1.5">
-              {BUCKET_LABELS[name]}
-              {data.buckets[name].length > 0 ? (
-                <Badge variant="secondary" className="px-1.5 text-xs">
-                  {data.buckets[name].length}
-                </Badge>
-              ) : null}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <div className="mt-8 border-t border-[#d5dbe3]">
+        {FOLDED_GROUPS.map((name) => {
+          const tasks = data.buckets[name];
+          const expanded = open[name] === true;
 
-        {BUCKET_ORDER.map((name) => (
-          <TabsContent key={name} value={name} className="space-y-3">
-            {data.buckets[name].length === 0 ? (
-              <p className="text-muted-foreground flex items-center gap-2 py-10 text-center text-sm">
-                <CheckCircle2 className="size-4" />
-                {EMPTY_STATES[name]}
-              </p>
-            ) : (
-              data.buckets[name].map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  busy={busyId === task.id}
-                  onAction={(action, payload) => act(task, action, payload)}
-                />
-              ))
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+          return (
+            <section key={name}>
+              <h2>
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setOpen((current) => ({ ...current, [name]: !expanded }))}
+                  className="flex min-h-12 w-full items-baseline justify-between gap-4 border-b border-[#d5dbe3] py-3 text-left text-base text-[#1c2430] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]"
+                >
+                  <span className="font-semibold">{GROUP_LABELS[name]}</span>
+                  <span className="tabular text-base font-semibold">{tasks.length}</span>
+                </button>
+              </h2>
+              {expanded ? (
+                <TaskList name={name} tasks={tasks} busyId={busyId} onAction={act} />
+              ) : null}
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
+function Group({
+  name,
+  tasks,
+  busyId,
+  onAction,
 }: {
-  label: string;
-  value: number;
-  tone: 'overdue' | 'urgent' | 'problem';
+  name: BucketName;
+  tasks: MyTaskDto[];
+  busyId: string | null;
+  onAction: (
+    task: MyTaskDto,
+    action: 'START' | 'COMPLETE' | 'PROBLEM',
+    payload?: { note: string; severity: Severity },
+  ) => void;
 }) {
-  const toneClass =
-    value === 0
-      ? 'text-muted-foreground'
-      : tone === 'overdue'
-        ? 'text-state-overdue'
-        : tone === 'urgent'
-          ? 'text-state-problem'
-          : 'text-state-problem';
+  const countTone = name === 'overdue' && tasks.length > 0 ? 'text-[#9f1239]' : 'text-[#1c2430]';
 
   return (
-    <span className="flex items-baseline gap-1.5">
-      <span className={cn('tabular text-lg font-semibold', toneClass)}>{value}</span>
-      <span className="text-muted-foreground text-xs">{label}</span>
-    </span>
+    <section aria-labelledby={`tasks-${name}`}>
+      <h2
+        id={`tasks-${name}`}
+        className="flex items-baseline justify-between gap-4 border-b border-[#d5dbe3] py-3 text-base font-semibold text-[#1c2430]"
+      >
+        <span>{GROUP_LABELS[name]}</span>
+        <span className={`tabular ${countTone}`}>{tasks.length}</span>
+      </h2>
+      <TaskList name={name} tasks={tasks} busyId={busyId} onAction={onAction} />
+    </section>
   );
 }
 
-/** Opens on the bucket that actually needs attention. */
-function firstNonEmpty(data: MyTasksDto): BucketName {
-  return BUCKET_ORDER.find((name) => data.buckets[name].length > 0) ?? 'dueToday';
+function TaskList({
+  name,
+  tasks,
+  busyId,
+  onAction,
+}: {
+  name: BucketName;
+  tasks: MyTaskDto[];
+  busyId: string | null;
+  onAction: (
+    task: MyTaskDto,
+    action: 'START' | 'COMPLETE' | 'PROBLEM',
+    payload?: { note: string; severity: Severity },
+  ) => void;
+}) {
+  if (tasks.length === 0) {
+    return <p className="py-4 text-base text-[#1c2430]">{EMPTY_STATES[name]}</p>;
+  }
+
+  return (
+    <div>
+      {tasks.map((task) => (
+        <TaskCard
+          key={task.id}
+          task={task}
+          section={name}
+          busy={busyId === task.id}
+          onAction={(action, payload) => onAction(task, action, payload)}
+        />
+      ))}
+    </div>
+  );
 }
 
 /**

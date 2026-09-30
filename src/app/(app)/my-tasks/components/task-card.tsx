@@ -1,41 +1,35 @@
 'use client';
 
-import { Check, ChevronRight, CircleAlert, Lock, Play, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
 import { Countdown } from '@/components/shared/countdown';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { MyTaskDto } from '@/lib/api/my-tasks-client';
+import type { BucketName } from '@/lib/domain/task-buckets';
 import { cn } from '@/lib/utils';
 import { formatIST } from '@/lib/utils/time';
 
 import { ProblemForm, type Severity } from './problem-form';
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Not started',
-  IN_PROGRESS: 'In progress',
-  BLOCKED: 'Blocked',
-  PROBLEM: 'Problem reported',
-  AWAITING_APPROVAL: 'Waiting for the MD',
-  COMPLETED: 'Done',
-};
+const ACTION =
+  'h-auto min-h-12 rounded-sm px-3 text-base font-semibold whitespace-normal motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]';
 
 /**
- * One task, with the actions that finish it in a single tap.
+ * One job on the traveller.
  *
- * Everything a member needs to decide is above the buttons: which job, which
- * part, when it is due, and — when blocked — what it is waiting for. The whole
- * point of FR-30 is that the next thing to do is obvious without opening
- * anything.
+ * The code and the part number are how the floor identifies the work, so they
+ * lead. The operation title follows. Mark completed and Report problem are the
+ * same size: reporting a stoppage is ordinary, not a confession.
  */
 export function TaskCard({
   task,
+  section,
   busy,
   onAction,
 }: {
   task: MyTaskDto;
+  section: BucketName;
   busy: boolean;
   onAction: (
     action: 'START' | 'COMPLETE' | 'PROBLEM',
@@ -50,119 +44,127 @@ export function TaskCard({
   /*
    * Once a problem is on record the subtask is the MD's to move: the state
    * machine allows only RESOLVE_PROBLEM out of PROBLEM, so offering Complete
-   * here would be a button that always fails. Improvement I-05 in reverse —
-   * the pressure has moved, and the screen should say so.
+   * here would be a button that always fails.
    */
   const reported = task.status === 'PROBLEM';
   const actionable = !blocked && !done && !waiting && !reported;
+  const overdue = task.hoursRemaining < 0 && !done;
+  const stamp = stampFor(task, section, { blocked, done, waiting, reported, overdue });
 
   return (
     <article
       className={cn(
-        'bg-card space-y-3 rounded-lg border p-4',
-        task.hoursRemaining < 0 && !done && 'border-state-overdue/50',
+        'border-b border-[#d5dbe3] py-4',
+        overdue && 'border-l-[3px] border-l-[#9f1239] pl-3',
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
-            <span className="tabular">{task.jobCode}</span>
-            {task.partNumber ? <span>· {task.partNumber}</span> : null}
-            <span>· {task.department.name}</span>
+      <div className="xl:flex xl:items-start xl:gap-8">
+        <div className="min-w-0 xl:flex-1">
+          <div className="flex items-center justify-between gap-4 xl:justify-start">
+            <Link
+              href={`/tasks/${task.id}`}
+              className="inline-flex min-h-11 items-center text-xl font-semibold tracking-tight text-[#1c2430] tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c2430]"
+            >
+              {task.jobCode}
+              <span className="sr-only">, details</span>
+            </Link>
+            <p className={cn('shrink-0 text-base font-semibold', stamp.className)}>{stamp.label}</p>
           </div>
 
-          <h3 className="leading-snug font-medium">{task.title}</h3>
+          {task.partNumber ? (
+            <p className="mt-1 text-base font-semibold text-[#1c2430] tabular-nums">
+              {task.partNumber}
+            </p>
+          ) : null}
 
-          <div className="flex flex-wrap items-center gap-x-2 text-xs">
-            <span className="tabular text-muted-foreground">
-              {formatIST(new Date(task.deadline))}
-            </span>
-            <Countdown deadline={task.deadline} />
-          </div>
+          <p className="mt-2 text-base text-[#1c2430]">{task.title}</p>
+
+          <p className="mt-2 text-base font-semibold text-[#1c2430]">
+            <Countdown
+              deadline={task.deadline}
+              className="text-base font-semibold !text-[#1c2430]"
+            />
+          </p>
+          <p className="text-sm text-[#1c2430] tabular-nums">
+            {formatIST(new Date(task.deadline))}
+          </p>
+
+          {blocked && task.dependency ? (
+            <p className="mt-3 text-base text-[#1c2430]">
+              Waiting on {task.dependency.departmentName} — {task.dependency.title}, due{' '}
+              {formatIST(new Date(task.dependency.deadline), 'd MMM')}.
+            </p>
+          ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {task.hasOpenProblem ? (
-            <Badge className="bg-state-problem gap-1 text-white">
-              <TriangleAlert className="size-3" />
-              Problem
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="whitespace-nowrap">
-              {STATUS_LABELS[task.status] ?? task.status}
-            </Badge>
-          )}
-          {task.requiresApproval && !done ? (
-            <span className="text-muted-foreground flex items-center gap-1 text-xs">
-              <Lock className="size-3" />
-              MD approves
-            </span>
+        <div className="mt-4 xl:mt-0 xl:w-80 xl:shrink-0">
+          {reporting ? (
+            <ProblemForm
+              busy={busy}
+              autoFocus
+              onCancel={() => setReporting(false)}
+              onSubmit={(payload) => {
+                setReporting(false);
+                onAction('PROBLEM', payload);
+              }}
+            />
+          ) : actionable ? (
+            <div className="space-y-2">
+              {task.status === 'PENDING' ? (
+                <Button
+                  variant="outline"
+                  className={cn(
+                    ACTION,
+                    'w-full border-2 border-[#1c2430] bg-[#f4f6f8] text-[#1c2430] shadow-none hover:bg-[#f4f6f8]',
+                  )}
+                  disabled={busy}
+                  onClick={() => onAction('START')}
+                >
+                  Start work
+                </Button>
+              ) : null}
+
+              <div
+                className={cn('grid gap-2', task.requiresApproval ? 'grid-cols-1' : 'grid-cols-2')}
+              >
+                <Button
+                  className={cn(ACTION, 'bg-[#1c2430] text-white shadow-none hover:bg-[#1c2430]')}
+                  disabled={busy}
+                  onClick={() => onAction('COMPLETE')}
+                >
+                  {task.requiresApproval ? 'Send for approval' : 'Mark completed'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    ACTION,
+                    'border-2 border-[#1c2430] bg-[#f4f6f8] text-[#1c2430] shadow-none hover:bg-[#f4f6f8]',
+                  )}
+                  disabled={busy}
+                  onClick={() => setReporting(true)}
+                >
+                  Report problem
+                </Button>
+              </div>
+            </div>
           ) : null}
         </div>
       </div>
-
-      {blocked && task.dependency ? (
-        <p className="bg-muted/60 text-muted-foreground flex items-start gap-2 rounded-md px-3 py-2 text-xs">
-          <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
-          <span>
-            Waiting on <span className="font-medium">{task.dependency.departmentName}</span> —{' '}
-            {task.dependency.title}, due {formatIST(new Date(task.dependency.deadline))}.
-          </span>
-        </p>
-      ) : null}
-
-      {reporting ? (
-        <ProblemForm
-          busy={busy}
-          autoFocus
-          onCancel={() => setReporting(false)}
-          onSubmit={(payload) => {
-            setReporting(false);
-            onAction('PROBLEM', payload);
-          }}
-        />
-      ) : actionable ? (
-        <div className="flex flex-wrap gap-2">
-          {task.status === 'PENDING' ? (
-            <Button
-              variant="outline"
-              className="min-h-11 flex-1"
-              disabled={busy}
-              onClick={() => onAction('START')}
-            >
-              <Play className="size-4" />
-              Start
-            </Button>
-          ) : null}
-
-          <Button className="min-h-11 flex-1" disabled={busy} onClick={() => onAction('COMPLETE')}>
-            <Check className="size-4" />
-            {task.requiresApproval ? 'Send for approval' : 'Completed'}
-          </Button>
-
-          <Button
-            variant="outline"
-            className="min-h-11 flex-1"
-            disabled={busy}
-            onClick={() => setReporting(true)}
-          >
-            <TriangleAlert className="size-4" />
-            Problem
-          </Button>
-        </div>
-      ) : reported ? (
-        <p className="text-muted-foreground text-xs">
-          Reported. The MD has it — you will see this move once they decide.
-        </p>
-      ) : null}
-
-      <Link
-        href={`/tasks/${task.id}`}
-        className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs"
-      >
-        Open task
-        <ChevronRight className="size-3" />
-      </Link>
     </article>
   );
+}
+
+function stampFor(
+  task: MyTaskDto,
+  section: BucketName,
+  flags: { blocked: boolean; done: boolean; waiting: boolean; reported: boolean; overdue: boolean },
+): { label: string; className: string } {
+  if (flags.done) return { label: 'Done', className: 'text-[#0f5132]' };
+  if (flags.blocked) return { label: 'Blocked', className: 'text-[#1c2430]' };
+  if (flags.reported) return { label: 'Problem reported', className: 'text-[#1c2430]' };
+  if (flags.waiting) return { label: 'With the MD', className: 'text-[#1c2430]' };
+  if (flags.overdue) return { label: 'Overdue', className: 'text-[#9f1239]' };
+  if (section === 'dueToday') return { label: 'Due today', className: 'text-[#92400e]' };
+  if (task.status === 'IN_PROGRESS') return { label: 'In progress', className: 'text-[#0f5132]' };
+  return { label: 'Not started', className: 'text-[#1c2430]' };
 }

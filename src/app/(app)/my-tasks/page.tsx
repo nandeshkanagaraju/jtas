@@ -21,14 +21,7 @@ export default async function MyTasksPage() {
   const result = await getMyTasks(session.id);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">My tasks</h1>
-        <p className="text-muted-foreground text-sm">
-          Everything assigned to you, nearest deadline first.
-        </p>
-      </div>
-
+    <div className="-mx-4 -my-6 min-h-full bg-[#f4f6f8] px-4 py-4 sm:-mx-6 sm:px-6">
       <MyTasksScreen
         initial={{
           ...result,

@@ -108,22 +108,36 @@ test('a — the MD creates a job from the template and publishes it', async ({ p
  * has a finished "Raise PO" card from the first — matching on the title alone
  * finds both.
  */
-function card(page: import('@playwright/test').Page, title: string | RegExp) {
-  return page.locator('article').filter({ hasText: jobCode }).filter({ hasText: title });
+async function card(page: import('@playwright/test').Page, title: string | RegExp) {
+  const found = page.locator('article').filter({ hasText: jobCode }).filter({ hasText: title });
+  if ((await found.count()) > 0) return found;
+
+  // Overdue and due today stay open. Everything else is folded, so a task a
+  // month out is not in the document until its group is opened.
+  for (const label of ['This week', 'Blocked', 'With the MD', 'Later', 'Done']) {
+    const fold = page.getByRole('button', { name: new RegExp(`^${label} \\d`) });
+    if ((await fold.count()) === 0) continue;
+    const text = (await fold.innerText()).trim();
+    if (text.endsWith(' 0')) continue;
+    if ((await fold.getAttribute('aria-expanded')) !== 'true') await fold.click();
+    if ((await found.count()) > 0) return found;
+  }
+
+  return found;
 }
 
 test('b — Planning sees it in My Tasks and completes it', async ({ page }) => {
   await signIn(page, ACCOUNTS.planning);
   await expect(page).toHaveURL(/\/my-tasks/);
 
-  const planning = card(page, /Process plan/);
+  const planning = await card(page, /Process plan/);
   await expect(planning).toBeVisible({ timeout: 15_000 });
   await expect(planning).toContainText(jobCode);
 
   // Everything a member does happens on the card — FR-30 is explicit that the
   // shop floor should not have to navigate to finish a task.
-  await planning.getByRole('button', { name: 'Start' }).click();
-  await planning.getByRole('button', { name: 'Completed' }).click();
+  await planning.getByRole('button', { name: 'Start work', exact: true }).click();
+  await planning.getByRole('button', { name: 'Mark completed', exact: true }).click();
 
   await expect.poll(() => subtaskStatus(/Process plan/), { timeout: 20_000 }).toBe('COMPLETED');
 });
@@ -135,27 +149,33 @@ test('c — Purchase, previously BLOCKED, becomes actionable', async ({ page }) 
 
   await signIn(page, ACCOUNTS.purchase);
 
-  const purchase = card(page, /Raise PO/);
+  const purchase = await card(page, /Raise PO/);
   await expect(purchase).toBeVisible({ timeout: 15_000 });
 
   // Actionable: a blocked card offers no buttons at all, only the line naming
   // what it waits for.
-  await expect(purchase.getByRole('button', { name: 'Start' })).toBeEnabled();
+  await expect(purchase.getByRole('button', { name: 'Start work', exact: true })).toBeEnabled();
   await expect(purchase).not.toContainText('Waiting on');
 });
 
 test('d — Purchase reports a BLOCKER problem', async ({ page }) => {
   await signIn(page, ACCOUNTS.purchase);
 
-  const purchase = card(page, /Raise PO/);
-  await purchase.getByRole('button', { name: 'Problem' }).click();
+  const purchase = await card(page, /Raise PO/);
+  await purchase.getByRole('button', { name: 'Report problem', exact: true }).click();
 
   // Severity drives the MD inbox's order (M6).
   await purchase.getByRole('button', { name: 'Blocker' }).click();
   await purchase
     .getByRole('textbox')
     .fill('Material short by twelve bars; the supplier has not confirmed a date.');
-  await purchase.getByRole('button', { name: 'Send to the MD' }).click();
+  // The opener and the submit share the words "Report problem". The submit is
+  // the sibling of Cancel, so the locator cannot match both.
+  await purchase
+    .getByRole('button', { name: 'Cancel', exact: true })
+    .locator('..')
+    .getByRole('button', { name: 'Report problem', exact: true })
+    .click();
 
   const prisma = e2ePrisma();
   try {
@@ -250,7 +270,7 @@ test('f — Purchase sees the new deadline and completes the task', async ({ pag
 
   await signIn(page, ACCOUNTS.purchase);
 
-  const purchase = card(page, /Raise PO/);
+  const purchase = await card(page, /Raise PO/);
   await expect(purchase).toBeVisible({ timeout: 15_000 });
 
   // The card shows the deadline the MD granted, rendered in IST — the same
@@ -258,8 +278,8 @@ test('f — Purchase sees the new deadline and completes the task', async ({ pag
   await expect(purchase).toContainText(formatIST(deadline));
 
   // No Start: it is already running, so the card offers only the finish.
-  await expect(purchase.getByRole('button', { name: 'Start' })).toHaveCount(0);
-  await purchase.getByRole('button', { name: 'Completed' }).click();
+  await expect(purchase.getByRole('button', { name: 'Start work', exact: true })).toHaveCount(0);
+  await purchase.getByRole('button', { name: 'Mark completed', exact: true }).click();
 
   await expect.poll(() => subtaskStatus(/Raise PO/), { timeout: 20_000 }).toBe('COMPLETED');
 });

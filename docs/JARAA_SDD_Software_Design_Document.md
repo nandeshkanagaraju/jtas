@@ -546,7 +546,10 @@ receive a typed payload. Wording is in `lib/notifications/templates/`.
 >
 > The Managing Director has been copied on this reminder.
 
-**`DEADLINE_REMINDER`** — subject: `[JTAS] Due in {hoursLeft} h: {jobCode} – {subtaskTitle}`
+**`DEADLINE_REMINDER`** — subject: `[JTAS] Due in {duration}: {jobCode} – {subtaskTitle}`
+
+`{duration}` is the shared duration formatter (`15 minutes`, `1 hour`, `6 hours`,
+`1 hour 30 minutes`, `2 days`). The subject and the body use that one function.
 Same structure, phrased as a heads-up, with **Mark completed** and **Report problem**
 deep links.
 

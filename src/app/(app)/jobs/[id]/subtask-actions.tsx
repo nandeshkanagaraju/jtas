@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import type { SubtaskDto } from '@/lib/api/subtasks-client';
+import { formatDuration } from '@/lib/utils/duration';
 
 export type ActionPanelName = 'none' | 'deadline' | 'reassign' | 'hold' | 'cancel' | 'reject';
 
@@ -94,7 +95,7 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
 
       <div>
         <dt className="text-muted-foreground text-xs">Reminder</dt>
-        <dd className="font-medium">{Math.round(subtask.reminderLeadMinutes / 60)} h before</dd>
+        <dd className="font-medium">{formatDuration(subtask.reminderLeadMinutes)} before</dd>
       </div>
 
       {subtask.dependsOn ? (

@@ -27,23 +27,24 @@ export interface SubtaskContext extends JobContext {
 
 export interface AssignedPayload extends SubtaskContext {
   kind: 'SUBTASK_ASSIGNED';
-  reminderLeadHours: number;
+  reminderLeadMinutes: number;
 }
 
 export interface ReminderPayload extends SubtaskContext {
   kind: 'DEADLINE_REMINDER';
-  hoursLeft: number;
+  /** Minutes until the deadline. The subject and the body both format this. */
+  minutesLeft: number;
 }
 
 export interface OverdueMemberPayload extends SubtaskContext {
   kind: 'OVERDUE_MEMBER';
-  delayHours: number;
+  delayMinutes: number;
   escalationNumber: number;
 }
 
 export interface OverdueMdPayload extends SubtaskContext {
   kind: 'OVERDUE_MD';
-  delayHours: number;
+  delayMinutes: number;
   escalationNumber: number;
 }
 
@@ -95,8 +96,8 @@ export interface DigestRow {
   assigneeName: string;
   subtaskTitle: string;
   deadlineIst: string;
-  /** Hours late, or hours of problem age. */
-  hours: number;
+  /** Minutes late, or minutes of problem age. */
+  minutes: number;
 }
 
 export interface DailyDigestPayload {

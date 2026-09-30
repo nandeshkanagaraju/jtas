@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import type { UserRow } from '@/lib/api/users-client';
 import type { DepartmentSummary } from '@/lib/services/department-service';
 import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils/duration';
 import { formatIST, fromISTInput } from '@/lib/utils/time';
 
 /**
@@ -70,7 +71,8 @@ export function PlanReview({
                 </div>
                 <p className="truncate font-medium">{row.title || 'Untitled'}</p>
                 <p className="text-muted-foreground text-xs">
-                  {assignee?.name ?? 'Unassigned'} · remind {row.reminderLeadMinutes} min before
+                  {assignee?.name ?? 'Unassigned'} · remind{' '}
+                  {formatDuration(row.reminderLeadMinutes)} before
                 </p>
               </div>
 

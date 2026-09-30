@@ -22,15 +22,15 @@ const SUBTASK = {
 };
 
 export const SAMPLES: Record<TemplateKind, TemplatePayload> = {
-  SUBTASK_ASSIGNED: { kind: 'SUBTASK_ASSIGNED', ...SUBTASK, reminderLeadHours: 6 },
-  DEADLINE_REMINDER: { kind: 'DEADLINE_REMINDER', ...SUBTASK, hoursLeft: 6 },
+  SUBTASK_ASSIGNED: { kind: 'SUBTASK_ASSIGNED', ...SUBTASK, reminderLeadMinutes: 360 },
+  DEADLINE_REMINDER: { kind: 'DEADLINE_REMINDER', ...SUBTASK, minutesLeft: 360 },
   OVERDUE_MEMBER: {
     kind: 'OVERDUE_MEMBER',
     ...SUBTASK,
-    delayHours: 14,
+    delayMinutes: 14 * 60,
     escalationNumber: 1,
   },
-  OVERDUE_MD: { kind: 'OVERDUE_MD', ...SUBTASK, delayHours: 14, escalationNumber: 1 },
+  OVERDUE_MD: { kind: 'OVERDUE_MD', ...SUBTASK, delayMinutes: 14 * 60, escalationNumber: 1 },
   PROBLEM_RAISED: {
     kind: 'PROBLEM_RAISED',
     ...SUBTASK,
@@ -87,7 +87,7 @@ export const SAMPLES: Record<TemplateKind, TemplatePayload> = {
         assigneeName: 'Ravi Kumar',
         subtaskTitle: 'Machining, setup approval and first-piece clearance',
         deadlineIst: '12 Sep 2026, 6:00 PM',
-        hours: 20,
+        minutes: 20 * 60,
       },
     ],
     dueToday: [
@@ -97,7 +97,7 @@ export const SAMPLES: Record<TemplateKind, TemplatePayload> = {
         assigneeName: 'Anita Sharma',
         subtaskTitle: 'Final inspection and inspection report',
         deadlineIst: '13 Sep 2026, 6:00 PM',
-        hours: 8,
+        minutes: 8 * 60,
       },
     ],
     openProblems: [
@@ -107,7 +107,7 @@ export const SAMPLES: Record<TemplateKind, TemplatePayload> = {
         assigneeName: 'Bala Krishnan',
         subtaskTitle: 'Receive, inspect and issue material to shop floor',
         deadlineIst: '12 Sep 2026, 6:00 PM',
-        hours: 26,
+        minutes: 26 * 60,
         severity: 'BLOCKER',
         description: 'Material short by 12 bars, supplier unconfirmed.',
       },

@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { JobReport } from '@/lib/services/reports';
+import { formatDuration } from '@/lib/utils/duration';
 import { formatIST } from '@/lib/utils/time';
 
 /**
@@ -114,7 +115,7 @@ export function JobReportView({ report }: { report: JobReport }) {
                       subtask.delayHours > 0 && 'text-state-overdue font-semibold',
                     )}
                   >
-                    {subtask.actualCompletion ? `${subtask.delayHours} h` : '—'}
+                    {subtask.actualCompletion ? formatDuration(subtask.delayHours * 60) : '—'}
                   </td>
                 </tr>
               ))}

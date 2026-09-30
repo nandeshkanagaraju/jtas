@@ -67,6 +67,52 @@ describe.each(TEMPLATE_KINDS)('%s', (kind) => {
   });
 });
 
+describe('a 15-minute lead', () => {
+  it('does not collapse to 0 hours in the subject or the body', async () => {
+    const sample = SAMPLES.SUBTASK_ASSIGNED;
+    if (sample.kind !== 'SUBTASK_ASSIGNED') throw new Error('expected the assignment sample');
+
+    const { subject, text } = await renderTemplate({
+      ...sample,
+      reminderLeadMinutes: 15,
+    });
+
+    expect(subject).toBe(
+      '[JTAS] New task: JGE-2026-0042 – Machining, setup approval and first-piece clearance',
+    );
+    expect(text).toContain('You will get a reminder 15 minutes before it is due.');
+    expect(text).not.toMatch(/0 hours/);
+
+    expect(text).toMatchInlineSnapshot(`
+      "You have a new task
+
+      Dear Ravi Kumar,
+
+      Machining, setup approval and first-piece clearance has been
+      assigned to you.
+
+      Job              JGE-2026-0042 — Spindle housing batch
+      Part / Drawing   SH-4410 / DRG-4410-B
+      Department       Production
+      Deadline         13 Sep 2026, 6:00 PM
+
+      You will get a reminder 15 minutes before it is due. If
+      anything stops you, open the task and choose Report problem
+      so the Managing Director can act on it.
+
+      Open the task http://localhost:3000/tasks/sub-demo-1
+
+      ----------------------------------------
+
+      JTAS — Jaraa Task & Accountability System
+      Jaraa Global Engineering Pvt Ltd. This is an automated
+      message; all times are India Standard Time.
+
+      Open the task: http://localhost:3000/tasks/sub-demo-1"
+    `);
+  });
+});
+
 describe('the whole set', () => {
   it('covers all eleven SDD 5.4 templates', () => {
     expect(TEMPLATE_KINDS).toHaveLength(11);

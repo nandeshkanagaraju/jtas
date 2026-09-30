@@ -7,6 +7,8 @@
  */
 import { Section, Text } from '@react-email/components';
 
+import { formatDuration } from '@/lib/utils/duration';
+
 import { ActionButton, COLORS, EmailLayout, FactTable, Heading, Paragraph } from './layout';
 import { subtaskLink } from './links';
 import type {
@@ -49,9 +51,9 @@ export function SubtaskAssignedEmail(payload: AssignedPayload) {
       <FactTable rows={subtaskFacts(payload)} />
 
       <Paragraph muted>
-        You will get a reminder {payload.reminderLeadHours} hours before it is due. If anything
-        stops you, open the task and choose <strong>Report problem</strong> so the Managing Director
-        can act on it.
+        You will get a reminder {formatDuration(payload.reminderLeadMinutes)} before it is due. If
+        anything stops you, open the task and choose <strong>Report problem</strong> so the Managing
+        Director can act on it.
       </Paragraph>
 
       <ActionButton href={subtaskLink(payload.subtaskId)} label="Open the task" />
@@ -61,8 +63,10 @@ export function SubtaskAssignedEmail(payload: AssignedPayload) {
 
 export function DeadlineReminderEmail(payload: ReminderPayload) {
   return (
-    <EmailLayout preview={`Due in ${payload.hoursLeft} h — ${payload.subtaskTitle}`}>
-      <Heading>Due in {payload.hoursLeft} hours</Heading>
+    <EmailLayout
+      preview={`Due in ${formatDuration(payload.minutesLeft)} — ${payload.subtaskTitle}`}
+    >
+      <Heading>Due in {formatDuration(payload.minutesLeft)}</Heading>
       <Paragraph>Dear {payload.assigneeName},</Paragraph>
       <Paragraph>
         Your task <strong>{payload.subtaskTitle}</strong> is due on{' '}
@@ -101,7 +105,9 @@ export function OverdueMemberEmail(payload: OverdueMemberPayload) {
         with the reason, so that the MD can act on it.
       </Paragraph>
 
-      <FactTable rows={[...subtaskFacts(payload), ['Delay', `${payload.delayHours} hours`]]} />
+      <FactTable
+        rows={[...subtaskFacts(payload), ['Delay', formatDuration(payload.delayMinutes)]]}
+      />
 
       <ActionButton href={subtaskLink(payload.subtaskId, 'complete')} label="Update task now" />
 

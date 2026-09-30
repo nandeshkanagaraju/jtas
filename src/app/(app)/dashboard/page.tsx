@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
 import { mdDashboard, parseRange } from '@/lib/services/analytics';
+import { formatDuration } from '@/lib/utils/duration';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 export const dynamic = 'force-dynamic';
@@ -47,7 +48,7 @@ export default async function DashboardPage({
               ? 'Nothing has been completed in this range yet.'
               : `${data.onTimeCompletionPercent}% of ${data.completedInRange} completed subtasks were on time` +
                 (data.averageDelayHours > 0
-                  ? `, averaging ${data.averageDelayHours} h late.`
+                  ? `, averaging ${formatDuration(data.averageDelayHours * 60)} late.`
                   : '.')}
           </p>
         </div>

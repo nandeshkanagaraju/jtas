@@ -10,7 +10,8 @@
 import type { Notification, Prisma } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
-import { formatIST, hoursBetween, istDateKey } from '@/lib/utils/time';
+import { displayMinutes } from '@/lib/utils/duration';
+import { formatIST, hoursBetween, istDateKey, minutesBetween } from '@/lib/utils/time';
 
 import type { DigestRow, TemplatePayload } from './templates/types';
 
@@ -72,7 +73,7 @@ export async function buildPayload(
       return {
         kind: 'SUBTASK_ASSIGNED',
         ...context,
-        reminderLeadHours: Math.round(context._raw.reminderLeadMinutes / 60),
+        reminderLeadMinutes: context._raw.reminderLeadMinutes,
       };
     }
 
@@ -82,7 +83,7 @@ export async function buildPayload(
       return {
         kind: 'DEADLINE_REMINDER',
         ...context,
-        hoursLeft: Math.max(0, Math.round(hoursBetween(now, context._raw.deadline))),
+        minutesLeft: displayMinutes(Math.max(0, minutesBetween(now, context._raw.deadline))),
       };
     }
 
@@ -93,7 +94,7 @@ export async function buildPayload(
       return {
         kind: notification.type,
         ...context,
-        delayHours: Math.max(0, Math.round(hoursBetween(context._raw.deadline, now))),
+        delayMinutes: displayMinutes(Math.max(0, minutesBetween(context._raw.deadline, now))),
         escalationNumber: 0,
       };
     }
@@ -324,7 +325,7 @@ export async function buildDigestPayload(now: Date = new Date()): Promise<Templa
     assigneeName: row.assignee.name,
     subtaskTitle: row.title,
     deadlineIst: ist(row.deadline),
-    hours: Math.max(0, Math.round(hours)),
+    minutes: displayMinutes(Math.max(0, hours * 60)),
   });
 
   return {

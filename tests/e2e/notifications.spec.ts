@@ -162,7 +162,7 @@ test('a reminder fires once however many times the sweeper runs', async () => {
         m.Subject.includes(job.jobCode),
     );
     expect(reminderMails).toHaveLength(1);
-    expect(reminderMails[0].Subject).toContain('Due in 6 h');
+    expect(reminderMails[0].Subject).toContain('Due in 6 hours');
   } finally {
     await prisma.$disconnect();
   }

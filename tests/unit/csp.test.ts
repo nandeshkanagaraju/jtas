@@ -122,6 +122,10 @@ describe('buildContentSecurityPolicy', () => {
 
   it('adds nothing when Sentry is not configured', () => {
     delete process.env.NEXT_PUBLIC_SENTRY_DSN;
+    // Vitest loads .env, so a local bucket would otherwise sit on connect-src
+    // and this assertion would fail on any machine that has storage configured.
+    delete process.env.S3_ENDPOINT;
+    delete process.env.S3_PUBLIC_ENDPOINT;
 
     expect(directive(buildContentSecurityPolicy('n'), 'connect-src')).toBe("connect-src 'self'");
   });

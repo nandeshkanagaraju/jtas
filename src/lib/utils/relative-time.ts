@@ -6,36 +6,34 @@
  * the relative label carries the urgency and the absolute time stays alongside
  * it for precision.
  */
+import { formatDuration } from './duration';
 import { hoursBetween } from './time';
 
 export type DeadlineTone = 'overdue' | 'urgent' | 'soon' | 'normal';
 
 export interface DeadlineLabel {
-  /** e.g. "in 3 days", "in 5 h", "2 days late". */
+  /** e.g. "in 3 days", "in 5 hours", "2 days late". */
   text: string;
   tone: DeadlineTone;
   overdue: boolean;
 }
 
-/** Rounds to the largest sensible unit — nobody needs "in 51 hours". */
+/**
+ * Under two weeks this is `formatDuration`. Past that, weeks and months,
+ * because "in 51 hours" is useful and "in 4 months" is more useful than
+ * "in 128 days".
+ */
 function describe(hours: number): string {
-  const absolute = Math.abs(hours);
+  const minutes = Math.abs(hours) * 60;
+  const days = Math.round(minutes / (24 * 60));
 
-  if (absolute < 1) {
-    const minutes = Math.max(1, Math.round(absolute * 60));
-    return `${minutes} min`;
+  if (days >= 14) {
+    const weeks = Math.round(days / 7);
+    if (weeks < 9) return `${weeks} weeks`;
+    return `${Math.round(days / 30)} months`;
   }
-  if (absolute < 48) {
-    return `${Math.round(absolute)} h`;
-  }
 
-  const days = Math.round(absolute / 24);
-  if (days < 14) return `${days} days`;
-
-  const weeks = Math.round(days / 7);
-  if (weeks < 9) return `${weeks} weeks`;
-
-  return `${Math.round(days / 30)} months`;
+  return formatDuration(minutes);
 }
 
 /**

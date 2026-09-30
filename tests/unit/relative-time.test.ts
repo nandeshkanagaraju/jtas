@@ -7,12 +7,12 @@ const at = (offsetHours: number) => new Date(NOW.getTime() + offsetHours * 3_600
 
 describe('deadlineLabel', () => {
   it('counts minutes under an hour', () => {
-    expect(deadlineLabel(at(0.5), NOW)).toMatchObject({ text: 'in 30 min', tone: 'urgent' });
+    expect(deadlineLabel(at(0.5), NOW)).toMatchObject({ text: 'in 30 minutes', tone: 'urgent' });
   });
 
   it('counts hours up to two days', () => {
-    expect(deadlineLabel(at(5), NOW).text).toBe('in 5 h');
-    expect(deadlineLabel(at(47), NOW).text).toBe('in 47 h');
+    expect(deadlineLabel(at(5), NOW).text).toBe('in 5 hours');
+    expect(deadlineLabel(at(47), NOW).text).toBe('in 47 hours');
   });
 
   it('switches to days, then weeks, then months', () => {
@@ -25,7 +25,7 @@ describe('deadlineLabel', () => {
     const label = deadlineLabel(at(-30), NOW);
     expect(label.overdue).toBe(true);
     expect(label.tone).toBe('overdue');
-    expect(label.text).toBe('30 h late');
+    expect(label.text).toBe('30 hours late');
     expect(label.text).not.toContain('-');
   });
 
@@ -38,7 +38,7 @@ describe('deadlineLabel', () => {
 
   it('never reports "0 min"', () => {
     // A deadline one second away still reads as a minute, not as nothing.
-    expect(deadlineLabel(new Date(NOW.getTime() + 1_000), NOW).text).toBe('in 1 min');
+    expect(deadlineLabel(new Date(NOW.getTime() + 1_000), NOW).text).toBe('in 1 minute');
   });
 });
 
@@ -59,7 +59,7 @@ describe('completionLabel', () => {
   it('calls finished-after-the-deadline late, however long ago it was', () => {
     const label = completionLabel(deadline, new Date('2026-09-15T18:00:00Z'));
 
-    expect(label.text).toBe('finished 30 h late');
+    expect(label.text).toBe('finished 30 hours late');
     expect(label.overdue).toBe(true);
     expect(label.tone).toBe('overdue');
   });

@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils/duration';
 import type { AttentionProblem, AttentionSubtask } from '@/lib/services/analytics';
 
 /**
@@ -19,11 +20,8 @@ const SEVERITY_TONE: Record<string, string> = {
   LOW: 'bg-muted text-muted-foreground',
 };
 
-/** "3 h" under a day, "2 d" beyond it — an exact hour count stops meaning anything. */
 function age(hours: number): string {
-  if (hours < 1) return '<1 h';
-  if (hours < 48) return `${Math.round(hours)} h`;
-  return `${Math.round(hours / 24)} d`;
+  return formatDuration(hours * 60);
 }
 
 export function AttentionLists({

@@ -8,6 +8,8 @@
  */
 import { plainTextSelectors, render } from '@react-email/render';
 
+import { formatDuration } from '@/lib/utils/duration';
+
 import { jobLink, problemInboxLink, subtaskLink } from './links';
 import {
   ApprovalRequiredEmail,
@@ -32,7 +34,7 @@ function subjectFor(payload: TemplatePayload): string {
     case 'SUBTASK_ASSIGNED':
       return `[JTAS] New task: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'DEADLINE_REMINDER':
-      return `[JTAS] Due in ${payload.hoursLeft} h: ${payload.jobCode} – ${payload.subtaskTitle}`;
+      return `[JTAS] Due in ${formatDuration(payload.minutesLeft)}: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'OVERDUE_MEMBER':
       return `[JTAS] Please complete: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'OVERDUE_MD':

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils/duration';
 import type { DepartmentScorecard } from '@/lib/services/analytics';
 
 /**
@@ -159,7 +160,7 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
                 {row.onTimePercent === null ? '—' : `${row.onTimePercent}%`}
               </td>
               <td className="tabular px-3 py-2.5 text-right">
-                {row.subtasksCompleted === 0 ? '—' : `${row.averageDelayHours} h`}
+                {row.subtasksCompleted === 0 ? '—' : formatDuration(row.averageDelayHours * 60)}
               </td>
               <td className="tabular px-3 py-2.5 text-right">{row.subtasksCompleted}</td>
               <td className="tabular px-3 py-2.5 text-right">{row.currentOpen}</td>

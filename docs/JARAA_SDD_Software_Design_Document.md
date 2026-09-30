@@ -648,36 +648,60 @@ function called by every handler, so the rules cannot drift between screens.
 ## 7. Frontend design
 
 ### 7.1 Route map
+
+There is one signed-in route group. Who may open a page is the policy in §6.3, not a
+folder name.
+
 ```
 /login
 /change-password
-/(md)/dashboard                 KPI tiles, at-risk jobs, overdue table, problem inbox preview
-/(md)/jobs                      list + filters + search
-/(md)/jobs/new                  wizard: details → subtasks (template prefill) → review → publish
-/(md)/jobs/[id]                 header + subtask timeline + activity feed
-/(md)/problems                  problem inbox with action drawer
-/(md)/reports                   scorecards, exports
-/(admin)/users
-/(admin)/settings               reminders, working hours, holidays, mail
-/(admin)/audit
-/(member)/my-tasks              Overdue | Today | This week | Blocked | Done
-/(member)/tasks/[id]            subtask detail: status buttons, problem box, comments, files
+/dashboard                      MD, deputy. §7.6
+/jobs                           list + filters + search
+/jobs/new                       wizard: details → subtasks (template prefill) → review → publish
+/jobs/[id]                      header + subtask timeline + activity feed
+/jobs/[id]/plan                 edit the plan before publish
+/problems                       MD, deputy. problem inbox with action drawer
+/reports                        MD, deputy. scorecards, exports
+/my-tasks                       what is late today. §7.2
+/tasks/[id]                     one subtask: status, problem, comments, files
 /notifications
+/users
+/settings                       reminders, working hours, mail
+/settings/holidays
+/settings/templates
+/audit                          MD, admin. deputy excluded
+/offline
 ```
 
-### 7.2 Key interaction: the member's subtask screen
-The whole point is speed. One screen, above the fold:
+### 7.2 Key interaction: My tasks
 
-- Job code, part number, drawing link, quantity.
-- Deadline with a live countdown; red when past.
-- Three large buttons: **Start work** · **Mark completed** · **Report problem**.
-- "Report problem" expands inline: severity chips (Low/Medium/High/Blocker) and a
-  textarea with a live character counter and the 20-character minimum shown.
-- Below: predecessor status ("Waiting on Store — Material issue, due 13 Sep 4 PM"),
-  comments, attachments.
+The member opens this from a mail, on a phone, and has about ten seconds. The question
+is what is late today. There is no page title and no tab strip.
 
-Deep links in email (`/tasks/{id}?action=complete`) open this screen with the relevant
-control focused, so the flow from mail to update is two taps.
+**Overdue** and **Due today** stay open. **This week**, **Blocked**, **With the MD**,
+**Later**, and **Done** are a heading and a count until opened. An empty open group
+says "Nothing is overdue." or "Nothing is due today."
+
+A row leads with the job code (links to `/tasks/[id]`) and a state word beside it:
+Overdue, Due today, Blocked, Problem reported, With the MD, In progress, Not started,
+Done. The part number follows when the job has one, then the operation, then a
+countdown (`formatElapsed`, so a fortnight reads "2 weeks late") and the clock time
+in IST. An overdue row has a late bar on the left. A blocked row has no buttons,
+only "Waiting on {department} — {title}, due {d MMM}."
+
+Actions are on the row, the same size as each other. **Start work** when it has not
+been started. **Mark completed**, or **Send for approval** when the step requires it.
+**Report problem** is not styled as a warning. Opening it replaces the buttons:
+severity chips Low, Medium, High, Blocker, and a note of at least 20 characters.
+The submit button says **Report problem**, the same words as the button that opened
+the form.
+
+From the `xl` breakpoint the text and the actions sit on one line. Below that, the
+phone layout, so the first overdue job's buttons are on screen on a short phone.
+
+`/tasks/[id]` is the detail, unchanged: comments, attachments, and the mail deep
+link (`/tasks/{id}?action=complete`) that focuses the matching control. The list is
+where the work is finished; the detail is where the record is.
 
 ### 7.3 MD job detail timeline
 Horizontal band per department in `sequenceOrder`, coloured by state
@@ -687,7 +711,14 @@ deadline and assignee. Clicking a band opens a drawer with history and MD action
 ### 7.4 Design system
 Neutral slate base; semantic colours only for state (`emerald` complete, `amber`
 problem/at-risk, `rose` overdue, `sky` in progress). Inter for UI, tabular numerals
-for deadlines. Minimum 44 px touch targets. Dark mode not required in Phase 1.
+for deadlines and job codes. Minimum 44 px touch targets. Dark mode not required in
+Phase 1.
+
+`/my-tasks` and `/dashboard` do not use those state colours. On those two routes the
+type is ink `#1c2430` on paper `#f4f6f8`, rules are `#d5dbe3`, late is `#9f1239`,
+due is `#92400e`, and held or done is `#0f5132`. State is a word in that colour, not
+a tinted chip and not colour alone. The global tokens are left as they are; the next
+screen does not inherit the hex values unless it is one of these two.
 
 ### 7.5 Deadline and reminder entry
 A deadline is a date plus a time, both in IST. The time field accepts any minute
@@ -699,7 +730,38 @@ with `fromISTInput` and stores UTC. Display uses `formatIST`, so a time typed as
 9:07 PM IST is stored as 15:37 UTC and shown again as 9:07 PM IST.
 
 Reminder lead is entered in whole minutes, from 1 minute up, and stored as
-`reminderLeadMinutes`. The number shown in the field is that stored value.
+`reminderLeadMinutes`. The number shown in the field is that stored value. Saying
+that lead back to the user uses `formatDuration`, which keeps every unit, so a
+15-minute lead cannot become "0 hours".
+
+### 7.6 MD dashboard
+
+The MD opens this to answer what needs him today. Two lists, in this order, and
+nothing above them:
+
+1. **Problems** someone has raised. Job code, the severity word (BLOCKER, HIGH,
+   MEDIUM, LOW), "{department}, waiting {elapsed}", and the description. Each row
+   opens that problem.
+2. **Deadlines that slipped.** Job code, "{elapsed} late", the operation, and
+   "{department}, chased {n} times". Each row opens the job.
+
+The two sit side by side only when both have rows. If one is empty, that side is a
+full-width sentence ("Nothing is waiting on you." / "No deadline has slipped.")
+rather than a blank column. Each list stops at eight; the rest is a link.
+
+Under a rule, in a lighter weight, one line of counts (still links), the on-time
+sentence for the selected month, and the presets This month, Last month, Last 90
+days, This year. The presets rewrite those numbers. They do not filter the two
+lists, and they do not move the chart.
+
+**Jobs at risk** is next: a job heading for trouble, including one already delayed,
+named with the department holding it. **Last 30 days** is last, a stacked bar of
+completed on time against completed late, because it is the only block he will not
+act on.
+
+Elapsed spans on this page, on My tasks, and in the delay columns of reports use
+`formatElapsed` (§5.4): minutes under an hour, hours and minutes under six hours,
+then one unit — hours, days, weeks, and months of four weeks.
 
 ---
 

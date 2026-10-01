@@ -17,9 +17,7 @@ Not copied, on purpose: receipts launches Amazon Linux from user-data and has no
 
 ## Shape
 
-Pick **t3.medium** (2 vCPU, 4 GB).
-
-`t3.small` (2 vCPU, 2 GB) is the smallest box that can *run* the stack. `scripts/deploy.sh` also *builds* Next.js on the box, and that build plus Docker, Postgres and the OS does not fit in 2 GB. Receipts can stay on `t3.small` because its image is built elsewhere and only pulled. Do not use `t3.micro`.
+Use **t3.small** (2 vCPU, 2 GB). The Next.js image is built on the Mac and pulled, the same way receipts runs. Do not build it on this box, and do not use `t3.micro`. `c7i-flex.large` would also launch, at about $62 a month for the instance alone, which spends the credits at the same time the Free Plan ends.
 
 On-demand Linux prices in ap-south-1, list price, 730 hours:
 
@@ -28,7 +26,7 @@ On-demand Linux prices in ap-south-1, list price, 730 hours:
 | t3.small | $0.0224 | $16.35 | about $19 |
 | t3.medium | $0.0448 | $32.70 | about $35.50 |
 
-gp3 in Mumbai is $0.0912 per GB-month, so 30 GB is about $2.74. A public IPv4 address is about $0.005 an hour (about $3.60 a month) whether or not it is an Elastic IP. The medium box, the disk and the address land near $39 before the receipts instance, which is already about $11–21. A $40 budget alert will fire. That is the point of the alert.
+gp3 in Mumbai is $0.0912 per GB-month, so 30 GB is about $2.74. A public IPv4 address is about $0.005 an hour (about $3.60 a month) whether or not it is an Elastic IP. The small box, the disk and the address are about $23 before the receipts instance.
 
 ## 1. Budget alert, before the instance
 
@@ -77,7 +75,7 @@ Stay in **ap-south-1**.
 2. **EC2 → Launch instance**.
 3. Name: `jtas`.
 4. AMI: **Ubuntu Server 24.04 LTS**. Architecture **64-bit (x86)**. Not the ARM image.
-5. Instance type: **t3.medium**.
+5. Instance type: **t3.small**.
 6. Key pair: `jtas`.
 7. Network: the default VPC is fine. **Auto-assign public IP: Disable.** The Elastic IP from the next section is the address that matters. A second public address is another $0.005 an hour and it is the one that would change on stop/start.
 8. **Create security group** named `jtas`:
@@ -170,14 +168,54 @@ docker compose -f docker-compose.prod.yml --env-file .env run --rm --no-deps \
 
 That prints ten one-time passwords once. It creates departments and those accounts, and no jobs. Do not run `pnpm seed:demo` or `pnpm seed:showcase`. A later seed without the flag still refuses the Gmail addresses.
 
-## 7. First boot, and every later deploy
+## 7. Release
+
+The app image is built on the Mac and stored as a private package at `ghcr.io/nandeshkanagaraju/jtas`. The server pulls that image. It still builds the backup image itself. Do this in order, every release.
+
+### On the Mac, after `main` has the commit you want to run
+
+Create a GitHub token with **write:packages** and keep it on the Mac. Do not put it in the server `.env` or in the image. Log in once:
+
+```bash
+docker login ghcr.io -u nandeshkanagaraju
+```
+
+From a clean checkout of that commit:
+
+```bash
+SHA="$(git rev-parse --short HEAD)"
+docker buildx build --platform linux/amd64 \
+  -t "ghcr.io/nandeshkanagaraju/jtas:${SHA}" \
+  --push .
+docker buildx imagetools inspect "ghcr.io/nandeshkanagaraju/jtas:${SHA}"
+```
+
+The inspect line prints the manifest digest, `sha256:…`. The first push creates the package. In GitHub, open the package and leave the visibility **Private**.
+
+`NEXT_PUBLIC_SENTRY_DSN` is baked in at build time. Pass `--build-arg NEXT_PUBLIC_SENTRY_DSN=…` on that command when you want client-side Sentry. The server `SENTRY_DSN` is read at runtime and is not in the image.
+
+### On the server, before `./scripts/deploy.sh`
+
+Create a second GitHub token with only **read:packages**. Put it in `/opt/jtas/.env`:
+
+```bash
+GHCR_USER=nandeshkanagaraju
+GHCR_PULL_TOKEN=the-read-only-token
+JTAS_IMAGE=ghcr.io/nandeshkanagaraju/jtas:THE_SHORT_SHA
+```
+
+`chmod 600 .env`. Compose does not pass `GHCR_PULL_TOKEN` into the app or the worker. `scripts/deploy.sh` uses it for `docker login` on the host, then pulls `JTAS_IMAGE`.
+
+### On the server, the deploy
 
 ```bash
 cd /opt/jtas
 ./scripts/deploy.sh
 ```
 
-It pulls `main`, builds, runs `prisma migrate deploy`, then recreates the app and the worker. Caddy, the database, Redis, MinIO and the backup sidecar come up with it. `restart: unless-stopped` is set on all of them, so a reboot brings the worker back.
+It pulls `main`, logs in to GHCR, pulls the app image, builds the backup image, runs `prisma migrate deploy`, then recreates the app and the worker. Caddy, the database, Redis, MinIO and the backup sidecar come up with it. `restart: unless-stopped` is set on all of them, so a reboot brings the worker back.
+
+The script writes the running image's registry digest to `.deploy/current-image`, and the one it replaced to `.deploy/previous-image`. Those files are gitignored.
 
 ## 8. Confirm the worker
 
@@ -228,7 +266,13 @@ Caddy's access log is in the `jtas-caddy-logs` volume at `/var/log/caddy/access.
 ./scripts/deploy.sh --rollback
 ```
 
-That puts the previous app image back and recreates the app and worker. It does not pull, build, or undo a migration. A bad migration is a restore from S3, not a rollback.
+That reads `.deploy/previous-image` and pulls that exact image, for example:
+
+```bash
+docker pull ghcr.io/nandeshkanagaraju/jtas@sha256:PASTE_THE_DIGEST_FROM_.deploy/previous-image
+```
+
+The script does the pull itself, then recreates the app and the worker with `JTAS_IMAGE` set to that digest for this run. It does not `git pull`, does not build, and does not run migrations. A bad migration is a restore from S3, not a rollback. There is no previous digest until the second release.
 
 ## 12. Swap in jtas.jaraaglobal.com later
 

@@ -1,8 +1,9 @@
 # Production topology — one EC2 instance in ap-south-1, x86, Ubuntu 24.04.
 #
-# No `platform:` pin. Every image here is multi-arch, so the host's Docker
-# pulls amd64 on this VM and arm64 on an Apple laptop. t3.micro (1 GB) is not
-# enough; see docs/DEPLOY.md.
+# No `platform:` pin on the base images; they are multi-arch. The app image is
+# not built here. A Mac builds it for linux/amd64 and pushes it to GHCR, and
+# this 2 GB t3.small only pulls JTAS_IMAGE. The backup image is still built
+# on the box. See docs/DEPLOY.md.
 #
 #   caddy   the only thing on the public internet; terminates TLS for
 #           <dashed-elastic-ip>.sslip.io
@@ -82,11 +83,7 @@ services:
       - app
 
   app:
-    image: jtas:${JTAS_VERSION:-latest}
-    build:
-      context: .
-      args:
-        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+    image: ${JTAS_IMAGE}
     restart: unless-stopped
     environment: *app-env
     # No `ports`: the app is reachable only through caddy.
@@ -99,7 +96,7 @@ services:
         condition: service_healthy
 
   worker:
-    image: jtas:${JTAS_VERSION:-latest}
+    image: ${JTAS_IMAGE}
     restart: unless-stopped
     environment: *app-env
     command: ['node_modules/.bin/tsx', '--tsconfig', 'tsconfig.worker.json', 'worker/index.ts']

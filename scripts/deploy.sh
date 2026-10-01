@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Deploy JTAS on the VM.
 #
-#   ./scripts/deploy.sh            pull, build, migrate, rolling restart
-#   ./scripts/deploy.sh --rollback previous image, no migration, no pull
+#   ./scripts/deploy.sh            pull the Mac-built image, build backup, migrate
+#   ./scripts/deploy.sh --rollback pull the previous GHCR digest, no migration
 #
 # Order matters. Migrations run *before* the new image serves traffic, and the
 # worker stops first: a schema change applied while the sweeper is mid-batch is
@@ -32,7 +32,7 @@ if grep -qE 'localhost:5432|JTAS_DOCKER_CONTEXT=colima|APP_BASE_URL="?http://loc
 fi
 
 missing=()
-for key in JTAS_DOMAIN ACME_EMAIL POSTGRES_PASSWORD JWT_SECRET REFRESH_SECRET MINIO_ROOT_PASSWORD BACKUP_BUCKET; do
+for key in JTAS_DOMAIN ACME_EMAIL POSTGRES_PASSWORD JWT_SECRET REFRESH_SECRET MINIO_ROOT_PASSWORD BACKUP_BUCKET GHCR_USER GHCR_PULL_TOKEN JTAS_IMAGE; do
   grep -qE "^${key}=.+" "$ENV_FILE" || missing+=("$key")
 done
 if (( ${#missing[@]} )); then
@@ -56,17 +56,64 @@ if [[ "$jwt" == "$refresh" || "$jwt" == change-me* || "$refresh" == change-me* ]
   exit 1
 fi
 
+# Registry digest of the app image currently running, if there is one.
+# Written to .deploy/ so --rollback can pull that exact image later.
+PREVIOUS_FILE=".deploy/previous-image"
+CURRENT_FILE=".deploy/current-image"
+mkdir -p .deploy
+
+is_digest_ref() {
+  [[ "$1" =~ ^ghcr\.io/nandeshkanagaraju/jtas@sha256:[0-9a-f]{64}$ ]]
+}
+
+ghcr_login() {
+  local user token
+  user="$(value_of GHCR_USER)"
+  token="$(value_of GHCR_PULL_TOKEN)"
+  printf '%s' "$token" | docker login ghcr.io -u "$user" --password-stdin >/dev/null
+}
+
+repo_digest_of_running_app() {
+  local cid image
+  cid="$($COMPOSE ps -aq app 2>/dev/null | head -n 1 || true)"
+  [[ -z "${cid:-}" ]] && return 0
+  image="$(docker inspect -f '{{.Image}}' "$cid" 2>/dev/null || true)"
+  [[ -z "${image:-}" ]] && return 0
+  docker image inspect -f '{{index .RepoDigests 0}}' "$image" 2>/dev/null || true
+}
+
 if $ROLLBACK; then
-  say "Rolling back to the previous image"
-  if ! docker image inspect jtas:previous >/dev/null 2>&1; then
-    echo "No jtas:previous image. Nothing to roll back to." >&2
+  if [[ ! -f "$PREVIOUS_FILE" ]]; then
+    echo "No ${PREVIOUS_FILE}. Deploy a second release before rolling back." >&2
     exit 1
   fi
-  docker tag jtas:previous jtas:latest
-  # Deliberately no migration and no git pull: rolling a migration back is a
+  prev="$(tr -d '[:space:]' < "$PREVIOUS_FILE")"
+  if ! is_digest_ref "$prev"; then
+    echo "Refusing rollback. ${PREVIOUS_FILE} is not a ghcr.io digest." >&2
+    exit 1
+  fi
+  say "Rolling back to ${prev}"
+  ghcr_login
+  docker pull "$prev"
+  export JTAS_IMAGE="$prev"
+  if [[ -f "$CURRENT_FILE" ]]; then
+    cur="$(tr -d '[:space:]' < "$CURRENT_FILE")"
+    if [[ "$cur" != "$prev" ]] && is_digest_ref "$cur"; then
+      printf '%s\n' "$cur" > "$PREVIOUS_FILE"
+    fi
+  fi
+  printf '%s\n' "$prev" > "$CURRENT_FILE"
+  # Deliberately no git pull and no migration: rolling a migration back is a
   # restore, not a deploy. See docs/DEPLOY.md.
   echo "Note: the schema is NOT rolled back. If the bad release migrated, restore instead."
 else
+  image="$(value_of JTAS_IMAGE)"
+  if [[ "$image" != ghcr.io/nandeshkanagaraju/jtas:* && "$image" != ghcr.io/nandeshkanagaraju/jtas@sha256:* ]]; then
+    echo "JTAS_IMAGE must be ghcr.io/nandeshkanagaraju/jtas:<tag> or @sha256:<digest>." >&2
+    exit 1
+  fi
+  export JTAS_IMAGE="$image"
+
   say "Pulling origin/main"
   if [[ -n "$(git status --porcelain)" ]]; then
     echo "Working tree is dirty. Commit or stash on the server before deploying." >&2
@@ -74,14 +121,30 @@ else
   fi
   git pull --ff-only origin main
 
-  say "Keeping the current image as jtas:previous"
-  docker image inspect jtas:latest >/dev/null 2>&1 && docker tag jtas:latest jtas:previous || true
+  running="$(repo_digest_of_running_app || true)"
+  if [[ -n "${running:-}" ]]; then
+    if ! is_digest_ref "$running"; then
+      echo "The running app image has no GHCR digest (${running}). Refusing to replace it." >&2
+      exit 1
+    fi
+    printf '%s\n' "$running" > "$PREVIOUS_FILE"
+    say "Previous image is ${running}"
+  fi
 
-  say "Pulling base images"
-  $COMPOSE pull caddy db redis minio minio-init
+  say "Logging in to GHCR and pulling the app image"
+  ghcr_login
+  $COMPOSE pull caddy db redis minio minio-init app
 
-  say "Building app and backup"
-  $COMPOSE build app backup
+  pulled="$(docker image inspect "$image" -f '{{index .RepoDigests 0}}' 2>/dev/null || true)"
+  if ! is_digest_ref "$pulled"; then
+    echo "Pulled image has no GHCR digest. Refusing to continue." >&2
+    exit 1
+  fi
+  printf '%s\n' "$pulled" > "$CURRENT_FILE"
+  say "App image is ${pulled}"
+
+  say "Building the backup image"
+  $COMPOSE build backup
 fi
 
 say "Starting database, Redis and MinIO"
@@ -93,8 +156,12 @@ say "Stopping the worker"
 # to 30 s for its in-flight batch on SIGTERM.
 $COMPOSE stop worker || true
 
-say "Applying migrations"
-$COMPOSE run --rm --no-deps app node_modules/.bin/prisma migrate deploy
+if $ROLLBACK; then
+  say "Skipping migrations"
+else
+  say "Applying migrations"
+  $COMPOSE run --rm --no-deps app node_modules/.bin/prisma migrate deploy
+fi
 
 say "Restarting the app"
 # --no-deps so the database is not restarted underneath it.
@@ -124,4 +191,9 @@ domain="$(value_of JTAS_DOMAIN)"
 echo
 echo "Health:   curl -s https://${domain}/api/health"
 echo "Worker:   look for schedulerHeartbeatAgeSeconds as a small number, not null"
-echo "Rollback: ./scripts/deploy.sh --rollback"
+if [[ -f "$PREVIOUS_FILE" ]]; then
+  echo "Rollback: ./scripts/deploy.sh --rollback"
+  echo "          pulls $(tr -d '[:space:]' < "$PREVIOUS_FILE")"
+else
+  echo "Rollback: unavailable until this box has a previous GHCR digest"
+fi

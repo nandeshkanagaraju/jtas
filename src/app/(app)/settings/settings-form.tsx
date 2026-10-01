@@ -177,7 +177,7 @@ function Section({
   if (rows.length === 0) return null;
 
   return (
-    <section className="rounded-lg border" aria-labelledby={`group-${group.id}`}>
+    <section className="bg-card rounded-lg border" aria-labelledby={`group-${group.id}`}>
       <header className="border-b px-4 py-3">
         <h2 id={`group-${group.id}`} className="text-sm font-semibold">
           {group.title}

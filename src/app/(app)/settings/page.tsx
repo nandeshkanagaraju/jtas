@@ -38,7 +38,7 @@ export default async function SettingsPage() {
       <SettingsNav current="general" />
 
       {readOnly ? (
-        <p className="text-muted-foreground rounded-lg border p-4 text-sm">
+        <p className="text-muted-foreground bg-card rounded-lg border p-4 text-sm">
           You can see these values but not change them.
         </p>
       ) : (

@@ -1,20 +1,26 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Mono, Outfit, Syne } from 'next/font/google';
+import { Archivo, IBM_Plex_Mono, Instrument_Sans } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
 
 import './globals.css';
 
-const outfit = Outfit({
+/*
+ * Two grotesques of different proportions rather than a display face with
+ * personality of its own: Instrument Sans is narrow and quiet enough to carry
+ * 14px body text in dense tables, Archivo is wider and sturdier, so a heading
+ * reads as a heading without needing extra size or weight.
+ */
+const instrument = Instrument_Sans({
   subsets: ['latin'],
-  variable: '--font-outfit',
+  variable: '--font-instrument',
   display: 'swap',
 });
 
-const syne = Syne({
+const archivo = Archivo({
   subsets: ['latin'],
   weight: ['500', '600', '700'],
-  variable: '--font-syne',
+  variable: '--font-archivo',
   display: 'swap',
 });
 
@@ -51,14 +57,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   // The shop-floor UI must remain zoomable for readability.
   maximumScale: 5,
-  themeColor: '#0f172a',
+  themeColor: '#f5f4ef',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${outfit.variable} ${syne.variable} ${plex.variable} font-sans antialiased`}
+        className={`${instrument.variable} ${archivo.variable} ${plex.variable} font-sans antialiased`}
       >
         {children}
         <ServiceWorkerRegistration />

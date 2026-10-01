@@ -1,7 +1,6 @@
 import type { Role } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 export const ROLE_LABELS: Record<Role, string> = {
   MD: 'Managing Director',
@@ -21,6 +20,10 @@ export function RoleBadge({ role }: { role: Role }) {
 /**
  * Status at a glance. A locked account reads differently from a deactivated one
  * — the first resolves itself in fifteen minutes, the second needs a decision.
+ *
+ * Active is the ordinary case and stays quiet: in a list where every row is a
+ * working account, a column of saturated green says nothing. Colour is kept
+ * for the three states that need somebody to do something.
  */
 export function StatusBadge({
   isActive,
@@ -32,25 +35,17 @@ export function StatusBadge({
   mustChangePassword: boolean;
 }) {
   if (!isActive) {
-    return (
-      <Badge variant="outline" className="text-muted-foreground">
-        Deactivated
-      </Badge>
-    );
+    return <Badge variant="neutral">Deactivated</Badge>;
   }
 
   const locked = lockedUntil !== null && new Date(lockedUntil) > new Date();
   if (locked) {
-    return <Badge className="bg-state-overdue hover:bg-state-overdue text-white">Locked</Badge>;
+    return <Badge variant="late">Locked</Badge>;
   }
 
   if (mustChangePassword) {
-    return (
-      <Badge className={cn('bg-state-problem text-white', 'hover:bg-state-problem')}>
-        Password pending
-      </Badge>
-    );
+    return <Badge variant="risk">Password pending</Badge>;
   }
 
-  return <Badge className="bg-state-complete hover:bg-state-complete text-white">Active</Badge>;
+  return <Badge variant="neutral">Active</Badge>;
 }

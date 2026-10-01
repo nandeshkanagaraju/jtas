@@ -19,13 +19,13 @@ import { completionLabel, deadlineLabel } from '@/lib/utils/relative-time';
 import { formatIST } from '@/lib/utils/time';
 
 const STATUS_WORD: Record<string, { label: string; className: string }> = {
-  DRAFT: { label: 'Draft', className: 'text-[#f3f5f8]' },
-  IN_PROGRESS: { label: 'In progress', className: 'text-[#f3f5f8]' },
-  AT_RISK: { label: 'At risk', className: 'text-[#fbbf24]' },
-  DELAYED: { label: 'Delayed', className: 'text-[#fb7185]' },
-  ON_HOLD: { label: 'On hold', className: 'text-[#f3f5f8]' },
-  COMPLETED: { label: 'Completed', className: 'text-[#0f5132]' },
-  CANCELLED: { label: 'Cancelled', className: 'text-[#f3f5f8]' },
+  DRAFT: { label: 'Draft', className: 'text-foreground' },
+  IN_PROGRESS: { label: 'In progress', className: 'text-foreground' },
+  AT_RISK: { label: 'At risk', className: 'text-risk' },
+  DELAYED: { label: 'Delayed', className: 'text-late' },
+  ON_HOLD: { label: 'On hold', className: 'text-foreground' },
+  COMPLETED: { label: 'Completed', className: 'text-ok' },
+  CANCELLED: { label: 'Cancelled', className: 'text-foreground' },
 };
 
 const PRIORITY_WORD: Record<string, string> = {
@@ -60,13 +60,13 @@ function Fact({
   machine?: boolean;
 }) {
   return (
-    <div className="flex items-baseline border-b border-dotted border-[#313743] py-2.5">
-      <dt className="bg-background w-28 shrink-0 pr-3 text-[11px] font-medium tracking-[0.16em] text-[#aeb6c3] uppercase sm:w-36">
+    <div className="border-border flex items-baseline border-b border-dotted py-2.5">
+      <dt className="bg-background text-muted-foreground w-28 shrink-0 pr-3 text-[11px] font-medium tracking-[0.16em] uppercase sm:w-36">
         {label}
       </dt>
       <dd
         className={cn(
-          'bg-background ml-auto min-w-0 pl-3 text-right text-base text-[#f3f5f8]',
+          'bg-background text-foreground ml-auto min-w-0 pl-3 text-right text-base',
           machine && 'font-mono',
         )}
       >
@@ -110,26 +110,26 @@ export function JobHeader({
   const when = job.completedAt
     ? completionLabel(deadline, new Date(job.completedAt))
     : deadlineLabel(deadline);
-  const status = STATUS_WORD[job.status] ?? { label: job.status, className: 'text-[#f3f5f8]' };
+  const status = STATUS_WORD[job.status] ?? { label: job.status, className: 'text-foreground' };
   const whenClass =
     when.tone === 'overdue'
-      ? 'text-[#fb7185]'
+      ? 'text-late'
       : when.tone === 'urgent' || when.tone === 'soon'
-        ? 'text-[#fbbf24]'
-        : 'text-[#f3f5f8]';
+        ? 'text-risk'
+        : 'text-foreground';
 
   return (
     <header>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="font-mono text-xl font-medium tracking-tight text-[#f3f5f8]">
+          <p className="text-foreground font-mono text-xl font-medium tracking-tight">
             {job.jobCode}
           </p>
-          <h1 className="text-xl font-semibold text-[#f3f5f8]">{job.title}</h1>
+          <h1 className="text-foreground text-xl font-semibold">{job.title}</h1>
           {permissions.viewAudit ? (
             <Link
               href={`/audit?job=${job.id}`}
-              className="inline-flex min-h-11 items-center gap-1 text-sm text-[#f3f5f8] underline decoration-[#313743] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
+              className="text-foreground decoration-border focus-visible:outline-ring inline-flex min-h-11 items-center gap-1 text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               <ScrollText className="size-3.5" />
               Full history
@@ -190,8 +190,8 @@ export function JobHeader({
           label="Deadline"
           value={
             <>
-              <span className="font-mono">{formatIST(deadline)}</span>{' '}
-              <span className={whenClass}>{when.text}</span>
+              <span className="font-mono">{formatIST(deadline)}</span>
+              <span className={cn('ml-2', whenClass)}>{when.text}</span>
             </>
           }
         />
@@ -203,12 +203,12 @@ export function JobHeader({
       </dl>
 
       {job.description ? (
-        <p className="mt-4 text-base whitespace-pre-wrap text-[#f3f5f8]">{job.description}</p>
+        <p className="text-foreground mt-4 text-base whitespace-pre-wrap">{job.description}</p>
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-6">
         <JobProgress progress={job.progress} />
-        <p className="text-sm text-[#f3f5f8]">
+        <p className="text-foreground text-sm">
           Created by {job.createdBy.name}{' '}
           <span className="font-mono">{formatIST(new Date(job.createdAt))}</span>
         </p>

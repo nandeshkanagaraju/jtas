@@ -3,6 +3,7 @@
 import { Ban, CircleAlert, Lock, TriangleAlert } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { tone, type Tone } from '@/lib/ui/tone';
 import type { SubtaskDto } from '@/lib/api/subtasks-client';
 import { cn } from '@/lib/utils';
 import { deadlineLabel } from '@/lib/utils/relative-time';
@@ -16,40 +17,29 @@ import { formatIST } from '@/lib/utils/time';
  * because a subtask is overdue *and* something else (improvement I-08), and the
  * MD needs both facts.
  */
-const STATUS_STYLES: Record<string, { label: string; band: string; badge: string }> = {
-  PENDING: { label: 'Pending', band: 'bg-muted', badge: 'bg-muted text-muted-foreground' },
-  BLOCKED: {
-    label: 'Blocked',
-    band: 'bg-muted',
-    badge: 'bg-muted text-muted-foreground border border-border',
-  },
-  IN_PROGRESS: {
-    label: 'In progress',
-    band: 'bg-state-progress',
-    badge: 'bg-state-progress text-white',
-  },
-  PROBLEM: { label: 'Problem', band: 'bg-state-problem', badge: 'bg-state-problem text-white' },
-  AWAITING_APPROVAL: {
-    label: 'Awaiting approval',
-    band: 'bg-state-problem',
-    badge: 'bg-state-problem text-white',
-  },
-  COMPLETED: {
-    label: 'Completed',
-    band: 'bg-state-complete',
-    badge: 'bg-state-complete text-white',
-  },
-  ON_HOLD: { label: 'On hold', band: 'bg-muted', badge: 'bg-muted text-foreground' },
-  CANCELLED: {
-    label: 'Cancelled',
-    band: 'bg-transparent',
-    badge: 'bg-transparent text-muted-foreground border border-border',
-  },
+/**
+ * The band down a row's leading edge and the badge at its far end are the same
+ * tone, resolved through lib/ui/tone so a completed subtask here is the green a
+ * completed job is on the jobs list.
+ */
+const STATUS_STYLES: Record<string, { label: string; tone: Tone }> = {
+  PENDING: { label: 'Pending', tone: 'neutral' },
+  BLOCKED: { label: 'Blocked', tone: 'neutral' },
+  IN_PROGRESS: { label: 'In progress', tone: 'info' },
+  PROBLEM: { label: 'Problem', tone: 'late' },
+  AWAITING_APPROVAL: { label: 'Awaiting approval', tone: 'risk' },
+  COMPLETED: { label: 'Completed', tone: 'ok' },
+  ON_HOLD: { label: 'On hold', tone: 'neutral' },
+  CANCELLED: { label: 'Cancelled', tone: 'neutral' },
 };
 
 export function SubtaskStatusBadge({ status }: { status: string }) {
   const style = STATUS_STYLES[status] ?? STATUS_STYLES.PENDING;
-  return <Badge className={cn('whitespace-nowrap', style.badge)}>{style.label}</Badge>;
+  return (
+    <Badge variant={style.tone} className="whitespace-nowrap">
+      {style.label}
+    </Badge>
+  );
 }
 
 /**
@@ -88,7 +78,7 @@ export function SubtaskTimeline({
               onClick={() => onSelect(subtask)}
               aria-label={`Open ${subtask.title}`}
               className={cn(
-                'flex w-full items-stretch gap-3 rounded-lg border text-left transition-colors',
+                'bg-card flex w-full items-stretch gap-3 rounded-lg border text-left transition-colors',
                 'hover:bg-accent/50 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
                 isSelected && 'border-primary bg-accent/40',
                 subtask.status === 'CANCELLED' && 'opacity-60',
@@ -99,7 +89,7 @@ export function SubtaskTimeline({
                 aria-hidden
                 className={cn(
                   'w-1.5 shrink-0 rounded-l-lg',
-                  subtask.isOverdue ? 'bg-state-overdue' : style.band,
+                  subtask.isOverdue ? 'bg-late' : tone(style.tone).bar,
                 )}
               />
 
@@ -120,7 +110,7 @@ export function SubtaskTimeline({
                     something is stuck without opening anything.
                   */}
                   {subtask.openProblem ? (
-                    <span className="text-state-problem flex items-start gap-1 text-xs">
+                    <span className="text-risk flex items-start gap-1 text-xs">
                       <TriangleAlert className="mt-0.5 size-3 shrink-0" />
                       <span className="line-clamp-1">{subtask.openProblem.description}</span>
                     </span>
@@ -155,7 +145,7 @@ export function SubtaskTimeline({
                   </span>
 
                   {subtask.isOverdue ? (
-                    <CircleAlert className="text-state-overdue size-4" aria-label="Overdue" />
+                    <CircleAlert className="text-late size-4" aria-label="Overdue" />
                   ) : null}
                   {subtask.status === 'CANCELLED' ? (
                     <Ban className="text-muted-foreground size-4" />

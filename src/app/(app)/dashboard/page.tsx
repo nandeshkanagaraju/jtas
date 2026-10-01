@@ -1,22 +1,17 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { forbidden } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { AtRiskTable } from '@/components/dashboard/at-risk-table';
-import { AttentionLists } from '@/components/dashboard/attention-lists';
-import { KpiTiles } from '@/components/dashboard/kpi-tiles';
+import { ProblemList, SlippedDeadlines } from '@/components/dashboard/attention-lists';
 import { OnTimeTrend } from '@/components/dashboard/on-time-trend';
+import { PriorityCallout } from '@/components/dashboard/priority-callout';
 import { RangePicker } from '@/components/dashboard/range-picker';
+import { SummaryStrip } from '@/components/dashboard/summary-strip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
-import {
-  mdDashboard,
-  parseRange,
-  type AttentionProblem,
-  type AttentionSubtask,
-} from '@/lib/services/analytics';
+import { mdDashboard, parseRange } from '@/lib/services/analytics';
 import { formatElapsed } from '@/lib/utils/duration';
 import { formatIST } from '@/lib/utils/time';
 
@@ -32,6 +27,12 @@ export const dynamic = 'force-dynamic';
  *
  * The whole payload is fetched in one service call on the server, so the page
  * arrives rendered rather than as six spinners that resolve one at a time.
+ *
+ * The page answers three questions, top to bottom, and nothing else:
+ *   1. how is the shop, right now        -> the summary strip
+ *   2. what do I do first                -> the priority callout
+ *   3. what is behind it                 -> slipped deadlines, problems, jobs
+ * The completion chart is last because it is a review, not a decision.
  */
 export default async function DashboardPage({
   searchParams,
@@ -45,6 +46,8 @@ export default async function DashboardPage({
   const range = parseRange({ from: params.from, to: params.to });
   const data = await mdDashboard(range);
 
+  // The wording of this sentence is load-bearing: the e2e spec reads it back
+  // to prove the screen agrees with lib/domain/metrics' definition of on time.
   const onTime =
     data.onTimeCompletionPercent === null
       ? 'Nothing has been completed in this range yet.'
@@ -53,85 +56,74 @@ export default async function DashboardPage({
           ? `, averaging ${formatElapsed(data.averageDelayHours * 60)} late.`
           : '.');
 
+  const { openProblems, overdueSubtasks } = data.kpis;
+
   return (
-    <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
         <div className="min-w-0">
-          <p className="font-mono text-[11px] tracking-[0.16em] text-[#aeb6c3] uppercase">
-            {formatIST(new Date(), 'EEE d MMM')}
-          </p>
-          <h1 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-[#f3f5f8]">
-            <Count n={data.kpis.openProblems} urgent={data.kpis.openProblems > 0} />{' '}
-            {data.kpis.openProblems === 1 ? 'problem' : 'problems'}
-            <span className="font-normal text-[#aeb6c3]">, </span>
-            <Count n={data.kpis.overdueSubtasks} urgent={data.kpis.overdueSubtasks > 0} />{' '}
-            {data.kpis.overdueSubtasks === 1 ? 'deadline slipped' : 'deadlines slipped'}
+          <p className="eyebrow">{formatIST(new Date(), 'EEEE d MMMM')}</p>
+          <h1 className="font-display mt-1.5 text-2xl font-semibold tracking-[-0.02em]">
+            Dashboard
           </h1>
-          <StartHere
-            problem={data.attention.problems[0]}
-            late={data.attention.overdueSubtasks[0]}
-          />
+          <p className="text-muted-foreground mt-1 max-w-prose text-sm">
+            {headline(openProblems, overdueSubtasks)}
+          </p>
         </div>
+        <Suspense fallback={<Skeleton className="h-14 w-72" />}>
+          <RangePicker from={data.range.from} to={data.range.to} plain />
+        </Suspense>
       </header>
-      <AttentionLists
-        problems={data.attention.problems}
-        overdueSubtasks={data.attention.overdueSubtasks}
-        openProblems={data.kpis.openProblems}
-        overdueTotal={data.kpis.overdueSubtasks}
+
+      <SummaryStrip kpis={data.kpis} />
+
+      <PriorityCallout
+        problem={data.attention.problems[0]}
+        late={data.attention.overdueSubtasks[0]}
       />
 
-      <div className="space-y-8 rounded-lg border border-[#313743] bg-[#1e222b] px-5 pt-2 pb-6">
-        <div className="space-y-4 pt-4">
-          <KpiTiles kpis={data.kpis} />
-          <p className="text-sm leading-6 text-[#aeb6c3]">{onTime}</p>
-          <div>
-            <Suspense fallback={<Skeleton className="h-11 w-64" />}>
-              <RangePicker from={data.range.from} to={data.range.to} plain />
-            </Suspense>
+      {/*
+        Slipped deadlines takes the wide column because it is the only block
+        that rewards comparing rows against each other. The two per-job queues
+        ride beside it and stack under it below `xl`. The completion chart sits
+        under the table rather than across the full width, so the wide column
+        keeps pace with the tall one instead of leaving a hole beside it.
+      */}
+      {/*
+        Two independent columns at `xl`, so neither leaves a hole when the
+        other runs longer. Below `xl` the left column is `display: contents`,
+        which promotes its panels into the outer flex row; the chart is ordered
+        last there so a phone reads the three decision queues before the review.
+      */}
+      <div className="flex flex-col gap-5 xl:grid xl:grid-cols-3 xl:items-start">
+        <div className="contents xl:col-span-2 xl:flex xl:min-w-0 xl:flex-col xl:gap-5">
+          <SlippedDeadlines subtasks={data.attention.overdueSubtasks} total={overdueSubtasks} />
+          <div className="order-last xl:order-none">
+            <OnTimeTrend trend={data.trend} summary={onTime} />
           </div>
         </div>
-        <AtRiskTable jobs={data.jobsAtRisk} total={data.kpis.atRiskJobs + data.kpis.delayedJobs} />
-        <OnTimeTrend trend={data.trend} />
+
+        <div className="flex min-w-0 flex-col gap-5">
+          <ProblemList problems={data.attention.problems} total={openProblems} />
+          <AtRiskTable
+            jobs={data.jobsAtRisk}
+            total={data.kpis.atRiskJobs + data.kpis.delayedJobs}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function Count({ n, urgent }: { n: number; urgent: boolean }) {
-  return <span className={urgent ? 'font-mono text-[#fb7185]' : 'font-mono'}>{n}</span>;
-}
-
-function StartHere({
-  problem,
-  late,
-}: {
-  problem: AttentionProblem | undefined;
-  late: AttentionSubtask | undefined;
-}) {
-  if (problem) {
-    return (
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#aeb6c3]">
-        Start with{' '}
-        <Link href={`/problems?open=${problem.id}`} className={START}>
-          {problem.jobCode}
-        </Link>
-        , {problem.departmentName}, {problem.assigneeName}. {problem.description}
-      </p>
-    );
+/** One sentence under the title: the state of the shop, in words. */
+function headline(problems: number, overdue: number): string {
+  if (problems === 0 && overdue === 0) {
+    return 'Every live job is on track and no one is blocked.';
   }
-  if (late) {
-    return (
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#aeb6c3]">
-        Furthest behind is{' '}
-        <Link href={`/tasks/${late.id}`} className={START}>
-          {late.jobCode}
-        </Link>
-        , {late.departmentName}, {late.assigneeName}, {formatElapsed(late.overdueHours * 60)} late.
-      </p>
-    );
-  }
-  return <p className="mt-2 text-sm leading-6 text-[#aeb6c3]">Nothing is waiting on you.</p>;
-}
 
-const START =
-  'font-mono text-[#f3f5f8] underline decoration-[#313743] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a]';
+  const parts: string[] = [];
+  if (problems > 0) parts.push(`${problems} open ${problems === 1 ? 'problem' : 'problems'}`);
+  if (overdue > 0) parts.push(`${overdue} ${overdue === 1 ? 'deadline' : 'deadlines'} slipped`);
+
+  return `${parts.join(' and ')} — start with the item below.`;
+}

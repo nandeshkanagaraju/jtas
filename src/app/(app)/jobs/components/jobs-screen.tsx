@@ -157,7 +157,7 @@ export function JobsScreen({
         </p>
       ) : null}
 
-      <div className="rounded-lg border">
+      <div className="bg-card rounded-lg border">
         {loading ? (
           <div className="text-muted-foreground py-16 text-center">
             <Loader2 className="mx-auto size-5 animate-spin" />

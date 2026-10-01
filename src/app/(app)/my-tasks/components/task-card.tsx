@@ -4,16 +4,19 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { Countdown } from '@/components/shared/countdown';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { MyTaskDto } from '@/lib/api/my-tasks-client';
 import type { BucketName } from '@/lib/domain/task-buckets';
+import type { Tone } from '@/lib/ui/tone';
 import { cn } from '@/lib/utils';
 import { formatIST } from '@/lib/utils/time';
 
 import { ProblemForm, type Severity } from './problem-form';
 
+/* Shop-floor sizing: a gloved thumb, not a mouse. */
 const ACTION =
-  'h-auto min-h-12 rounded-sm px-3 text-base font-semibold whitespace-normal motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]';
+  'h-auto min-h-12 rounded-md px-3 text-base font-semibold whitespace-normal motion-reduce:transition-none';
 
 /**
  * One job on the traveller.
@@ -54,8 +57,10 @@ export function TaskCard({
   return (
     <article
       className={cn(
-        'border-b border-[#313743] py-4',
-        overdue && 'border-l-[3px] border-l-[#fb7185] pl-3',
+        // Pulled out to the panel's edge so the overdue rule is flush with it
+        // rather than floating inside the padding.
+        'border-border -mx-4 border-b px-4 py-4 last:border-b-0',
+        overdue && 'border-l-late border-l-[3px] pl-[calc(1rem-3px)]',
       )}
     >
       <div className="xl:flex xl:items-start xl:gap-8">
@@ -63,34 +68,36 @@ export function TaskCard({
           <div className="flex items-center justify-between gap-4 xl:justify-start">
             <Link
               href={`/tasks/${task.id}`}
-              className="inline-flex min-h-11 items-center text-xl font-semibold tracking-tight text-[#f3f5f8] tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
+              className="text-foreground focus-visible:outline-ring inline-flex min-h-11 items-center text-xl font-semibold tracking-tight tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {task.jobCode}
               <span className="sr-only">, details</span>
             </Link>
-            <p className={cn('shrink-0 text-base font-semibold', stamp.className)}>{stamp.label}</p>
+            <Badge variant={stamp.tone} className="shrink-0 px-2 py-1 text-sm">
+              {stamp.label}
+            </Badge>
           </div>
 
           {task.partNumber ? (
-            <p className="mt-1 text-base font-semibold text-[#f3f5f8] tabular-nums">
+            <p className="text-foreground mt-1 text-base font-semibold tabular-nums">
               {task.partNumber}
             </p>
           ) : null}
 
-          <p className="mt-2 text-base text-[#f3f5f8]">{task.title}</p>
+          <p className="text-foreground mt-2 text-base">{task.title}</p>
 
-          <p className="mt-2 text-base font-semibold text-[#f3f5f8]">
+          <p className="text-foreground mt-2 text-base font-semibold">
             <Countdown
               deadline={task.deadline}
-              className="text-base font-semibold !text-[#f3f5f8]"
+              className="!text-foreground text-base font-semibold"
             />
           </p>
-          <p className="text-sm text-[#f3f5f8] tabular-nums">
+          <p className="text-foreground text-sm tabular-nums">
             {formatIST(new Date(task.deadline))}
           </p>
 
           {blocked && task.dependency ? (
-            <p className="mt-3 text-base text-[#f3f5f8]">
+            <p className="text-foreground mt-3 text-base">
               Waiting on {task.dependency.departmentName} — {task.dependency.title}, due{' '}
               {formatIST(new Date(task.dependency.deadline), 'd MMM')}.
             </p>
@@ -113,10 +120,7 @@ export function TaskCard({
               {task.status === 'PENDING' ? (
                 <Button
                   variant="outline"
-                  className={cn(
-                    ACTION,
-                    'w-full rounded-lg border border-[#313743] bg-[#262b36] text-[#f3f5f8] shadow-none hover:bg-[#262b36]',
-                  )}
+                  className={cn(ACTION, 'w-full')}
                   disabled={busy}
                   onClick={() => onAction('START')}
                 >
@@ -127,22 +131,12 @@ export function TaskCard({
               <div
                 className={cn('grid gap-2', task.requiresApproval ? 'grid-cols-1' : 'grid-cols-2')}
               >
-                <Button
-                  className={cn(
-                    ACTION,
-                    'rounded-lg bg-[#d6f25a] text-[#14180a] shadow-none hover:bg-[#d6f25a]',
-                  )}
-                  disabled={busy}
-                  onClick={() => onAction('COMPLETE')}
-                >
+                <Button className={ACTION} disabled={busy} onClick={() => onAction('COMPLETE')}>
                   {task.requiresApproval ? 'Send for approval' : 'Mark completed'}
                 </Button>
                 <Button
                   variant="outline"
-                  className={cn(
-                    ACTION,
-                    'rounded-lg border border-[#313743] bg-[#262b36] text-[#f3f5f8] shadow-none hover:bg-[#262b36]',
-                  )}
+                  className={ACTION}
                   disabled={busy}
                   onClick={() => setReporting(true)}
                 >
@@ -161,13 +155,13 @@ function stampFor(
   task: MyTaskDto,
   section: BucketName,
   flags: { blocked: boolean; done: boolean; waiting: boolean; reported: boolean; overdue: boolean },
-): { label: string; className: string } {
-  if (flags.done) return { label: 'Done', className: 'text-[#d6f25a]' };
-  if (flags.blocked) return { label: 'Blocked', className: 'text-[#f3f5f8]' };
-  if (flags.reported) return { label: 'Problem reported', className: 'text-[#f3f5f8]' };
-  if (flags.waiting) return { label: 'With the MD', className: 'text-[#f3f5f8]' };
-  if (flags.overdue) return { label: 'Overdue', className: 'text-[#fb7185]' };
-  if (section === 'dueToday') return { label: 'Due today', className: 'text-[#fbbf24]' };
-  if (task.status === 'IN_PROGRESS') return { label: 'In progress', className: 'text-[#d6f25a]' };
-  return { label: 'Not started', className: 'text-[#f3f5f8]' };
+): { label: string; tone: Tone } {
+  if (flags.done) return { label: 'Done', tone: 'ok' };
+  if (flags.blocked) return { label: 'Blocked', tone: 'neutral' };
+  if (flags.reported) return { label: 'Problem reported', tone: 'risk' };
+  if (flags.waiting) return { label: 'With the MD', tone: 'info' };
+  if (flags.overdue) return { label: 'Overdue', tone: 'late' };
+  if (section === 'dueToday') return { label: 'Due today', tone: 'risk' };
+  if (task.status === 'IN_PROGRESS') return { label: 'In progress', tone: 'info' };
+  return { label: 'Not started', tone: 'neutral' };
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -7,6 +8,8 @@ import { ApiError } from '@/lib/api/client';
 import { changeSubtaskStatusRequest } from '@/lib/api/subtasks-client';
 import { fetchMyTasks, type MyTaskDto, type MyTasksDto } from '@/lib/api/my-tasks-client';
 import { BUCKET_ORDER, type BucketName } from '@/lib/domain/task-buckets';
+import { cn } from '@/lib/utils';
+import { formatIST } from '@/lib/utils/time';
 
 import { TaskCard } from './task-card';
 import type { Severity } from './problem-form';
@@ -46,6 +49,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
   const [data, setData] = useState<MyTasksDto>(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [open, setOpen] = useState<Partial<Record<BucketName, boolean>>>({});
+  const today = formatIST(new Date(initial.now), 'EEEE d MMMM');
 
   const reload = useCallback(async () => {
     try {
@@ -125,33 +129,55 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="space-y-8">
-        {OPEN_GROUPS.map((name) => (
-          <Group key={name} name={name} tasks={data.buckets[name]} busyId={busyId} onAction={act} />
-        ))}
-      </div>
+    <div className="mx-auto max-w-5xl space-y-5">
+      <header>
+        <p className="eyebrow">{today}</p>
+        <h1 className="font-display mt-1.5 text-2xl font-semibold tracking-[-0.02em]">My tasks</h1>
+        <p className="text-muted-foreground mt-1 text-base">{standing(data.summary)}</p>
+      </header>
 
-      <div className="mt-8 border-t border-[#313743]">
+      {/*
+        Overdue and due today are open; everything else is a count until it is
+        asked for. On a phone in a workshop the first screen has to be the work
+        that is actually due, not a scrollable archive of everything assigned.
+      */}
+      {OPEN_GROUPS.map((name) => (
+        <Group key={name} name={name} tasks={data.buckets[name]} busyId={busyId} onAction={act} />
+      ))}
+
+      <div className="border-border bg-card overflow-hidden rounded-lg border">
         {FOLDED_GROUPS.map((name) => {
           const tasks = data.buckets[name];
           const expanded = open[name] === true;
 
           return (
-            <section key={name}>
+            <section key={name} className="border-border border-t first:border-t-0">
               <h2>
                 <button
                   type="button"
                   aria-expanded={expanded}
                   onClick={() => setOpen((current) => ({ ...current, [name]: !expanded }))}
-                  className="flex min-h-12 w-full items-baseline justify-between gap-4 border-b border-[#313743] py-3 text-left text-base text-[#f3f5f8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
+                  className="hover:bg-muted/60 flex min-h-12 w-full items-center justify-between gap-4 px-4 py-3 text-left text-base transition-colors"
                 >
-                  <span className="font-semibold">{GROUP_LABELS[name]}</span>
-                  <span className="tabular text-base font-semibold">{tasks.length}</span>
+                  <span className="font-display inline-flex items-center gap-2 font-semibold">
+                    <ChevronRight
+                      className={cn(
+                        'text-muted-foreground size-4 transition-transform',
+                        expanded && 'rotate-90',
+                      )}
+                      aria-hidden
+                    />
+                    {GROUP_LABELS[name]}
+                  </span>
+                  <span className="tabular text-muted-foreground text-base font-medium">
+                    {tasks.length}
+                  </span>
                 </button>
               </h2>
               {expanded ? (
-                <TaskList name={name} tasks={tasks} busyId={busyId} onAction={act} />
+                <div className="border-border border-t px-4">
+                  <TaskList name={name} tasks={tasks} busyId={busyId} onAction={act} />
+                </div>
               ) : null}
             </section>
           );
@@ -159,6 +185,22 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
       </div>
     </div>
   );
+}
+
+/** One line under the title: what is actually standing against this person. */
+function standing(summary: MyTasksDto['summary']): string {
+  const parts: string[] = [];
+  if (summary.overdue > 0) parts.push(`${summary.overdue} overdue`);
+  if (summary.dueToday > 0) parts.push(`${summary.dueToday} due today`);
+  if (summary.blocked > 0) parts.push(`${summary.blocked} blocked`);
+  if (summary.openProblems > 0) {
+    parts.push(
+      `${summary.openProblems} open ${summary.openProblems === 1 ? 'problem' : 'problems'}`,
+    );
+  }
+
+  if (parts.length === 0) return 'Nothing is overdue and nothing is due today.';
+  return `${parts.join(', ')}.`;
 }
 
 function Group({
@@ -176,18 +218,23 @@ function Group({
     payload?: { note: string; severity: Severity },
   ) => void;
 }) {
-  const countTone = name === 'overdue' && tasks.length > 0 ? 'text-[#fb7185]' : 'text-[#f3f5f8]';
+  const countTone = name === 'overdue' && tasks.length > 0 ? 'text-late' : 'text-muted-foreground';
 
   return (
-    <section aria-labelledby={`tasks-${name}`}>
+    <section
+      aria-labelledby={`tasks-${name}`}
+      className="border-border bg-card overflow-hidden rounded-lg border"
+    >
       <h2
         id={`tasks-${name}`}
-        className="flex items-baseline justify-between gap-4 border-b border-[#313743] py-3 text-base font-semibold text-[#f3f5f8]"
+        className="font-display border-border flex items-center justify-between gap-4 border-b px-4 py-3 text-base font-semibold"
       >
         <span>{GROUP_LABELS[name]}</span>
-        <span className={`tabular ${countTone}`}>{tasks.length}</span>
+        <span className={cn('tabular font-medium', countTone)}>{tasks.length}</span>
       </h2>
-      <TaskList name={name} tasks={tasks} busyId={busyId} onAction={onAction} />
+      <div className="px-4">
+        <TaskList name={name} tasks={tasks} busyId={busyId} onAction={onAction} />
+      </div>
     </section>
   );
 }
@@ -208,7 +255,7 @@ function TaskList({
   ) => void;
 }) {
   if (tasks.length === 0) {
-    return <p className="py-4 text-base text-[#f3f5f8]">{EMPTY_STATES[name]}</p>;
+    return <p className="text-muted-foreground py-5 text-base">{EMPTY_STATES[name]}</p>;
   }
 
   return (

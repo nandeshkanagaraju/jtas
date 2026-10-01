@@ -80,7 +80,7 @@ export function ExtensionPanel({
 
       <CardContent className="space-y-3">
         {latest ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
+          <div className="bg-card flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
             <div className="space-y-0.5">
               <p className="text-sm">
                 Asked for{' '}

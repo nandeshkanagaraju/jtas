@@ -28,6 +28,11 @@ const COLLAPSED_KEY = 'jtas-sidebar';
 /**
  * Sidebar, header, then the page.
  *
+ * The sidebar is the quietest surface in the app: it sits a shade below the
+ * canvas so the work in the middle comes forward, and the active route is a
+ * white tile with an accent rule down its leading edge rather than a block of
+ * colour. One thing is highlighted at a time, and it is always where you are.
+ *
  * Below 1024px the sidebar is a drawer with a Close button. Collapsed, a
  * route is an icon with its count underneath — the number is its own line,
  * not a badge sitting on the icon.
@@ -64,58 +69,42 @@ export function AppShell({
   }
 
   return (
-    <div className="flex min-h-dvh bg-[#14171e] text-[#f3f5f8]">
+    <div className="bg-background text-foreground flex min-h-dvh">
       <aside
         className={cn(
-          'sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-[#313743] bg-[#101216] lg:flex',
-          collapsed ? 'w-[4.75rem] max-w-[4.75rem]' : 'w-60 max-w-60',
+          'border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r lg:flex',
+          collapsed ? 'w-[4.5rem] max-w-[4.5rem]' : 'w-[15rem] max-w-[15rem]',
         )}
       >
         <div
           className={cn(
-            'flex h-16 items-center',
-            collapsed ? 'justify-center px-1' : 'justify-between px-4',
+            'flex h-14 items-center',
+            collapsed ? 'justify-center px-1' : 'justify-between pr-2 pl-4',
           )}
         >
           <Brand collapsed={collapsed} />
-          {collapsed ? null : (
-            <button
-              type="button"
-              onClick={toggleCollapsed}
-              aria-label="Collapse sidebar"
-              className="focus-visible:outline-ring inline-flex size-11 items-center justify-center rounded-lg text-[#aeb6c3] hover:bg-[#1e222b] hover:text-[#f3f5f8] focus-visible:outline-2 focus-visible:outline-offset-2"
-            >
-              <PanelLeftClose className="size-5" />
-            </button>
-          )}
+          {collapsed ? null : <CollapseButton label="Collapse sidebar" onClick={toggleCollapsed} />}
         </div>
         {collapsed ? (
-          <div className="flex justify-center pb-2">
-            <button
-              type="button"
-              onClick={toggleCollapsed}
-              aria-label="Expand sidebar"
-              className="focus-visible:outline-ring inline-flex size-11 items-center justify-center rounded-lg text-[#aeb6c3] hover:bg-[#1e222b] hover:text-[#f3f5f8] focus-visible:outline-2 focus-visible:outline-offset-2"
-            >
-              <PanelLeftOpen className="size-5" />
-            </button>
+          <div className="flex justify-center pb-1">
+            <CollapseButton label="Expand sidebar" onClick={toggleCollapsed} expand />
           </div>
         ) : null}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 py-2">
           <NavList items={primary} admin={admin} collapsed={collapsed} />
         </div>
-        <div className="border-t border-[#313743] p-3">
+        <div className="border-sidebar-border border-t p-2.5">
           <AccountMenu name={name} email={email} role={role} collapsed={collapsed} />
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-[#313743] bg-[#14171e] px-4 sm:px-8">
+        <header className="border-border bg-background/90 sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-4 backdrop-blur-sm sm:px-6">
           <button
             type="button"
             onClick={() => setDrawer(true)}
             aria-label="Menu"
-            className="focus-visible:outline-ring inline-flex size-11 items-center justify-center rounded-lg text-[#aeb6c3] hover:bg-[#1e222b] hover:text-[#f3f5f8] focus-visible:outline-2 focus-visible:outline-offset-2 lg:hidden"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground -ml-2 inline-flex size-11 items-center justify-center rounded-md transition-colors lg:hidden"
           >
             <Menu className="size-5" />
           </button>
@@ -124,26 +113,28 @@ export function AppShell({
             <NotificationBell initialUnread={unreadNotifications} />
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          {children}
+        </main>
       </div>
 
       <Sheet open={drawer} onOpenChange={setDrawer}>
         <SheetContent
           side="left"
           showCloseButton={false}
-          className="w-72 max-w-[18rem] translate-x-0 gap-0 border-[#313743] bg-[#101216] p-0 text-[#f3f5f8] shadow-none data-[state=open]:translate-x-0"
+          className="bg-sidebar border-sidebar-border text-foreground w-[17rem] max-w-[17rem] translate-x-0 gap-0 p-0 shadow-none data-[state=open]:translate-x-0"
         >
-          <div className="flex h-16 items-center justify-between pr-1 pl-4">
+          <div className="border-sidebar-border flex h-14 items-center justify-between border-b pr-2 pl-4">
             <Brand />
-            <SheetClose className="focus-visible:outline-ring inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-[#f3f5f8] focus-visible:outline-2 focus-visible:outline-offset-2">
+            <SheetClose className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors">
               <X className="size-4" />
               Close
             </SheetClose>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-2">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 py-2">
             <NavList items={primary} admin={admin} onNavigate={() => setDrawer(false)} />
           </div>
-          <div className="border-t border-[#313743] p-3">
+          <div className="border-sidebar-border border-t p-2.5">
             <AccountMenu name={name} email={email} role={role} />
           </div>
         </SheetContent>
@@ -152,20 +143,40 @@ export function AppShell({
   );
 }
 
+function CollapseButton({
+  label,
+  onClick,
+  expand = false,
+}: {
+  label: string;
+  onClick: () => void;
+  expand?: boolean;
+}) {
+  const Icon = expand ? PanelLeftOpen : PanelLeftClose;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="text-muted-foreground hover:bg-sidebar-hover hover:text-foreground inline-flex size-9 items-center justify-center rounded-md transition-colors"
+    >
+      <Icon className="size-[18px]" />
+    </button>
+  );
+}
+
 function Brand({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <div className={cn('flex min-w-0 items-center gap-2.5', collapsed && 'justify-center')}>
-      <span className="font-display inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-[#d6f25a] text-sm font-bold text-[#14180a]">
+      <span className="bg-primary text-primary-foreground font-display inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[13px] font-bold">
         J
       </span>
       {collapsed ? null : (
         <span className="min-w-0">
-          <span className="font-display block truncate text-sm leading-none font-semibold tracking-[-0.03em] text-[#f3f5f8]">
+          <span className="font-display block truncate text-sm leading-none font-semibold tracking-[-0.02em]">
             JTAS
           </span>
-          <span className="mt-1 block truncate font-mono text-[10px] tracking-[0.18em] text-[#aeb6c3] uppercase">
-            Jaraa
-          </span>
+          <span className="eyebrow mt-1 block truncate">Jaraa Global</span>
         </span>
       )}
     </div>
@@ -177,14 +188,7 @@ function Crumb() {
   const segment = pathname.split('/').filter(Boolean)[0] ?? '';
   const title = CRUMB[segment] ?? 'JTAS';
   return (
-    <div className="min-w-0">
-      <p className="font-mono text-[10px] tracking-[0.18em] text-[#aeb6c3] uppercase">
-        JTAS / {segment || 'home'}
-      </p>
-      <p className="font-display truncate text-base leading-tight font-semibold tracking-[-0.03em] text-[#f3f5f8]">
-        {title}
-      </p>
-    </div>
+    <p className="font-display min-w-0 truncate text-sm leading-tight font-semibold">{title}</p>
   );
 }
 
@@ -202,15 +206,8 @@ function NavList({
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Main" className="flex flex-col gap-1">
-      <p
-        className={cn(
-          'px-3 pt-2 pb-1 font-mono text-[10px] tracking-[0.18em] text-[#aeb6c3] uppercase',
-          collapsed && 'sr-only',
-        )}
-      >
-        Daily
-      </p>
+    <nav aria-label="Main" className="flex flex-col gap-0.5">
+      <p className={cn('eyebrow px-2.5 pt-2 pb-1.5', collapsed && 'sr-only')}>Daily</p>
       {items.map((item) => (
         <NavLink
           key={item.href}
@@ -221,15 +218,8 @@ function NavList({
         />
       ))}
       {admin.length > 0 ? (
-        <div className="mt-4 flex flex-col gap-1 border-t border-[#313743] pt-4">
-          <p
-            className={cn(
-              'px-3 pb-1 font-mono text-[10px] tracking-[0.18em] text-[#aeb6c3] uppercase',
-              collapsed && 'sr-only',
-            )}
-          >
-            Manage
-          </p>
+        <div className="border-sidebar-border mt-3 flex flex-col gap-0.5 border-t pt-3">
+          <p className={cn('eyebrow px-2.5 pb-1.5', collapsed && 'sr-only')}>Manage</p>
           {admin.map((item) => (
             <NavLink
               key={item.href}
@@ -260,8 +250,8 @@ function NavLink({
   const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
   const count = item.badge && item.badge > 0 ? item.badge : null;
   const countClass = item.badgeUrgent
-    ? 'bg-[#fb7185]/15 text-[#fb7185]'
-    : 'bg-[#d6f25a]/15 text-[#d6f25a]';
+    ? 'bg-late-soft text-late border border-late-edge'
+    : 'bg-muted text-muted-foreground border border-border';
 
   return (
     <Link
@@ -271,23 +261,24 @@ function NavLink({
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
       className={cn(
-        'focus-visible:outline-ring flex min-h-11 rounded-md text-sm focus-visible:outline-2 focus-visible:outline-offset-2',
+        'relative flex min-h-10 rounded-md text-sm transition-colors',
         collapsed
           ? 'flex-col items-center justify-center gap-1 px-1 py-2'
-          : 'items-center gap-3 px-3',
+          : 'items-center gap-2.5 px-2.5',
         active
-          ? 'bg-[#d6f25a]/15 font-medium text-[#d6f25a]'
-          : 'text-[#aeb6c3] hover:bg-[#1e222b] hover:text-[#f3f5f8]',
+          ? 'bg-sidebar-active text-foreground font-semibold'
+          : 'text-muted-foreground hover:bg-sidebar-hover hover:text-foreground',
       )}
     >
-      <Icon className="size-5 shrink-0" />
+      {/* The accent lives on a 2px rule, not on the whole tile. */}
+      {active ? (
+        <span aria-hidden className="bg-primary absolute inset-y-1.5 left-0 w-[2px] rounded-full" />
+      ) : null}
+      <Icon className={cn('size-[18px] shrink-0', active && 'text-primary')} strokeWidth={1.75} />
       {collapsed ? (
         count ? (
           <span
-            className={cn(
-              'rounded-full px-1.5 font-mono text-[11px] leading-none font-medium',
-              countClass,
-            )}
+            className={cn('rounded px-1 font-mono text-[10px] leading-4 font-medium', countClass)}
           >
             {count}
           </span>
@@ -298,7 +289,7 @@ function NavLink({
           {count ? (
             <span
               className={cn(
-                'rounded-full px-2 py-0.5 font-mono text-[11px] font-medium',
+                'rounded px-1.5 font-mono text-[11px] leading-5 font-medium tabular-nums',
                 countClass,
               )}
             >

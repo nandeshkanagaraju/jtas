@@ -44,7 +44,7 @@ export function ScorecardChart({ rows }: { rows: DepartmentScorecard[] }) {
   const silent = rows.filter((row) => row.onTimePercent === null);
 
   return (
-    <section className="rounded-lg border" aria-labelledby="scorecard-chart">
+    <section className="bg-card rounded-lg border" aria-labelledby="scorecard-chart">
       <header className="border-b px-4 py-3">
         <h2 id="scorecard-chart" className="text-sm font-semibold">
           On-time completion by department
@@ -106,7 +106,7 @@ export function ScorecardChart({ rows }: { rows: DepartmentScorecard[] }) {
                   dataKey="percent"
                   radius={[0, 3, 3, 0]}
                   maxBarSize={26}
-                  animationDuration={400}
+                  isAnimationActive={false}
                 >
                   {data.map((row) => (
                     <Cell key={row.name} fill={tone(row.percent)} />

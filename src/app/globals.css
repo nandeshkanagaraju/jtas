@@ -4,9 +4,16 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * JTAS design system — SDD section 7.4.
- * Dark canvas, white ink, one lime accent. Rose is late or a blocker.
- * Amber is due or at risk. Green is on time.
+ * JTAS design system — "modern industrial operations".
+ *
+ * A warm-neutral paper canvas, deep ink text, hairline rules instead of
+ * shadows, and one muted green accent that means "go" or "on time". Red is
+ * late, amber is at risk, slate-blue is in progress. Colour is never
+ * decoration here: a red row on the shop floor always means the same thing,
+ * so colour is spent only where it carries state.
+ *
+ * Surfaces run sidebar (deepest) -> canvas -> card (white). Depth comes from
+ * that ordering and a 1px rule, not from shadows, glass or gradients.
  */
 
 @theme inline {
@@ -30,7 +37,34 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Subtask state palette */
+  /* Chrome. The sidebar sits below the canvas, so it recedes. */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+
+  /* A hairline that is a shade stronger than --border, for table heads. */
+  --color-rule: var(--rule);
+
+  /*
+   * Status tones. Each is a trio: `-ink` is the text colour on the canvas,
+   * `-soft` the tinted fill behind a badge, `-edge` the fill's own hairline.
+   * Every ink/soft pairing clears 4.5:1.
+   */
+  --color-late: var(--late);
+  --color-late-soft: var(--late-soft);
+  --color-late-edge: var(--late-edge);
+  --color-risk: var(--risk);
+  --color-risk-soft: var(--risk-soft);
+  --color-risk-edge: var(--risk-edge);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-edge: var(--ok-edge);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-edge: var(--info-edge);
+
+  /* Subtask state palette, kept as the names the rest of the app imports. */
   --color-state-pending: var(--state-pending);
   --color-state-blocked: var(--state-blocked);
   --color-state-progress: var(--state-progress);
@@ -38,81 +72,149 @@
   --color-state-complete: var(--state-complete);
   --color-state-overdue: var(--state-overdue);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-syne), var(--font-outfit), sans-serif;
-  /* Job codes, part numbers, dates. Self-hosted with the other faces. */
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  /* Headings and the big counts: a wider industrial grotesque. */
+  --font-display: var(--font-archivo), var(--font-instrument), sans-serif;
+  /* Job codes, part numbers, dates. */
   --font-mono: var(--font-plex), ui-monospace, monospace;
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  /* Near-black canvas, one lime accent, rose for late, amber for due. */
-  --background: #14171e;
-  --foreground: #f3f5f8;
-  --card: #1e222b;
-  --card-foreground: #f3f5f8;
-  --popover: #1e222b;
-  --popover-foreground: #f3f5f8;
-  --primary: #d6f25a;
-  --primary-foreground: #14180a;
-  --secondary: #262b36;
-  --secondary-foreground: #f3f5f8;
-  --muted: #262b36;
-  --muted-foreground: #aeb6c3;
-  --accent: #262b36;
-  --accent-foreground: #f3f5f8;
-  --destructive: #fb7185;
-  --destructive-foreground: #1a0a0e;
-  --border: #313743;
-  --input: #313743;
-  --ring: #d6f25a;
+  /* Warm paper, deep ink, one muted green. */
+  --background: #f5f4ef;
+  --foreground: #1b1c18;
+  --card: #ffffff;
+  --card-foreground: #1b1c18;
+  --popover: #ffffff;
+  --popover-foreground: #1b1c18;
+  --primary: #2e6a5b;
+  --primary-foreground: #ffffff;
+  --secondary: #edebe4;
+  --secondary-foreground: #1b1c18;
+  --muted: #edebe4;
+  --muted-foreground: #65665d;
+  --accent: #e8e6dd;
+  --accent-foreground: #1b1c18;
+  --destructive: #a33327;
+  --destructive-foreground: #ffffff;
+  --border: #e2dfd4;
+  --input: #d4d0c3;
+  --ring: #2e6a5b;
 
-  --state-pending: #aeb6c3;
-  --state-blocked: #aeb6c3;
-  --state-progress: #7dd3fc;
-  --state-problem: #fbbf24;
-  --state-complete: #86efac;
-  --state-overdue: #fb7185;
+  --sidebar: #eeece5;
+  --sidebar-border: #ddd9cc;
+  --sidebar-hover: #e5e2d8;
+  --sidebar-active: #ffffff;
+  --rule: #d6d2c6;
+
+  --late: #a33327;
+  --late-soft: #faeae6;
+  --late-edge: #eed3cc;
+  --risk: #8a5a0d;
+  --risk-soft: #f9f0dc;
+  --risk-edge: #ead9b8;
+  --ok: #2e6a5b;
+  --ok-soft: #e6efea;
+  --ok-edge: #cadfd5;
+  --info: #2c5f7c;
+  --info-soft: #e8eef3;
+  --info-edge: #ccdce6;
+
+  --state-pending: var(--muted-foreground);
+  --state-blocked: var(--muted-foreground);
+  --state-progress: var(--info);
+  --state-problem: var(--risk);
+  --state-complete: var(--ok);
+  --state-overdue: var(--late);
 }
 
+/*
+ * Dark counterpart. Nothing in the app toggles it today, but every token has
+ * a dark value so that adding a switch is a one-line change rather than an
+ * audit of every screen.
+ */
 .dark {
-  --background: #14171e;
-  --foreground: #f3f5f8;
-  --card: #1e222b;
-  --card-foreground: #f3f5f8;
-  --popover: #1e222b;
-  --popover-foreground: #f3f5f8;
-  --primary: #d6f25a;
-  --primary-foreground: #14180a;
-  --secondary: #262b36;
-  --secondary-foreground: #f3f5f8;
-  --muted: #262b36;
-  --muted-foreground: #aeb6c3;
-  --accent: #262b36;
-  --accent-foreground: #f3f5f8;
-  --destructive: #fb7185;
-  --destructive-foreground: #1a0a0e;
-  --border: #313743;
-  --input: #313743;
-  --ring: #d6f25a;
+  --background: #161714;
+  --foreground: #f1f0e9;
+  --card: #1e1f1b;
+  --card-foreground: #f1f0e9;
+  --popover: #1e1f1b;
+  --popover-foreground: #f1f0e9;
+  --primary: #6ebfa5;
+  --primary-foreground: #10211c;
+  --secondary: #272822;
+  --secondary-foreground: #f1f0e9;
+  --muted: #272822;
+  --muted-foreground: #a3a397;
+  --accent: #2d2e27;
+  --accent-foreground: #f1f0e9;
+  --destructive: #e8806f;
+  --destructive-foreground: #2a0f0a;
+  --border: #32332c;
+  --input: #3d3e36;
+  --ring: #6ebfa5;
+
+  --sidebar: #121310;
+  --sidebar-border: #2a2b24;
+  --sidebar-hover: #202119;
+  --sidebar-active: #272822;
+  --rule: #3a3b33;
+
+  --late: #e8806f;
+  --late-soft: #3a211c;
+  --late-edge: #53302a;
+  --risk: #d9a85c;
+  --risk-soft: #352c1a;
+  --risk-edge: #4c3f25;
+  --ok: #6ebfa5;
+  --ok-soft: #1b2f29;
+  --ok-edge: #2b4740;
+  --info: #7fb2cf;
+  --info-soft: #1c2a33;
+  --info-edge: #2c414e;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground;
     /* SDD section 9: minimum 14 px body text for shop-floor readability. */
     font-size: 0.875rem;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    letter-spacing: -0.015em;
+  }
+
+  /*
+   * One focus treatment for the whole app: a two-pixel ring in the accent,
+   * offset far enough to clear a 1px border. Declared here so that no
+   * component has to remember to add it.
+   *
+   * Only `outline` is set. Setting `border-radius` here would reshape the
+   * element itself while focused, not just its ring — a round avatar would
+   * square off the moment it was tabbed to. The outline follows whatever
+   * radius the element already has.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   /* Deadlines and counters must align in columns. */
@@ -127,5 +229,15 @@
     a[data-touch-target] {
       min-height: 44px;
     }
+  }
+}
+
+@layer components {
+  /*
+   * The eyebrow above a page title or beside a section heading: small, wide
+   * letterspacing, mono. Used often enough to be worth a name.
+   */
+  .eyebrow {
+    @apply text-muted-foreground font-mono text-[10px] tracking-[0.16em] uppercase;
   }
 }

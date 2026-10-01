@@ -21,8 +21,20 @@ const ROLE_LABELS: Record<string, string> = {
   MEMBER: 'Member',
 };
 
+/**
+ * Two letters for the avatar.
+ *
+ * Bracketed suffixes are dropped first: plenty of accounts are named
+ * "Meena (Quality)", and the last word's first character would otherwise be an
+ * opening parenthesis.
+ */
 function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const parts = name
+    .replace(/[([{].*?[)\]}]/g, ' ')
+    .split(/\s+/)
+    .map((part) => part.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter(Boolean);
+
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
@@ -63,14 +75,21 @@ export function AccountMenu({
       <DropdownMenuTrigger
         aria-label={`Account, ${name}`}
         className={cn(
-          'focus-visible:outline-ring flex min-h-11 w-full items-center gap-2 rounded-md px-1 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2',
+          'hover:bg-sidebar-hover flex min-h-11 w-full items-center gap-2.5 rounded-md px-1.5 text-left text-sm transition-colors',
           collapsed && 'justify-center px-0',
         )}
       >
-        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#313743] bg-[#262b36] text-sm font-medium text-[#f3f5f8]">
+        <span className="border-border bg-card text-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-md border text-xs font-semibold">
           {initials(name)}
         </span>
-        {collapsed ? null : <span className="truncate font-medium">{name}</span>}
+        {collapsed ? null : (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{name}</span>
+            <span className="text-muted-foreground block truncate text-xs">
+              {ROLE_LABELS[role] ?? role}
+            </span>
+          </span>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-64">
         <DropdownMenuLabel className="font-normal">

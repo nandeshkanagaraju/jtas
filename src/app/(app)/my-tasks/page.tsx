@@ -21,26 +21,24 @@ export default async function MyTasksPage() {
   const result = await getMyTasks(session.id);
 
   return (
-    <div className="-mx-4 -my-6 min-h-full px-4 py-4 sm:-mx-8 sm:-my-8 sm:px-8">
-      <MyTasksScreen
-        initial={{
-          ...result,
-          now: result.now.toISOString(),
-          buckets: Object.fromEntries(
-            Object.entries(result.buckets).map(([name, tasks]) => [
-              name,
-              tasks.map((task) => ({
-                ...task,
-                deadline: task.deadline.toISOString(),
-                completedAt: task.completedAt?.toISOString() ?? null,
-                dependency: task.dependency
-                  ? { ...task.dependency, deadline: task.dependency.deadline.toISOString() }
-                  : null,
-              })),
-            ]),
-          ) as never,
-        }}
-      />
-    </div>
+    <MyTasksScreen
+      initial={{
+        ...result,
+        now: result.now.toISOString(),
+        buckets: Object.fromEntries(
+          Object.entries(result.buckets).map(([name, tasks]) => [
+            name,
+            tasks.map((task) => ({
+              ...task,
+              deadline: task.deadline.toISOString(),
+              completedAt: task.completedAt?.toISOString() ?? null,
+              dependency: task.dependency
+                ? { ...task.dependency, deadline: task.dependency.deadline.toISOString() }
+                : null,
+            })),
+          ]),
+        ) as never,
+      }}
+    />
   );
 }

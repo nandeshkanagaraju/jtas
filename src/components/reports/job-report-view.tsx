@@ -39,7 +39,7 @@ export function JobReportView({ report }: { report: JobReport }) {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border">
+      <section className="bg-card rounded-lg border">
         <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b px-4 py-3">
           <h2 className="tabular text-base font-semibold">{report.job.jobCode}</h2>
           <p className="text-muted-foreground text-sm">{report.job.title}</p>
@@ -66,7 +66,7 @@ export function JobReportView({ report }: { report: JobReport }) {
         </dl>
       </section>
 
-      <section className="rounded-lg border" aria-labelledby="chain">
+      <section className="bg-card rounded-lg border" aria-labelledby="chain">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
           <h3 id="chain" className="text-sm font-semibold">
             Subtask chain ({report.subtasks.length})
@@ -124,7 +124,7 @@ export function JobReportView({ report }: { report: JobReport }) {
         </div>
       </section>
 
-      <section className="rounded-lg border" aria-labelledby="job-problems">
+      <section className="bg-card rounded-lg border" aria-labelledby="job-problems">
         <header className="border-b px-4 py-3">
           <h3 id="job-problems" className="text-sm font-semibold">
             Problems ({report.problems.length})

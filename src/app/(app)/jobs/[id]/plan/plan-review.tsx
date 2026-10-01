@@ -48,7 +48,7 @@ export function PlanReview({
 
             <div
               className={cn(
-                'flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3',
+                'bg-card flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3',
                 waitsFor !== undefined && 'ml-4',
               )}
             >

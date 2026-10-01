@@ -105,7 +105,7 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div className="bg-card overflow-x-auto rounded-lg border">
       <table className="w-full min-w-[46rem] text-sm">
         <thead>
           <tr className="text-muted-foreground border-b text-xs">

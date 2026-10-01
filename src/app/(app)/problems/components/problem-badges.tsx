@@ -1,6 +1,7 @@
 import type { ProblemSeverity, ProblemStatus } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
+import { severityTone, type Tone } from '@/lib/ui/tone';
 import { cn } from '@/lib/utils';
 import { formatElapsed } from '@/lib/utils/duration';
 
@@ -11,32 +12,26 @@ import { formatElapsed } from '@/lib/utils/duration';
  * and low stay quiet. If everything is highlighted then nothing is, and the
  * inbox stops being a queue.
  */
-const SEVERITY_STYLES: Record<ProblemSeverity, string> = {
-  BLOCKER: 'bg-state-overdue text-white hover:bg-state-overdue',
-  HIGH: 'bg-state-problem text-white hover:bg-state-problem',
-  MEDIUM: 'bg-muted text-foreground hover:bg-muted',
-  LOW: 'bg-transparent text-muted-foreground border border-border',
-};
-
 export function SeverityBadge({ severity }: { severity: ProblemSeverity }) {
   return (
-    <Badge className={cn('whitespace-nowrap', SEVERITY_STYLES[severity])}>
+    <Badge variant={severityTone(severity)} className="whitespace-nowrap">
       {severity.charAt(0) + severity.slice(1).toLowerCase()}
     </Badge>
   );
 }
 
-const STATUS_LABELS: Record<ProblemStatus, string> = {
-  OPEN: 'Open',
-  ACKNOWLEDGED: 'Seen',
-  RESOLVED: 'Resolved',
-  REJECTED: 'Rejected',
+const STATUS_STYLES: Record<ProblemStatus, { label: string; tone: Tone }> = {
+  OPEN: { label: 'Open', tone: 'neutral' },
+  ACKNOWLEDGED: { label: 'Seen', tone: 'info' },
+  RESOLVED: { label: 'Resolved', tone: 'ok' },
+  REJECTED: { label: 'Rejected', tone: 'neutral' },
 };
 
 export function ProblemStatusBadge({ status }: { status: ProblemStatus }) {
+  const { label, tone } = STATUS_STYLES[status];
   return (
-    <Badge variant="outline" className="whitespace-nowrap">
-      {STATUS_LABELS[status]}
+    <Badge variant={tone} className="whitespace-nowrap">
+      {label}
     </Badge>
   );
 }
@@ -54,7 +49,7 @@ export function ProblemAge({ ageHours, isStale }: { ageHours: number; isStale: b
     <span
       className={cn(
         'tabular text-sm',
-        isStale ? 'text-state-overdue font-semibold' : 'text-muted-foreground',
+        isStale ? 'text-late font-semibold' : 'text-muted-foreground',
       )}
     >
       {label}

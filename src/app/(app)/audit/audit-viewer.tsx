@@ -90,7 +90,7 @@ export function AuditViewer({
   return (
     <div className="space-y-4">
       {traceMode ? null : (
-        <section className="rounded-lg border">
+        <section className="bg-card rounded-lg border">
           <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
             <h2 className="text-sm font-semibold">Filters{active > 0 ? ` (${active})` : ''}</h2>
 
@@ -173,7 +173,7 @@ export function AuditViewer({
         {pending ? <Loader2 className="text-muted-foreground size-3.5 animate-spin" /> : null}
       </div>
 
-      <ol className="space-y-1.5">
+      <ol className="border-border bg-card divide-border divide-y overflow-hidden rounded-lg border">
         {entries.map((entry) => (
           <Row
             key={entry.id}
@@ -206,7 +206,7 @@ function Row({
   onToggle: () => void;
 }) {
   return (
-    <li className="rounded-lg border">
+    <li>
       <button
         type="button"
         onClick={onToggle}
@@ -328,7 +328,7 @@ function Select({
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="border-input bg-background focus-visible:ring-ring mt-1 h-9 w-full rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+        className="border-input bg-card mt-1 h-9 w-full rounded-md border px-2 text-sm"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

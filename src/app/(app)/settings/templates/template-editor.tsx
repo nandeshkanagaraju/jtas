@@ -137,7 +137,7 @@ export function TemplateEditor({
   return (
     <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
       <aside className="space-y-2">
-        <ul className="divide-y rounded-lg border">
+        <ul className="bg-card divide-y rounded-lg border">
           {templates.map((template) => (
             <li key={template.id}>
               <button
@@ -198,12 +198,12 @@ export function TemplateEditor({
         </div>
 
         {steps.length === 0 && !selected ? (
-          <p className="text-muted-foreground rounded-lg border py-16 text-center text-sm">
+          <p className="text-muted-foreground bg-card rounded-lg border py-16 text-center text-sm">
             Choose a template, or create one.
           </p>
         ) : (
           <>
-            <div className="rounded-lg border p-4">
+            <div className="bg-card rounded-lg border p-4">
               <Label htmlFor="template-name" className="text-sm font-medium">
                 Template name
               </Label>
@@ -221,7 +221,7 @@ export function TemplateEditor({
               ))}
             </div>
 
-            <section className="rounded-lg border">
+            <section className="bg-card rounded-lg border">
               <header className="flex items-center justify-between border-b px-4 py-3">
                 <h2 className="text-sm font-semibold">Chain ({steps.length})</h2>
                 <p className="text-muted-foreground text-xs">
@@ -386,7 +386,7 @@ function DependencyPreview({ steps, departments }: { steps: Step[]; departments:
   const nameOf = (id: string) => departments.find((d) => d.id === id)?.name ?? 'Unassigned';
 
   return (
-    <section className="rounded-lg border">
+    <section className="bg-card rounded-lg border">
       <header className="border-b px-4 py-3">
         <h2 className="text-sm font-semibold">What a job from this template looks like</h2>
         <p className="text-muted-foreground mt-0.5 text-xs">

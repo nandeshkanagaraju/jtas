@@ -161,7 +161,7 @@ export function ActivityFeed({
                   >
                     {initials(item.actor?.name ?? '?')}
                   </span>
-                  <div className="min-w-0 flex-1 rounded-md border px-2.5 py-1.5">
+                  <div className="bg-muted/50 min-w-0 flex-1 rounded-md border px-2.5 py-1.5">
                     <CommentBody
                       body={item.body}
                       mentions={mentionCandidates}

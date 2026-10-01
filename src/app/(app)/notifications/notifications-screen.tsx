@@ -109,7 +109,7 @@ export function NotificationsScreen({
       </div>
 
       {inbox.data.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border py-16 text-center">
+        <div className="bg-card flex flex-col items-center gap-2 rounded-lg border py-16 text-center">
           <BellOff className="text-muted-foreground size-8" />
           <p className="font-medium">No notifications yet</p>
           <p className="text-muted-foreground max-w-sm text-sm">

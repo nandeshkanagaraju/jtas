@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+import { Empty, Section } from '@/components/dashboard/section';
+import { Badge } from '@/components/ui/badge';
+import { jobStatusTone } from '@/lib/ui/tone';
 import type { JobAtRisk } from '@/lib/services/analytics';
 import { formatIST } from '@/lib/utils/time';
 
@@ -8,53 +11,47 @@ import { formatIST } from '@/lib/utils/time';
  * (build spec M8.3).
  *
  * "JGE-2026-0042 is delayed" is a fact the MD already has from the lists
- * above. "Quality, final inspection" is the one that leads to a conversation.
- * A job can be at risk on its overall deadline with nothing individually
- * overdue yet, so there is not always a department to name.
+ * above. "Quality, final inspection" is the one that leads to a conversation,
+ * so it is the line that gets the weight. A job can be at risk on its overall
+ * deadline with nothing individually overdue yet, so there is not always a
+ * department to name.
  */
-
-const ROW =
-  'mt-3 block rounded-xl border border-[#313743] bg-[#262b36] px-4 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a]';
-
 export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number }) {
   const hidden = Math.max(0, total - jobs.length);
 
   return (
-    <section aria-labelledby="at-risk">
-      <h2
-        id="at-risk"
-        className="flex items-baseline justify-between gap-4 border-b border-[#313743] py-3 text-sm font-semibold text-[#f3f5f8]"
-      >
-        <span>Jobs at risk</span>
-        <span className="font-mono text-sm font-medium text-[#aeb6c3]">{jobs.length}</span>
-      </h2>
-
+    <Section
+      id="at-risk"
+      title="Jobs at risk"
+      count={total}
+      countTone="risk"
+      footer={
+        hidden > 0
+          ? { href: '/jobs', label: hidden === 1 ? '1 more job' : `${hidden} more jobs` }
+          : undefined
+      }
+    >
       {jobs.length === 0 ? (
-        <p className="border-b border-[#313743] py-4 text-sm leading-6 text-[#aeb6c3]">
-          Every live job is on track.
-        </p>
+        <Empty>Every live job is on track.</Empty>
       ) : (
         <ul>
           {jobs.map((job) => (
-            <li key={job.id}>
-              <Link href={`/jobs/${job.id}`} className={ROW}>
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-mono text-sm font-medium text-[#f3f5f8]">
+            <li key={job.id} className="border-border border-t first:border-t-0">
+              <Link
+                href={`/jobs/${job.id}`}
+                className="hover:bg-muted/60 block px-4 py-3 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-[13px] font-medium whitespace-nowrap">
                     {job.jobCode}
                   </span>
-                  <span
-                    className={
-                      job.status === 'DELAYED'
-                        ? 'rounded-full bg-[#fb7185]/15 px-2 py-0.5 text-xs font-semibold text-[#fb7185]'
-                        : 'rounded-full bg-[#fbbf24]/15 px-2 py-0.5 text-xs font-semibold text-[#fbbf24]'
-                    }
-                  >
+                  <Badge variant={jobStatusTone(job.status)} className="shrink-0">
                     {job.status === 'DELAYED' ? 'Delayed' : 'At risk'}
-                  </span>
+                  </Badge>
                 </div>
-                <p className="mt-2 text-sm leading-6 font-semibold text-[#f3f5f8]">{job.title}</p>
-                <p className="mt-1 text-sm leading-6 text-[#f3f5f8]">{holding(job)}</p>
-                <p className="mt-1 text-sm leading-6 text-[#aeb6c3]">
+                <p className="mt-1.5 truncate text-sm font-medium">{job.title}</p>
+                <p className="text-foreground/80 mt-0.5 truncate text-sm">{holding(job)}</p>
+                <p className="text-muted-foreground mt-1.5 text-xs tabular-nums">
                   Due {formatIST(new Date(job.overallDeadline), 'd MMM')}
                 </p>
               </Link>
@@ -62,18 +59,7 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
           ))}
         </ul>
       )}
-
-      {hidden > 0 ? (
-        <p className="border-b border-[#313743] py-4 text-sm leading-6">
-          <Link
-            href="/jobs"
-            className="text-[#f3f5f8] underline decoration-[#313743] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3f5f8]"
-          >
-            {hidden === 1 ? '1 more job' : `${hidden} more jobs`}
-          </Link>
-        </p>
-      ) : null}
-    </section>
+    </Section>
   );
 }
 
@@ -87,5 +73,5 @@ function holding(job: JobAtRisk): string {
         ? ', 1 open problem'
         : `, ${job.openProblems} open problems`;
 
-  return `${job.blockingDepartment}, ${job.blockingSubtaskTitle}${problems}`;
+  return `${job.blockingDepartment} — ${job.blockingSubtaskTitle}${problems}`;
 }

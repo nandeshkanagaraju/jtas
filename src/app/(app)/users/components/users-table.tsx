@@ -44,7 +44,7 @@ export function UsersTable({
   onReactivate: (user: UserRow) => void;
 }) {
   return (
-    <div className="rounded-lg border">
+    <div className="bg-card rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>

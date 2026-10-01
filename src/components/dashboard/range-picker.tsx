@@ -2,9 +2,8 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTransition } from 'react';
-import { CalendarRange, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { istDateKey } from '@/lib/utils/time';
 
@@ -15,6 +14,11 @@ import { istDateKey } from '@/lib/utils/time';
  * "last month", "this quarter". The range lives in the URL, so a bookmarked or
  * shared dashboard shows the same numbers to whoever opens it — and the server
  * component re-renders, which keeps the data fetch on the server.
+ *
+ * Drawn as one segmented control rather than four separate buttons, so it
+ * reads as a single setting and takes one line beside a page title. The
+ * selected range itself is a mono caption underneath, where it is available
+ * without competing with the control.
  */
 interface Preset {
   label: string;
@@ -75,7 +79,7 @@ export function RangePicker({
 }: {
   from: string;
   to: string;
-  /** Dashboard only. Reports keeps the compact control. */
+  /** Dashboard only: adds the resolved range as a caption under the control. */
   plain?: boolean;
 }) {
   const router = useRouter();
@@ -93,75 +97,48 @@ export function RangePicker({
     startTransition(() => router.push(`?${search.toString()}`));
   }
 
-  if (plain) {
-    return (
-      <div>
-        <p className="font-mono text-sm text-[#aeb6c3]">
-          {from} to {to}
-          {pending ? ', updating' : ''}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {PRESETS.map((preset) => {
-            const range = preset.compute(today);
-            const active = range.from === from && range.to === to;
+  const control = (
+    <div
+      role="group"
+      aria-label="Date range"
+      className="border-input bg-card inline-flex items-center gap-0.5 rounded-md border p-0.5"
+    >
+      {PRESETS.map((preset) => {
+        const range = preset.compute(today);
+        const active = range.from === from && range.to === to;
 
-            return (
-              <button
-                key={preset.label}
-                type="button"
-                aria-pressed={active}
-                onClick={() => select(preset)}
-                disabled={pending}
-                className={cn(
-                  'min-h-11 rounded-lg border px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d6f25a] disabled:opacity-50',
-                  active
-                    ? 'border-[#d6f25a] bg-[#d6f25a] text-[#14180a]'
-                    : 'border-[#313743] bg-[#262b36] text-[#f3f5f8]',
-                )}
-              >
-                {preset.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+        return (
+          <button
+            key={preset.label}
+            type="button"
+            aria-pressed={active}
+            onClick={() => select(preset)}
+            disabled={pending}
+            className={cn(
+              'rounded-[5px] px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
+              active
+                ? 'bg-foreground text-background'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <span className="hidden sm:inline">{preset.label}</span>
+            <span className="sm:hidden">{preset.short}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (!plain) return control;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-        {pending ? (
-          <Loader2 className="size-3.5 animate-spin" />
-        ) : (
-          <CalendarRange className="size-3.5" />
-        )}
-        <span className="tabular">
-          {from} to {to}
-        </span>
-      </span>
-
-      <div className="flex flex-wrap gap-1">
-        {PRESETS.map((preset) => {
-          const range = preset.compute(today);
-          const active = range.from === from && range.to === to;
-
-          return (
-            <Button
-              key={preset.label}
-              size="sm"
-              variant={active ? 'secondary' : 'ghost'}
-              className={cn('h-7 px-2.5 text-xs', active && 'font-semibold')}
-              aria-pressed={active}
-              onClick={() => select(preset)}
-              disabled={pending}
-            >
-              <span className="hidden sm:inline">{preset.label}</span>
-              <span className="sm:hidden">{preset.short}</span>
-            </Button>
-          );
-        })}
-      </div>
+    <div className="flex flex-col items-start gap-1.5">
+      {control}
+      <p className="text-muted-foreground flex items-center gap-1.5 font-mono text-[11px] tabular-nums">
+        {pending ? <Loader2 className="size-3 animate-spin" /> : null}
+        {from} → {to}
+        {pending ? <span className="sr-only">, updating</span> : null}
+      </p>
     </div>
   );
 }

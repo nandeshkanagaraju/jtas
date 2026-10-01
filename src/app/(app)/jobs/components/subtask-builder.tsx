@@ -151,7 +151,7 @@ export function SubtaskBuilder({
             <div
               key={row.key}
               className={cn(
-                'space-y-3 rounded-lg border p-3',
+                'bg-card space-y-3 rounded-lg border p-3',
                 problems.length > 0 && 'border-destructive/40',
               )}
             >

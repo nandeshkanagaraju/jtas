@@ -127,9 +127,19 @@ export function SlippedDeadlines({
                 <Th className="w-[7rem]">Job</Th>
                 <Th>Task</Th>
                 <Th className="w-[6.5rem]">Team</Th>
-                <Th className="w-[9.5rem]">Owner</Th>
+                {/*
+                  Owner is sized to hold a full name rather than ellipsize one:
+                  "Production Member" measures 130px, so 11rem leaves it room
+                  once the 2rem of cell padding is taken off. The width comes
+                  out of Task, which is the right place for it — a title like
+                  "Manpower and shift allocation for the order" will not fit at
+                  any sane column width, so it relies on its tooltip either way,
+                  whereas a name is short enough to be worth showing in full.
+                */}
+                <Th className="w-[11rem]">Owner</Th>
                 <Th className="w-[6rem] text-right">Late by</Th>
-                <Th className="w-[5rem] text-right">Chasing</Th>
+                {/* "Chased", not "Chasing": the longer word overflows 5rem. */}
+                <Th className="w-[5rem] text-right">Chased</Th>
               </tr>
             </thead>
             <tbody>

@@ -43,7 +43,11 @@ beforeEach(async () => {
   await testDb.comment.deleteMany();
   await testDb.jobCodeCounter.deleteMany();
 
-  production = await createTestDepartment({ code: 'PRODUCTION', name: 'Production', sequenceOrder: 1 });
+  production = await createTestDepartment({
+    code: 'PRODUCTION',
+    name: 'Production',
+    sequenceOrder: 1,
+  });
   quality = await createTestDepartment({ code: 'QUALITY', name: 'Quality', sequenceOrder: 2 });
 
   md = await createTestUser({ email: 'md@jaraaglobal.com', role: 'MD', name: 'Managing Director' });
@@ -509,9 +513,9 @@ describeStorage('attachments, against the real bucket', () => {
     });
     await photo.register();
 
-    expect((await listAttachments({ jobId: job.id, jobLevelOnly: true })).map((a) => a.fileName)).toEqual(
-      ['customer-drawing.pdf'],
-    );
+    expect(
+      (await listAttachments({ jobId: job.id, jobLevelOnly: true })).map((a) => a.fileName),
+    ).toEqual(['customer-drawing.pdf']);
     expect((await listAttachments({ subtaskId: subtask.id })).map((a) => a.fileName)).toEqual([
       'first-piece.png',
     ]);

@@ -96,7 +96,11 @@ describe('checkDeclaredFile', () => {
   });
 
   it('accepts exactly 25 MB and rejects one byte more', () => {
-    const at = { fileName: 'a.pdf', contentType: 'application/pdf', sizeBytes: MAX_ATTACHMENT_BYTES };
+    const at = {
+      fileName: 'a.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: MAX_ATTACHMENT_BYTES,
+    };
 
     expect(checkDeclaredFile(at).ok).toBe(true);
     expect(checkDeclaredFile({ ...at, sizeBytes: MAX_ATTACHMENT_BYTES + 1 }).ok).toBe(false);
@@ -198,9 +202,9 @@ describe('storageKeyFor', () => {
   });
 
   it('files a job-level attachment under `job`', () => {
-    expect(storageKeyFor({ jobId: 'job-1', subtaskId: null, id: 'att-3', fileName: 'po.pdf' })).toBe(
-      'job-1/job/att-3.pdf',
-    );
+    expect(
+      storageKeyFor({ jobId: 'job-1', subtaskId: null, id: 'att-3', fileName: 'po.pdf' }),
+    ).toBe('job-1/job/att-3.pdf');
   });
 
   it('ignores the path in a client-supplied name', () => {

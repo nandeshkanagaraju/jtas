@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { enqueue, listNotifications } from '@/lib/notifications/notification-service';
 import { dispatchDue } from '@/lib/notifications/sweeper';
+import { invalidateSettings } from '@/lib/services/settings';
 import { startOfNextISTDay } from '@/lib/utils/time';
 
 import {
@@ -68,6 +69,22 @@ beforeEach(async () => {
   allowed = await createTestUser({ email: ALLOWED, departmentId: department.id });
   offList = await createTestUser({ email: 'hr@jaraaglobal.com', departmentId: department.id });
   tagged = await createTestUser({ email: TAGGED, departmentId: department.id });
+
+  /*
+   * The working-hours guard is off for this file, as it is for the other
+   * sweeper tests. `DEADLINE_REMINDER` is suppressible, so with the guard on
+   * `dispatchDue` defers every row queued outside 09:00-18:00 IST instead of
+   * sending it — which is a different guard from the two this file is about,
+   * and it masks both. It also made the file depend on the wall-clock hour the
+   * suite happened to run at, and made the midnight-rollover case below fail
+   * outright, since 00:00 IST is never inside working hours.
+   */
+  await testDb.setting.upsert({
+    where: { key: 'suppress_reminders_outside_hours' },
+    create: { key: 'suppress_reminders_outside_hours', value: false },
+    update: { value: false },
+  });
+  invalidateSettings();
 });
 
 afterEach(() => {

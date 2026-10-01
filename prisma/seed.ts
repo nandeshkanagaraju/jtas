@@ -10,6 +10,8 @@
  * database or to a log.
  *
  * Run with: pnpm seed
+ * One-shot production override: tsx prisma/seed.ts --allow-email-overrides
+ * Without that flag, NODE_ENV=production ignores every SEED_* address.
  */
 import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -18,7 +20,7 @@ import { generateTempPassword } from '../src/lib/auth/temp-password';
 import { SEED_DEPARTMENTS } from './seed-data/departments';
 import { SEED_SETTINGS } from './seed-data/settings';
 import { STANDARD_CNC_TEMPLATE } from './seed-data/template';
-import { SEED_USERS } from './seed-data/users';
+import { buildSeedUsers, type SeedUser } from './seed-data/users';
 import { reportSeedCredentials, type SeedCredential } from './seed-credentials';
 
 const prisma = new PrismaClient();
@@ -44,14 +46,14 @@ async function seedDepartments() {
  *          already existed keeps its password — regenerating it would lock out
  *          whoever is using it — and so contributes nothing to report.
  */
-async function seedUsers(): Promise<SeedCredential[]> {
+async function seedUsers(users: SeedUser[]): Promise<SeedCredential[]> {
   const departments = await prisma.department.findMany();
   const byCode = new Map(departments.map((d) => [d.code, d.id]));
 
   const created: SeedCredential[] = [];
   let existing = 0;
 
-  for (const user of SEED_USERS) {
+  for (const user of users) {
     const departmentId = user.departmentCode ? (byCode.get(user.departmentCode) ?? null) : null;
 
     const alreadyThere = await prisma.user.findUnique({
@@ -85,9 +87,7 @@ async function seedUsers(): Promise<SeedCredential[]> {
     created.push({ email: user.email, password });
   }
 
-  console.log(
-    `  ✔ ${SEED_USERS.length} users (${created.length} created, ${existing} already present)`,
-  );
+  console.log(`  ✔ ${users.length} users (${created.length} created, ${existing} already present)`);
 
   return created;
 }
@@ -144,9 +144,13 @@ async function seedJobTemplate() {
 }
 
 async function main() {
+  // Opt-in for one command. Absent, NODE_ENV=production still ignores SEED_*.
+  const allowEmailOverrides = process.argv.includes('--allow-email-overrides');
+  const users = buildSeedUsers(process.env, console.warn, { allowEmailOverrides });
+
   console.log('Seeding JTAS…');
   await seedDepartments();
-  const credentials = await seedUsers();
+  const credentials = await seedUsers(users);
   await seedSettings();
   await seedJobTemplate();
   console.log('Done.');

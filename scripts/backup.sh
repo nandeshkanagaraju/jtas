@@ -1,39 +1,60 @@
 #!/bin/sh
-# Nightly pg_dump to the object store, with retention (SDD 10.4).
+# Nightly pg_dump to S3, with 30-day retention.
 #
-# Runs as a long-lived container that sleeps until the next BACKUP_AT_UTC
-# rather than as a host cron entry: the backup then ships with the stack and
-# cannot be forgotten when the VPS is rebuilt. Restore is documented and
-# rehearsed in docs/RUNBOOK.md — a backup nobody has restored is a hope.
+# Credentials come from the EC2 instance role. This script refuses to run if
+# access keys were injected: a key in the environment is how a laptop secret
+# ends up in a backup container.
 set -eu
 
 RETENTION="${BACKUP_RETENTION_DAYS:-30}"
 BUCKET="${BACKUP_BUCKET:-jtas-backups}"
 AT="${BACKUP_AT_UTC:-19:30}"
+export AWS_REGION="${AWS_REGION:-ap-south-1}"
+export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-$AWS_REGION}"
 
 log() { echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') backup: $*"; }
 
-# `mc` is baked into the image (Dockerfile.backup) rather than fetched at boot.
-if ! command -v mc >/dev/null 2>&1; then
-  log "FATAL: mc is not in the image"
+if [ -n "${AWS_ACCESS_KEY_ID:-}" ] || [ -n "${AWS_SECRET_ACCESS_KEY:-}" ]; then
+  log "FATAL: AWS access keys are set. Use the instance role."
   exit 1
 fi
 
-until mc alias set store "http://minio:9000" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
-  log "waiting for object storage"
+if ! command -v aws >/dev/null 2>&1; then
+  log "FATAL: aws is not in the image"
+  exit 1
+fi
+
+until aws sts get-caller-identity >/dev/null 2>&1; do
+  log "waiting for the instance role"
   sleep 5
 done
 
-mc mb --ignore-existing "store/$BUCKET" >/dev/null 2>&1 || true
+until aws s3api head-bucket --bucket "$BUCKET" >/dev/null 2>&1; do
+  log "waiting for s3://$BUCKET"
+  sleep 5
+done
+
+prune() {
+  cutoff="$(date -u -d "-${RETENTION} days" +%s)"
+  aws s3 ls "s3://$BUCKET/" | while read -r day time size key; do
+    [ -n "${key:-}" ] || continue
+    case "$key" in
+      *.sql.gz) ;;
+      *) continue ;;
+    esac
+    stamp="$(date -u -d "$day $time" +%s)"
+    if [ "$stamp" -lt "$cutoff" ]; then
+      aws s3 rm "s3://$BUCKET/$key" >/dev/null
+      log "pruned $key"
+    fi
+  done
+}
 
 run_backup() {
   stamp="$(date -u '+%Y-%m-%dT%H-%M-%SZ')"
   file="/tmp/jtas-${stamp}.sql.gz"
 
   log "dumping $PGDATABASE"
-  # --clean --if-exists so the dump can be restored over a live database
-  # without dropping it first; -Fp because a plain dump can be read and
-  # partially applied by a human under pressure.
   pg_dump --clean --if-exists --no-owner --no-privileges -Fp | gzip -9 > "$file"
 
   size="$(wc -c < "$file")"
@@ -43,21 +64,17 @@ run_backup() {
     return 1
   fi
 
-  mc cp "$file" "store/$BUCKET/$(basename "$file")" >/dev/null
+  aws s3 cp "$file" "s3://$BUCKET/$(basename "$file")" >/dev/null
   log "uploaded $(basename "$file") (${size} bytes)"
   rm -f "$file"
-
-  # Retention. `--force` is required by mc for an unattended delete.
-  mc rm --recursive --force --older-than "${RETENTION}d" "store/$BUCKET/" >/dev/null 2>&1 || true
+  prune
   log "pruned anything older than ${RETENTION} days"
 }
 
-# One on boot, so a fresh deployment has a backup before its first night.
 run_backup || log "initial backup failed"
 
 while true; do
   now="$(date -u '+%H:%M')"
-  # Seconds until the next occurrence of AT, wrapping past midnight.
   target_min=$(( ${AT%%:*} * 60 + ${AT##*:} ))
   now_min=$(( ${now%%:*} * 60 + ${now##*:} ))
   wait_min=$(( target_min - now_min ))

@@ -46,14 +46,18 @@ export type SeedEmailVariable = (typeof SEED_EMAIL_OVERRIDES)[number]['variable'
 export function resolveAllSeedEmails(
   env: NodeJS.ProcessEnv = process.env,
   warn: (message: string) => void = console.warn,
+  options: { allowEmailOverrides?: boolean } = {},
 ): Record<SeedEmailVariable, string> {
   const isProduction = env.NODE_ENV === 'production';
+  // Only an explicit true from the seed command. No environment variable
+  // counts: a value left in .env would silently retire this guard.
+  const allowEmailOverrides = options.allowEmailOverrides === true;
 
   const ignored = SEED_EMAIL_OVERRIDES.filter(({ variable }) => env[variable]?.trim()).map(
     ({ variable }) => variable,
   );
 
-  if (isProduction && ignored.length > 0) {
+  if (isProduction && !allowEmailOverrides && ignored.length > 0) {
     warn(
       `\n  !!  NODE_ENV=production: ignoring ${ignored.join(', ')}.\n` +
         `  !!  Seeding the go-live roster instead — ${DEFAULT_MD_EMAIL} is the MD.\n` +
@@ -61,10 +65,18 @@ export function resolveAllSeedEmails(
     );
   }
 
+  if (isProduction && allowEmailOverrides) {
+    warn(
+      `\n  !!  --allow-email-overrides: this one run will honour SEED_* in production.\n` +
+        `  !!  Applied: ${ignored.length > 0 ? ignored.join(', ') : '(none set — go-live addresses)'}.\n` +
+        `  !!  A seed without that flag still ignores them and uses ${DEFAULT_MD_EMAIL}.\n`,
+    );
+  }
+
   return Object.fromEntries(
     SEED_EMAIL_OVERRIDES.map(({ variable, fallback }) => [
       variable,
-      isProduction ? fallback : env[variable]?.trim() || fallback,
+      !isProduction || allowEmailOverrides ? env[variable]?.trim() || fallback : fallback,
     ]),
   ) as Record<SeedEmailVariable, string>;
 }
@@ -84,12 +96,11 @@ export function resolveAllSeedEmails(
 export function resolveSeedEmails(
   env: NodeJS.ProcessEnv = process.env,
   warn: (message: string) => void = console.warn,
+  options: { allowEmailOverrides?: boolean } = {},
 ): { mdEmail: string; memberEmail: string } {
-  const all = resolveAllSeedEmails(env, warn);
+  const all = resolveAllSeedEmails(env, warn, options);
   return { mdEmail: all.SEED_MD_EMAIL, memberEmail: all.SEED_MEMBER_EMAIL };
 }
-
-const EMAILS = resolveAllSeedEmails();
 
 export interface SeedUser {
   name: string;
@@ -98,50 +109,70 @@ export interface SeedUser {
   departmentCode: string | null;
 }
 
-export const SEED_USERS: SeedUser[] = [
-  { name: 'Managing Director', email: EMAILS.SEED_MD_EMAIL, role: 'MD', departmentCode: null },
-  { name: 'System Admin', email: EMAILS.SEED_ADMIN_EMAIL, role: 'ADMIN', departmentCode: null },
+const ROSTER: Array<{
+  name: string;
+  role: SeedUser['role'];
+  departmentCode: string | null;
+  emailVariable: SeedEmailVariable;
+}> = [
+  { name: 'Managing Director', role: 'MD', departmentCode: null, emailVariable: 'SEED_MD_EMAIL' },
+  { name: 'System Admin', role: 'ADMIN', departmentCode: null, emailVariable: 'SEED_ADMIN_EMAIL' },
   {
     name: 'Planning Member',
-    email: EMAILS.SEED_PLANNING_EMAIL,
     role: 'MEMBER',
     departmentCode: 'PLANNING',
+    emailVariable: 'SEED_PLANNING_EMAIL',
   },
   {
     name: 'Purchase Member',
-    email: EMAILS.SEED_PURCHASE_EMAIL,
     role: 'MEMBER',
     departmentCode: 'PURCHASE',
+    emailVariable: 'SEED_PURCHASE_EMAIL',
   },
   {
     name: 'Store Member',
-    email: EMAILS.SEED_STORE_EMAIL,
     role: 'MEMBER',
     departmentCode: 'STORE',
+    emailVariable: 'SEED_STORE_EMAIL',
   },
   {
     name: 'Production Member',
-    email: EMAILS.SEED_MEMBER_EMAIL,
     role: 'MEMBER',
     departmentCode: 'PRODUCTION',
+    emailVariable: 'SEED_MEMBER_EMAIL',
   },
   {
     name: 'Quality Member',
-    email: EMAILS.SEED_QUALITY_EMAIL,
     role: 'MEMBER',
     departmentCode: 'QUALITY',
+    emailVariable: 'SEED_QUALITY_EMAIL',
   },
   {
     name: 'Dispatch Member',
-    email: EMAILS.SEED_DISPATCH_EMAIL,
     role: 'MEMBER',
     departmentCode: 'DISPATCH',
+    emailVariable: 'SEED_DISPATCH_EMAIL',
   },
   {
     name: 'Accounts Member',
-    email: EMAILS.SEED_ACCOUNTS_EMAIL,
     role: 'MEMBER',
     departmentCode: 'ACCOUNTS',
+    emailVariable: 'SEED_ACCOUNTS_EMAIL',
   },
-  { name: 'HR Member', email: EMAILS.SEED_HR_EMAIL, role: 'MEMBER', departmentCode: 'HR' },
+  { name: 'HR Member', role: 'MEMBER', departmentCode: 'HR', emailVariable: 'SEED_HR_EMAIL' },
 ];
+
+/** The ten accounts, with the production guard applied unless the flag is passed. */
+export function buildSeedUsers(
+  env: NodeJS.ProcessEnv = process.env,
+  warn: (message: string) => void = console.warn,
+  options: { allowEmailOverrides?: boolean } = {},
+): SeedUser[] {
+  const emails = resolveAllSeedEmails(env, warn, options);
+  return ROSTER.map((row) => ({
+    name: row.name,
+    role: row.role,
+    departmentCode: row.departmentCode,
+    email: emails[row.emailVariable],
+  }));
+}

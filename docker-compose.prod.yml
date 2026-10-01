@@ -1,20 +1,25 @@
-# Production topology — SDD section 10.2, one VPS at 2 vCPU / 4 GB.
+# Production topology — one EC2 instance in ap-south-1, x86, Ubuntu 24.04.
 #
-#   caddy   the only thing on the public internet; terminates TLS
+# No `platform:` pin. Every image here is multi-arch, so the host's Docker
+# pulls amd64 on this VM and arm64 on an Apple laptop. t3.micro (1 GB) is not
+# enough; see docs/DEPLOY.md.
+#
+#   caddy   the only thing on the public internet; terminates TLS for
+#           <dashed-elastic-ip>.sslip.io
 #   app     the Next server, reachable only from caddy
 #   worker  the scheduler; reachable from nothing
 #   db      PostgreSQL 16
 #   redis   BullMQ's broker and the shared rate-limit store
-#   minio   S3-compatible attachment storage
-#   backup  nightly pg_dump to the bucket, 30-day retention
+#   minio   attachment storage, internal only
+#   backup  nightly pg_dump to S3, using the instance role, 30-day retention
 #
-# Only caddy publishes ports. Everything else talks over the internal network,
-# so Postgres and MinIO are not addressable from outside the host even if their
-# passwords leak.
+# Only caddy publishes ports. Postgres, Redis and MinIO stay on the docker
+# network. Do not add them to the security group or to ufw.
 #
-#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d
 #
-# Configuration comes from .env.production — see docs/RUNBOOK.md.
+# Configuration comes from the server's .env — see docs/DEPLOY.md.
+# That file is not the laptop development .env.
 #
 # No explicit container_name anywhere: the project name below already prefixes
 # every container, and hard-coding them collides with the development stack the
@@ -31,12 +36,17 @@ x-app-env: &app-env
   APP_BASE_URL: https://${JTAS_DOMAIN}
   JWT_SECRET: ${JWT_SECRET}
   REFRESH_SECRET: ${REFRESH_SECRET}
-  SMTP_HOST: ${SMTP_HOST}
-  SMTP_PORT: ${SMTP_PORT}
-  SMTP_SECURE: ${SMTP_SECURE}
-  SMTP_USER: ${SMTP_USER}
-  SMTP_PASS: ${SMTP_PASS}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_SECURE: ${SMTP_SECURE:-true}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASS: ${SMTP_PASS:-}
   MAIL_FROM: ${MAIL_FROM}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-JTAS}
+  MAIL_PROVIDER: ${MAIL_PROVIDER:-brevo}
+  BREVO_API_KEY: ${BREVO_API_KEY:-}
+  MAIL_ALLOWLIST: ${MAIL_ALLOWLIST:-}
+  MAIL_DAILY_CAP: ${MAIL_DAILY_CAP:-250}
   # Two endpoints. The app talks to MinIO on the Docker network; the browser
   # reaches it through Caddy at /files. SigV4 signs the host, so a presigned
   # URL must be signed against the public one — and the server should not have
@@ -165,15 +175,16 @@ services:
       /bin/sh -c "
       until mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do sleep 2; done;
       mc mb --ignore-existing local/${S3_BUCKET:-jtas-attachments};
-      mc mb --ignore-existing local/${BACKUP_BUCKET:-jtas-backups};
       echo 'buckets ready';
       "
     restart: 'no'
 
-  # Nightly pg_dump to the bucket with 30-day retention (SDD 10.4).
+  # Nightly pg_dump to S3, 30-day retention.
   #
-  # A sidecar rather than a host cron job, so the backup ships with the stack
-  # and cannot be forgotten when the VPS is rebuilt.
+  # No access keys. The container uses the EC2 instance role, which requires
+  # the instance metadata hop limit to be 2 (docs/DEPLOY.md). An attachment
+  # store outage must not take the database backups with it, so this does not
+  # talk to MinIO.
   backup:
     build:
       context: .
@@ -185,8 +196,8 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGDATABASE: ${POSTGRES_DB}
       PGHOST: db
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      AWS_DEFAULT_REGION: ${AWS_REGION:-ap-south-1}
       BACKUP_BUCKET: ${BACKUP_BUCKET:-jtas-backups}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
       BACKUP_AT_UTC: ${BACKUP_AT_UTC:-19:30} # 01:00 IST

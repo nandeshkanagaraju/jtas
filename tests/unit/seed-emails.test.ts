@@ -109,4 +109,32 @@ describe('resolveSeedEmails — in production', () => {
     expect(result.mdEmail.endsWith('@jaraaglobal.com')).toBe(true);
     expect(result.memberEmail.endsWith('@jaraaglobal.com')).toBe(true);
   });
+
+  it('applies overrides in production only when the command passes the flag', () => {
+    const warn = vi.fn();
+    const result = resolveSeedEmails({ ...OVERRIDES, NODE_ENV: 'production' }, warn, {
+      allowEmailOverrides: true,
+    });
+
+    expect(result).toEqual({
+      mdEmail: 'someone@gmail.com',
+      memberEmail: 'someone.else@gmail.com',
+    });
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn.mock.calls[0][0] as string).toContain('--allow-email-overrides');
+  });
+
+  it('does not treat an environment variable as the flag', () => {
+    const result = resolveSeedEmails(
+      {
+        NODE_ENV: 'production',
+        SEED_MD_EMAIL: 'someone@gmail.com',
+        SEED_ALLOW_EMAIL_OVERRIDES: '1',
+        ALLOW_EMAIL_OVERRIDES: 'true',
+      },
+      vi.fn(),
+    );
+
+    expect(result.mdEmail).toBe(DEFAULT_MD_EMAIL);
+  });
 });

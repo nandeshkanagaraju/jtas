@@ -1,15 +1,27 @@
 # The nightly backup container.
 #
-# postgres:16-alpine for pg_dump — the same major version as the database, so
-# the dump format cannot drift — plus the MinIO client copied from its own
-# image rather than downloaded at runtime. Fetching mc from dl.min.io at boot
-# looked tidier until that URL started answering 410 and every backup stopped
-# with no alert.
-FROM quay.io/minio/mc:latest AS mc
+# postgres:16, the same major version as the database, so the dump format
+# cannot drift. The AWS CLI is installed for whichever architecture the image
+# is built on, and it authenticates with the EC2 instance role. There are no
+# keys in the image or in the environment.
+FROM postgres:16
 
-FROM postgres:16-alpine
-COPY --from=mc /usr/bin/mc /usr/local/bin/mc
-RUN chmod +x /usr/local/bin/mc
-COPY scripts/backup.sh /usr/local/bin/backup.sh
-RUN chmod +x /usr/local/bin/backup.sh
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+  && arch="$(dpkg --print-architecture)" \
+  && case "$arch" in \
+       amd64) aws_arch=x86_64 ;; \
+       arm64) aws_arch=aarch64 ;; \
+       *) echo "unsupported architecture: $arch" >&2; exit 1 ;; \
+     esac \
+  && curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${aws_arch}.zip" -o /tmp/awscliv2.zip \
+  && unzip -q /tmp/awscliv2.zip -d /tmp \
+  && /tmp/aws/install \
+  && rm -rf /tmp/aws /tmp/awscliv2.zip \
+  && apt-get purge -y curl unzip \
+  && apt-get autoremove -y \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/backup.sh scripts/restore-proof.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/backup.sh /usr/local/bin/restore-proof.sh
 ENTRYPOINT ["/bin/sh", "/usr/local/bin/backup.sh"]

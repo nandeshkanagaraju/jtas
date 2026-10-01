@@ -1,8 +1,15 @@
 # Caddy, the only thing on the public internet (SDD 10.2).
 #
 # TLS is automatic: Caddy provisions and renews a Let's Encrypt certificate for
-# JTAS_DOMAIN, which is why the compose file publishes 80 as well as 443 — the
-# ACME challenge arrives on 80.
+# {$JTAS_DOMAIN}. Until a real domain exists that value is the sslip.io name
+# <dashed-ip>.sslip.io (and files.<dashed-ip>.sslip.io for attachments).
+# Port 80 stays published because the ACME challenge arrives there.
+#
+# Moving to the real name is one edit on the site address below, plus A
+# records. Replace {$JTAS_DOMAIN} with jtas.jaraaglobal.com and
+# {$JTAS_FILES_DOMAIN} with files.jaraaglobal.com, then set the same two
+# values in the server .env so APP_BASE_URL and presigned URLs match.
+# docs/DEPLOY.md has the exact swap.
 
 {
 	email {$ACME_EMAIL}

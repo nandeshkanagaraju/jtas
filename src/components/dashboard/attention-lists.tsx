@@ -70,7 +70,9 @@ export function ProblemList({ problems, total }: { problems: AttentionProblem[];
                     {problem.severity}
                   </Badge>
                 </div>
-                <p className="mt-1.5 truncate text-sm font-medium">{problem.subtaskTitle}</p>
+                <p className="mt-1.5 truncate text-sm font-medium" title={problem.subtaskTitle}>
+                  {problem.subtaskTitle}
+                </p>
                 <p className="text-foreground/80 mt-0.5 line-clamp-2 text-sm">
                   {problem.description}
                 </p>
@@ -144,13 +146,18 @@ export function SlippedDeadlines({
                   <Td>
                     <Link
                       href={`/tasks/${subtask.id}`}
+                      title={subtask.title}
                       className="block truncate font-medium hover:underline"
                     >
                       {subtask.title}
                     </Link>
                   </Td>
-                  <Td className="truncate">{subtask.departmentName}</Td>
-                  <Td className="text-muted-foreground truncate">{subtask.assigneeName}</Td>
+                  <Td className="truncate" title={subtask.departmentName}>
+                    {subtask.departmentName}
+                  </Td>
+                  <Td className="text-muted-foreground truncate" title={subtask.assigneeName}>
+                    {subtask.assigneeName}
+                  </Td>
                   <Td className="text-late text-right font-medium tabular-nums">
                     {waited(subtask.overdueHours)}
                   </Td>
@@ -199,6 +206,19 @@ function Th({ className, children }: { className?: string; children: React.React
   );
 }
 
-function Td({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <td className={cn('px-4 py-2.5 text-sm whitespace-nowrap', className)}>{children}</td>;
+function Td({
+  className,
+  title,
+  children,
+}: {
+  className?: string;
+  /** The untruncated text, for cells that ellipsize. */
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <td title={title} className={cn('px-4 py-2.5 text-sm whitespace-nowrap', className)}>
+      {children}
+    </td>
+  );
 }

@@ -49,8 +49,12 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
                     {job.status === 'DELAYED' ? 'Delayed' : 'At risk'}
                   </Badge>
                 </div>
-                <p className="mt-1.5 truncate text-sm font-medium">{job.title}</p>
-                <p className="text-foreground/80 mt-0.5 truncate text-sm">{holding(job)}</p>
+                <p className="mt-1.5 truncate text-sm font-medium" title={job.title}>
+                  {job.title}
+                </p>
+                <p className="text-foreground/80 mt-0.5 truncate text-sm" title={holding(job)}>
+                  {holding(job)}
+                </p>
                 <p className="text-muted-foreground mt-1.5 text-xs tabular-nums">
                   Due {formatIST(new Date(job.overallDeadline), 'd MMM')}
                 </p>

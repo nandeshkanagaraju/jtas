@@ -4,6 +4,7 @@ import { Plus, Sparkles, Trash2, TriangleAlert } from 'lucide-react';
 import { useMemo } from 'react';
 
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
+import { ReminderLeadField } from '@/components/shared/reminder-lead-field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,9 @@ import {
 } from '@/components/ui/select';
 import type { DepartmentSummary } from '@/lib/services/department-service';
 import type { UserRow } from '@/lib/api/users-client';
+import { reminderLeadMinutesProblem } from '@/lib/domain/reminder-lead';
 import { cn } from '@/lib/utils';
+import { fromISTInput } from '@/lib/utils/time';
 
 /** One editable row in the builder. `key` is local and becomes `dependsOnKey`. */
 export interface SubtaskRowDraft {
@@ -40,7 +43,14 @@ export function rowProblems(row: SubtaskRowDraft): string[] {
   if (!row.assigneeId) problems.push('Choose who is responsible.');
   if (row.title.trim().length < 3) problems.push('Give it a title.');
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(row.deadline)) problems.push('Set a deadline.');
+  const lead = reminderLeadMinutesProblem(row.reminderLeadMinutes);
+  if (lead) problems.push(lead);
   return problems;
+}
+
+/** Step 2 may open the review only when every row is complete, including the lead. */
+export function canReviewRows(rows: SubtaskRowDraft[]): boolean {
+  return rows.length > 0 && rows.every((row) => rowProblems(row).length === 0);
 }
 
 export function SubtaskBuilder({
@@ -145,6 +155,8 @@ export function SubtaskBuilder({
           const earlier = rows.slice(0, index);
           const candidates = usersByDepartment.get(row.departmentId) ?? [];
           const problems = rowProblems(row);
+          const leadProblem = reminderLeadMinutesProblem(row.reminderLeadMinutes);
+          const otherProblems = problems.filter((problem) => problem !== leadProblem);
           const late = row.deadline !== '' && jobDeadline !== '' && row.deadline > jobDeadline;
 
           return (
@@ -225,19 +237,16 @@ export function SubtaskBuilder({
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Remind (minutes before)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    step={1}
-                    aria-label="Remind minutes before"
-                    value={row.reminderLeadMinutes}
-                    onChange={(event) =>
-                      update(index, { reminderLeadMinutes: Number(event.target.value) })
-                    }
-                  />
-                </div>
+                <ReminderLeadField
+                  id={`reminder-lead-${index}`}
+                  minutes={row.reminderLeadMinutes}
+                  deadline={
+                    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(row.deadline)
+                      ? fromISTInput(row.deadline)
+                      : null
+                  }
+                  onMinutes={(reminderLeadMinutes) => update(index, { reminderLeadMinutes })}
+                />
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Depends on</Label>
@@ -286,8 +295,8 @@ export function SubtaskBuilder({
                 </Button>
               </div>
 
-              {problems.length > 0 ? (
-                <p className="text-destructive text-xs">{problems.join(' ')}</p>
+              {otherProblems.length > 0 ? (
+                <p className="text-destructive text-xs">{otherProblems.join(' ')}</p>
               ) : null}
 
               {late ? (

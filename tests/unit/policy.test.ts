@@ -490,10 +490,13 @@ describe('cross-department subtask visibility', () => {
     const stranger = { ...siblingSubtask, jobParticipantIds: ['somebody-else'] };
 
     expect(can(member, 'comment:create', stranger)).toBe(false);
+    expect(can(member, 'attachment:view', stranger)).toBe(false);
   });
 
   it('refuses a member who is not on the job at all', () => {
     expect(can(otherMember, 'subtask:view', siblingSubtask)).toBe(false);
+    expect(can(otherMember, 'attachment:view', siblingSubtask)).toBe(false);
+    expect(can(md, 'attachment:view', siblingSubtask)).toBe(true);
   });
 
   it('fails closed when the participant list was not supplied', () => {

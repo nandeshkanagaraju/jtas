@@ -24,6 +24,17 @@ import type { AttachmentRow } from '@/lib/services/attachment-service';
 import { cn } from '@/lib/utils';
 import { formatIST } from '@/lib/utils/time';
 
+/**
+ * Opens one attachment through the presigned GET.
+ *
+ * The same route the task page uses. The URL is minted for this reader and
+ * expires in a few minutes; the bucket itself stays private.
+ */
+export async function openAttachment(id: string): Promise<void> {
+  const { url } = await apiFetch<{ url: string }>(`/api/attachments/${id}/url`);
+  window.location.assign(url);
+}
+
 interface Uploading {
   name: string;
   /** 0–100. */
@@ -175,8 +186,7 @@ export function AttachmentPanel({
 
   async function download(item: AttachmentRow) {
     try {
-      const { url } = await apiFetch<{ url: string }>(`/api/attachments/${item.id}/url`);
-      window.location.href = url;
+      await openAttachment(item.id);
     } catch {
       toast.error('Could not open that file.');
     }

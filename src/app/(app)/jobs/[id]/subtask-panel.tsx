@@ -21,11 +21,13 @@ import { SubtaskTimeline } from './subtask-timeline';
 export function SubtaskPanel({
   jobId,
   canManage,
+  currentUserId,
   onJobChanged,
 }: {
   jobId: string;
   /** MD and Deputy: whether the drawer offers actions at all. */
   canManage: boolean;
+  currentUserId: string;
   onJobChanged: () => void;
 }) {
   const [subtasks, setSubtasks] = useState<SubtaskDto[]>([]);
@@ -93,6 +95,7 @@ export function SubtaskPanel({
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
           candidates={candidates}
+          currentUserId={currentUserId}
           onChanged={async (message) => {
             setNotice(message ?? null);
             await load();

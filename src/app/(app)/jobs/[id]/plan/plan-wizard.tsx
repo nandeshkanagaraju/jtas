@@ -3,11 +3,11 @@
 import { ArrowLeft, Loader2, Send, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   SubtaskBuilder,
-  rowProblems,
+  canReviewRows,
   type SubtaskRowDraft,
 } from '@/app/(app)/jobs/components/subtask-builder';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,6 +26,37 @@ import { fromISTInput } from '@/lib/utils/time';
 
 import { PlanReview } from './plan-review';
 
+/**
+ * A publish failure names the field, and a step-2 field can be focused again.
+ *
+ * Step 3 has nothing to highlight, so the generic "correct the highlighted
+ * fields" sentence is replaced with the server's own reason.
+ */
+function describePublishError(caught: unknown): { message: string; focusId: string | null } {
+  if (!(caught instanceof ApiError)) {
+    return { message: 'Could not reach the server.', focusId: null };
+  }
+
+  const fields = caught.fields ?? {};
+  const entry = Object.entries(fields).find(([, messages]) => messages.length > 0);
+  if (!entry) return { message: caught.message, focusId: null };
+
+  const [path, messages] = entry;
+  const match = /^subtasks\.(\d+)\.(\w+)/.exec(path);
+  if (!match) return { message: messages[0], focusId: null };
+
+  const index = match[1];
+  const field = match[2];
+  const focusId =
+    field === 'reminderLeadMinutes'
+      ? `reminder-lead-${index}`
+      : field === 'deadline'
+        ? `subtask-deadline-${index}`
+        : null;
+
+  return { message: messages[0], focusId };
+}
+
 interface JobHeader {
   id: string;
   jobCode: string;
@@ -38,17 +69,21 @@ export function PlanWizard({
   departments,
   templates,
   users,
+  initialRows = [],
 }: {
   job: JobHeader;
   departments: DepartmentSummary[];
   templates: TemplateSummary[];
   users: UserRow[];
+  /** A chain already on screen. The plan page starts empty. */
+  initialRows?: SubtaskRowDraft[];
 }) {
   const router = useRouter();
-  const [rows, setRows] = useState<SubtaskRowDraft[]>([]);
+  const [rows, setRows] = useState<SubtaskRowDraft[]>(initialRows);
   const [step, setStep] = useState<2 | 3>(2);
   const [overrideReason, setOverrideReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [errorFocusId, setErrorFocusId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const template = templates[0] ?? null;
@@ -95,9 +130,13 @@ export function PlanWizard({
     );
   }
 
-  const incomplete = rows.filter((row) => rowProblems(row).length > 0);
   const late = rows.filter((row) => row.deadline !== '' && row.deadline > job.overallDeadline);
-  const canContinue = rows.length > 0 && incomplete.length === 0;
+  const canContinue = canReviewRows(rows);
+
+  useEffect(() => {
+    if (!errorFocusId || step !== 2) return;
+    document.getElementById(errorFocusId)?.focus();
+  }, [errorFocusId, step]);
 
   async function saveAndPublish() {
     setBusy(true);
@@ -123,7 +162,10 @@ export function PlanWizard({
       await publishJobRequest(job.id);
       router.push(`/jobs/${job.id}`);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Could not reach the server.');
+      const described = describePublishError(caught);
+      setError(described.message);
+      setErrorFocusId(described.focusId);
+      if (described.focusId) setStep(2);
       setBusy(false);
     }
   }
@@ -151,7 +193,22 @@ export function PlanWizard({
       {error ? (
         <Alert variant="destructive" role="alert">
           <AlertTitle>That did not work</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {errorFocusId ? (
+              <button
+                type="button"
+                className="text-left underline underline-offset-2"
+                onClick={() => {
+                  setStep(2);
+                  document.getElementById(errorFocusId)?.focus();
+                }}
+              >
+                {error}
+              </button>
+            ) : (
+              error
+            )}
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -175,7 +232,15 @@ export function PlanWizard({
             <Button variant="ghost" onClick={() => router.push(`/jobs/${job.id}`)}>
               Save and finish later
             </Button>
-            <Button disabled={!canContinue} onClick={() => setStep(3)}>
+            <Button
+              disabled={!canContinue}
+              onClick={() => {
+                if (!canReviewRows(rows)) return;
+                setError(null);
+                setErrorFocusId(null);
+                setStep(3);
+              }}
+            >
               Review ({rows.length})
             </Button>
           </div>

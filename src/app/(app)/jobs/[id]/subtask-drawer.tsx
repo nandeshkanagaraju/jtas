@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
+import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
+import { CommentThread } from '@/components/collaboration/comment-thread';
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
+import { ReminderLeadField } from '@/components/shared/reminder-lead-field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -28,7 +33,8 @@ import {
   reassignSubtaskRequest,
   type SubtaskDto,
 } from '@/lib/api/subtasks-client';
-import { formatIST } from '@/lib/utils/time';
+import { reminderLeadMinutesProblem } from '@/lib/domain/reminder-lead';
+import { formatIST, fromISTInput } from '@/lib/utils/time';
 
 import { ActionPanel } from './action-panel';
 import { SubtaskActions, SubtaskFacts, type ActionPanelName } from './subtask-actions';
@@ -47,6 +53,7 @@ export function SubtaskDrawer({
   open,
   onOpenChange,
   candidates,
+  currentUserId,
   onChanged,
 }: {
   subtask: SubtaskDto | null;
@@ -54,12 +61,14 @@ export function SubtaskDrawer({
   onOpenChange: (open: boolean) => void;
   /** Active, non-admin users who could take the subtask over. */
   candidates: UserRow[];
+  currentUserId: string;
   onChanged: (message?: string) => void;
 }) {
   const [panel, setPanel] = useState<ActionPanelName>('none');
   const [reason, setReason] = useState('');
   const [override, setOverride] = useState('');
   const [newDeadline, setNewDeadline] = useState('');
+  const [leadMinutes, setLeadMinutes] = useState(360);
   const [newAssignee, setNewAssignee] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -72,6 +81,7 @@ export function SubtaskDrawer({
     setError(null);
     setNewAssignee(undefined);
     setNewDeadline(formatIST(new Date(subtask.deadline), "yyyy-MM-dd'T'HH:mm"));
+    setLeadMinutes(subtask.reminderLeadMinutes);
   }, [open, subtask]);
 
   if (!subtask) return null;
@@ -185,7 +195,11 @@ export function SubtaskDrawer({
               // The field is prefilled with the current deadline, and the
               // server rejects a change to the value it already has — so the
               // button stays off until something actually moved.
-              disabled={newDeadline === currentDeadlineValue}
+              disabled={
+                (newDeadline === currentDeadlineValue &&
+                  leadMinutes === subtask.reminderLeadMinutes) ||
+                reminderLeadMinutesProblem(leadMinutes) !== null
+              }
               onCancel={() => setPanel('none')}
               onConfirm={() =>
                 run(
@@ -194,6 +208,7 @@ export function SubtaskDrawer({
                       newDeadline,
                       reason,
                       deadlineOverrideReason: override || undefined,
+                      reminderLeadMinutes: leadMinutes,
                     }),
                   'Deadline changed.',
                 )
@@ -209,6 +224,16 @@ export function SubtaskDrawer({
                   onChange={setNewDeadline}
                 />
               </div>
+              <ReminderLeadField
+                id="deadline-reminder-lead"
+                minutes={leadMinutes}
+                deadline={
+                  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(newDeadline)
+                    ? fromISTInput(newDeadline)
+                    : new Date(subtask.deadline)
+                }
+                onMinutes={setLeadMinutes}
+              />
             </ActionPanel>
           ) : null}
 
@@ -311,6 +336,21 @@ export function SubtaskDrawer({
               }
             />
           ) : null}
+
+          <Separator />
+
+          <AttachmentPanel
+            jobId={subtask.jobId}
+            subtaskId={subtask.id}
+            canUpload={false}
+            canDelete={false}
+          />
+
+          <CommentThread subtaskId={subtask.id} currentUserId={currentUserId} canComment />
+
+          <Button asChild variant="link" className="h-auto px-0">
+            <Link href={`/tasks/${subtask.id}`}>Open the full task</Link>
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

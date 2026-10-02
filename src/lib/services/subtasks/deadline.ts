@@ -58,7 +58,10 @@ export async function changeDeadline(
 
   const newDeadline = parseSubtaskDeadline(input.newDeadline, { field: 'newDeadline' });
 
-  if (newDeadline.getTime() === subtask.deadline.getTime()) {
+  const nextLead = input.reminderLeadMinutes;
+  const leadChanged = nextLead !== undefined && nextLead !== subtask.reminderLeadMinutes;
+
+  if (newDeadline.getTime() === subtask.deadline.getTime() && !leadChanged) {
     throw validationError('That is the deadline it already has.', {
       fields: { newDeadline: ['Choose a different date and time.'] },
     });
@@ -78,6 +81,7 @@ export async function changeDeadline(
       where: { id: subtaskId },
       data: {
         deadline: newDeadline,
+        ...(leadChanged ? { reminderLeadMinutes: nextLead } : {}),
         // SDD 4.5: a new deadline starts a new escalation clock.
         escalationCount: 0,
         lastEscalatedAt: null,
@@ -100,12 +104,17 @@ export async function changeDeadline(
       action: 'SUBTASK_DEADLINE_CHANGED',
       entityType: 'SUBTASK',
       entityId: subtaskId,
-      before: { deadline: oldDeadline.toISOString(), escalationCount: subtask.escalationCount },
+      before: {
+        deadline: oldDeadline.toISOString(),
+        escalationCount: subtask.escalationCount,
+        ...(leadChanged ? { reminderLeadMinutes: subtask.reminderLeadMinutes } : {}),
+      },
       after: {
         deadline: newDeadline.toISOString(),
         escalationCount: 0,
         reason: input.reason,
         overrodeJobDeadline: input.deadlineOverrideReason ?? null,
+        ...(leadChanged ? { reminderLeadMinutes: nextLead } : {}),
       },
       ipAddress: ctx.ipAddress,
       onBehalfOf: actor.role === 'DEPUTY_MD' ? 'MD' : null,

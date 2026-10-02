@@ -12,8 +12,10 @@ import {
   UserCog,
 } from 'lucide-react';
 
+import { openAttachment } from '@/components/collaboration/attachment-panel';
 import { CommentBody } from '@/components/collaboration/comment-body';
 import { apiFetch } from '@/lib/api/client';
+import { toast } from 'sonner';
 import type { ActivityItem } from '@/lib/services/activity-feed';
 import type { MentionCandidate } from '@/lib/domain/mentions';
 import { cn } from '@/lib/utils';
@@ -178,7 +180,21 @@ export function ActivityFeed({
               ) : null}
 
               {item.kind === 'attachment' && item.body ? (
-                <p className="mt-0.5 text-sm">{item.body}</p>
+                item.attachmentId ? (
+                  <button
+                    type="button"
+                    className="text-primary mt-0.5 text-left text-sm underline underline-offset-2"
+                    onClick={() => {
+                      openAttachment(item.attachmentId!).catch(() =>
+                        toast.error('Could not open that file.'),
+                      );
+                    }}
+                  >
+                    {item.body}
+                  </button>
+                ) : (
+                  <p className="mt-0.5 text-sm">{item.body}</p>
+                )
               ) : null}
 
               {/*

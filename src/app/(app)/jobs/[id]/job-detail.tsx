@@ -160,6 +160,7 @@ export function JobDetail({
       <SubtaskPanel
         jobId={job.id}
         canManage={permissions.edit}
+        currentUserId={currentUserId}
         onJobChanged={() => router.refresh()}
       />
 

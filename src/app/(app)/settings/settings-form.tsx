@@ -5,10 +5,12 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, Save, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { ReminderLeadField } from '@/components/shared/reminder-lead-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError, apiFetch } from '@/lib/api/client';
+import { SETTINGS_LEAD_MAX_MINUTES } from '@/lib/domain/reminder-lead';
 import { previewReminder } from '@/lib/domain/reminder-preview';
 import { SETTING_GROUPS, type SettingGroup } from '@/lib/domain/settings-definitions';
 import { toWorkingHoursConfig } from '@/lib/notifications/working-hours';
@@ -93,7 +95,8 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
    * than the one already in force.
    */
   const preview = useMemo(() => {
-    const lead = Number(valueOf('reminder.default_lead_minutes') ?? 360);
+    const rawLead = Number(valueOf('reminder.default_lead_minutes') ?? 360);
+    const lead = Number.isInteger(rawLead) ? rawLead : 360;
     const suppress = Boolean(valueOf('suppress_reminders_outside_hours'));
 
     const config = toWorkingHoursConfig({
@@ -133,7 +136,14 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
       ))}
 
       <div className="bg-background/95 sticky bottom-0 flex flex-wrap items-center gap-3 border-t py-3 backdrop-blur">
-        <Button onClick={save} disabled={!dirty || saving}>
+        <Button
+          onClick={save}
+          disabled={
+            !dirty ||
+            saving ||
+            !Number.isInteger(Number(valueOf('reminder.default_lead_minutes') ?? 360))
+          }
+        >
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           Save changes
         </Button>
@@ -214,6 +224,39 @@ function Field({
   problems?: string[];
 }) {
   const id = `setting-${row.key}`;
+
+  if (row.key === 'reminder.default_lead_minutes') {
+    const minutes = typeof value === 'number' && Number.isFinite(value) ? value : 360;
+
+    return (
+      <div className="space-y-2 px-4 py-3">
+        <Label htmlFor={id} className="text-sm font-medium">
+          {row.label}
+        </Label>
+        <p className="text-muted-foreground text-xs">{row.help}</p>
+        {row.caution ? (
+          <p className="text-state-problem flex items-start gap-1.5 text-xs">
+            <AlertTriangle className="mt-px size-3.5 shrink-0" />
+            {row.caution}
+          </p>
+        ) : null}
+        <ReminderLeadField
+          id={id}
+          minutes={minutes}
+          maxMinutes={SETTINGS_LEAD_MAX_MINUTES}
+          deadline={fromISTInput('2026-09-14T18:00')}
+          invalid={Boolean(problems)}
+          hideLabel
+          onMinutes={onChange}
+        />
+        {problems?.map((problem) => (
+          <p key={problem} className="text-state-overdue text-xs font-medium">
+            {problem}
+          </p>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_16rem] sm:items-start sm:gap-4">

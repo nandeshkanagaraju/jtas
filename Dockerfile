@@ -5,8 +5,10 @@
 # building them twice would let the two drift and double the surface to patch.
 # docker-compose.prod.yml runs this image with two different commands.
 
+# Compile on the Mac's own CPU. QEMU aborts Node during install, so these stages
+# follow the builder. The runner stage is the target platform, linux/amd64.
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS base
+FROM --platform=$BUILDPLATFORM node:22-alpine AS base
 RUN corepack enable && apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -16,9 +18,14 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
+# Optional native packages (esbuild, sharp) must be the amd64 musl builds,
+# because this stage runs on the Mac and the process that loads them does not.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
-    pnpm install --frozen-lockfile --ignore-scripts
+    pnpm install --frozen-lockfile --ignore-scripts \
+      --config.supportedArchitectures.os=linux \
+      --config.supportedArchitectures.cpu=x64 \
+      --config.supportedArchitectures.libc=musl
 
 # ---------------------------------------------------------------------------
 # Production-only dependencies, for the runtime image.
@@ -30,12 +37,17 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
+COPY scripts/docker/ensure-amd64-native.mjs ./scripts/docker/ensure-amd64-native.mjs
 # --ignore-scripts skips husky's `prepare`, which installs git hooks and has no
 # place in a container. Prisma's client is generated explicitly below instead.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
-    pnpm install --frozen-lockfile --prod --ignore-scripts && \
-    pnpm exec prisma generate
+    pnpm install --frozen-lockfile --prod --ignore-scripts \
+      --config.supportedArchitectures.os=linux \
+      --config.supportedArchitectures.cpu=x64 \
+      --config.supportedArchitectures.libc=musl && \
+    pnpm exec prisma generate && \
+    node scripts/docker/ensure-amd64-native.mjs
 
 # ---------------------------------------------------------------------------
 FROM base AS build
@@ -54,7 +66,9 @@ ENV NEXT_OUTPUT=standalone
 RUN pnpm exec prisma generate && pnpm build
 
 # ---------------------------------------------------------------------------
-FROM base AS runner
+FROM node:22-alpine AS runner
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 # Every timestamp is stored UTC and rendered IST by the application (SDD 4.6).

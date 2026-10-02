@@ -51,7 +51,7 @@ const titleSchema = z
  */
 const reminderLeadSchema = z.coerce
   .number()
-  .int()
+  .int('Enter a whole number.')
   .min(1, 'Give at least 1 minute of warning.')
   .max(43_200, 'That is more than 30 days.')
   .optional();
@@ -151,6 +151,13 @@ export const changeDeadlineSchema = z.object({
     .min(5, 'Give a short reason — it goes on the record.')
     .max(500, 'Use at most 500 characters.'),
   deadlineOverrideReason: z.string().trim().min(5).max(500).optional(),
+  /** Kept as minutes. Omitted leaves the subtask's current lead alone. */
+  reminderLeadMinutes: z
+    .number()
+    .int('Enter a whole number.')
+    .min(1, 'Give at least 1 minute of warning.')
+    .max(43_200, 'That is more than 30 days.')
+    .optional(),
 });
 
 export type ChangeDeadlineInput = z.infer<typeof changeDeadlineSchema>;

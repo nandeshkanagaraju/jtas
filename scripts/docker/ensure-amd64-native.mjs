@@ -34,9 +34,8 @@ async function walk(dir, pred, depth = 0, hits = []) {
   return hits;
 }
 
-const engineDirs = await walk(
-  'node_modules/.pnpm',
-  (full) => full.endsWith(`${path.sep}@prisma${path.sep}engines-version`),
+const engineDirs = await walk('node_modules/.pnpm', (full) =>
+  full.endsWith(`${path.sep}@prisma${path.sep}engines-version`),
 );
 if (engineDirs.length === 0) {
   console.error('No @prisma/engines-version package installed');
@@ -67,7 +66,9 @@ if (queryEngines.length === 0) process.exit(1);
 
 const esbuildPackages = await walk(
   'node_modules/.pnpm',
-  (full) => full.endsWith(`${path.sep}esbuild${path.sep}package.json`) && full.includes(`${path.sep}esbuild@`),
+  (full) =>
+    full.endsWith(`${path.sep}esbuild${path.sep}package.json`) &&
+    full.includes(`${path.sep}esbuild@`),
 );
 if (esbuildPackages.length === 0) {
   console.error('No esbuild package installed');
@@ -91,7 +92,11 @@ for (const manifest of esbuildPackages) {
   await execFileAsync('tar', ['-xzf', tarball, '-C', tmp]);
   await mkdir(path.dirname(bin), { recursive: true });
   await execFileAsync('cp', ['-a', path.join(tmp, 'package', 'bin', 'esbuild'), bin]);
-  await execFileAsync('cp', ['-a', path.join(tmp, 'package', 'package.json'), path.join(platformDir, 'package.json')]);
+  await execFileAsync('cp', [
+    '-a',
+    path.join(tmp, 'package', 'package.json'),
+    path.join(platformDir, 'package.json'),
+  ]);
   await chmod(bin, 0o755);
   await rm(tmp, { recursive: true, force: true });
   console.log('esbuild', version, bin);

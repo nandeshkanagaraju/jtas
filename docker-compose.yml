@@ -57,9 +57,9 @@ services:
   # exercises presigned PUT and GET rather than a filesystem stub that would
   # hide every signing and expiry bug until deployment.
   minio:
-    # quay.io, not Docker Hub: the docker.io/minio images are gated behind a
-    # login, which would make `docker compose up` fail on a fresh machine.
-    image: quay.io/minio/minio:latest
+    # Quay and Docker Hub both refuse anonymous pulls of minio/minio.
+    image: cgr.dev/chainguard/minio:latest
+    user: '0:0'
     container_name: jtas-minio
     restart: unless-stopped
     command: server /data --console-address ':9001'
@@ -72,7 +72,11 @@ services:
     volumes:
       - jtas-minio-data:/data
     healthcheck:
-      test: ['CMD', 'mc', 'ready', 'local']
+      test:
+        [
+          'CMD-SHELL',
+          'mc alias set local http://127.0.0.1:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null && mc ready local',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -80,7 +84,7 @@ services:
   # Creates the bucket once and exits. Without it the first upload fails with
   # NoSuchBucket, which reads like a code fault rather than a setup step.
   minio-init:
-    image: quay.io/minio/mc:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: jtas-minio-init
     depends_on:
       - minio

@@ -22,6 +22,7 @@ import { recomputeJobStatus } from '@/lib/services/jobs';
 import {
   cancelPendingForSubtask,
   notifyApprovalRequired,
+  notifyReadyToStart,
 } from '@/lib/services/notification-service';
 import { assertNoLiveProblem, createProblem } from '@/lib/services/problems/core';
 import { getSettingNumber } from '@/lib/services/settings-service';
@@ -224,6 +225,7 @@ async function unblockDependents(
     });
 
     unblocked.push(id);
+    await notifyReadyToStart(tx, id, completedId);
   }
 
   return unblocked;

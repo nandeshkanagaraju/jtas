@@ -20,6 +20,7 @@ import {
   jobCompletedKey,
   problemRaisedKey,
   problemResolvedKey,
+  readyToStartKey,
   reassignedKey,
 } from '@/lib/notifications/dedupe';
 import {
@@ -177,6 +178,35 @@ export async function notifyExtensionRequested(db: Db, extensionRequestId: strin
     subject: 'Somebody has asked for more time',
     body: 'A member has asked to move a deadline.',
     dedupeKeyFor: (userId) => extensionRequestedKey(extensionRequestId, userId),
+  });
+}
+
+/**
+ * Tells the assignee of a subtask that its predecessor has finished and they
+ * can start.
+ *
+ * Queued in the same transaction as the unblock. A completion that committed
+ * without this row would leave the next department waiting to be told.
+ */
+export async function notifyReadyToStart(
+  db: Db,
+  subtaskId: string,
+  completedId: string,
+): Promise<void> {
+  const subtask = await db.subtask.findUnique({
+    where: { id: subtaskId },
+    select: { assigneeId: true },
+  });
+  if (!subtask) return;
+
+  await enqueue(db, {
+    type: 'READY_TO_START',
+    userIds: [subtask.assigneeId],
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: 'You can start',
+    body: 'The previous step is complete. You can start your task.',
+    dedupeKeyFor: (userId) => readyToStartKey(subtaskId, completedId, userId),
   });
 }
 

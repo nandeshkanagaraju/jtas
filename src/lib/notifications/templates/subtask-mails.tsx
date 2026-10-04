@@ -16,6 +16,7 @@ import type {
   AssignedPayload,
   DeadlineChangedPayload,
   OverdueMemberPayload,
+  ReadyToStartPayload,
   ReminderPayload,
 } from './types';
 
@@ -131,6 +132,23 @@ export function DeadlineChangedEmail(payload: DeadlineChangedPayload) {
           ['Reason', payload.reason],
         ]}
       />
+
+      <ActionButton href={subtaskLink(payload.subtaskId)} label="Open the task" />
+    </EmailLayout>
+  );
+}
+
+export function ReadyToStartEmail(payload: ReadyToStartPayload) {
+  return (
+    <EmailLayout preview={`You can start: ${payload.jobCode} — ${payload.subtaskTitle}`}>
+      <Heading>You can start</Heading>
+      <Paragraph>Dear {payload.assigneeName},</Paragraph>
+      <Paragraph>
+        <strong>{payload.predecessorTitle}</strong> ({payload.predecessorDepartment}) is complete.
+        You can start <strong>{payload.subtaskTitle}</strong>.
+      </Paragraph>
+
+      <FactTable rows={subtaskFacts(payload)} />
 
       <ActionButton href={subtaskLink(payload.subtaskId)} label="Open the task" />
     </EmailLayout>

@@ -66,6 +66,12 @@ export const SAMPLES: Record<TemplateKind, TemplatePayload> = {
     completedByName: 'Ravi Kumar',
     completionNote: 'First piece cleared, report filed with Quality.',
   },
+  READY_TO_START: {
+    kind: 'READY_TO_START',
+    ...SUBTASK,
+    predecessorTitle: 'Raise PO for raw material and bought-out items',
+    predecessorDepartment: 'Purchase',
+  },
   JOB_COMPLETED: {
     kind: 'JOB_COMPLETED',
     jobId: 'job-demo-1',

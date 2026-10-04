@@ -31,6 +31,7 @@ const SUBTASK_CONTEXT = {
   department: { select: { name: true } },
   assignee: { select: { name: true } },
   job: { select: { jobCode: true, title: true, partNumber: true, drawingNumber: true } },
+  dependsOn: { select: { title: true, department: { select: { name: true } } } },
 } as const;
 
 async function subtaskContext(subtaskId: string) {
@@ -196,6 +197,18 @@ export async function buildPayload(
         ...context,
         completedByName: context.assigneeName,
         completionNote: context._raw.completionNote,
+      };
+    }
+
+    case 'READY_TO_START': {
+      const context = await subtaskContext(notification.entityId);
+      if (!context) return null;
+
+      return {
+        kind: 'READY_TO_START',
+        ...context,
+        predecessorTitle: context._raw.dependsOn?.title ?? 'The previous step',
+        predecessorDepartment: context._raw.dependsOn?.department.name ?? 'the previous department',
       };
     }
 

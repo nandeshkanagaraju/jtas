@@ -100,6 +100,17 @@ export function jobCompletedKey(jobId: string, userId: string): string {
 }
 
 /**
+ * One "you can start" notice per dependent, per predecessor, per assignee.
+ *
+ * Keyed on the predecessor as well as the dependent: completing Planning tells
+ * Purchase once, and a later completion of a different predecessor is a
+ * different mail. A retried request hits the same key and sends nothing twice.
+ */
+export function readyToStartKey(subtaskId: string, completedId: string, userId: string): string {
+  return `subtask:${subtaskId}:READY:${completedId}:${userId}`;
+}
+
+/**
  * One mention notification per comment per person (build spec M10.1).
  *
  * Keyed on the comment rather than the subtask, so two comments mentioning the

@@ -337,6 +337,17 @@ describe('acceptance: completing a subtask unblocks its dependent', () => {
     expect(purchaseRow.status).toBe('PENDING');
 
     expect(await auditActionsFor(purchaseSubtask.id)).toContain('SUBTASK_UNBLOCKED');
+
+    const ready = await testDb.notification.findMany({
+      where: { type: 'READY_TO_START', entityId: purchaseSubtask.id },
+    });
+    expect(ready).toHaveLength(1);
+    expect(ready[0]).toMatchObject({
+      userId: purchaseMember.id,
+      channel: 'EMAIL',
+      status: 'PENDING',
+      entityType: 'SUBTASK',
+    });
   });
 
   it('refuses to start or complete a blocked subtask (I-02)', async () => {
@@ -410,6 +421,9 @@ describe('acceptance: completing a subtask unblocks its dependent', () => {
     // Store still waits for Purchase.
     const store = await testDb.subtask.findUniqueOrThrow({ where: { id: created[2].id } });
     expect(store.status).toBe('BLOCKED');
+
+    const ready = await testDb.notification.findMany({ where: { type: 'READY_TO_START' } });
+    expect(ready.map((row) => row.entityId)).toEqual([created[1].id]);
   });
 });
 

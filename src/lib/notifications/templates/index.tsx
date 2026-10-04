@@ -16,6 +16,7 @@ import {
   DeadlineChangedEmail,
   DeadlineReminderEmail,
   OverdueMemberEmail,
+  ReadyToStartEmail,
   SubtaskAssignedEmail,
 } from './subtask-mails';
 import {
@@ -49,6 +50,8 @@ function subjectFor(payload: TemplatePayload): string {
       return `[JTAS] More time asked for: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'APPROVAL_REQUIRED':
       return `[JTAS] Approval needed: ${payload.jobCode} – ${payload.subtaskTitle}`;
+    case 'READY_TO_START':
+      return `[JTAS] You can start: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'JOB_COMPLETED':
       return `[JTAS] Completed: ${payload.jobCode} – ${payload.jobTitle}`;
     case 'DAILY_DIGEST_MD':
@@ -77,6 +80,8 @@ function elementFor(payload: TemplatePayload): React.ReactElement {
       return <ExtensionRequestedEmail {...payload} />;
     case 'APPROVAL_REQUIRED':
       return <ApprovalRequiredEmail {...payload} />;
+    case 'READY_TO_START':
+      return <ReadyToStartEmail {...payload} />;
     case 'JOB_COMPLETED':
       return <JobCompletedEmail {...payload} />;
     case 'DAILY_DIGEST_MD':
@@ -144,6 +149,7 @@ export const TEMPLATE_KINDS: TemplateKind[] = [
   'DEADLINE_CHANGED',
   'EXTENSION_REQUESTED',
   'APPROVAL_REQUIRED',
+  'READY_TO_START',
   'JOB_COMPLETED',
   'DAILY_DIGEST_MD',
 ];

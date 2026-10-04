@@ -114,8 +114,8 @@ describe('a 15-minute lead', () => {
 });
 
 describe('the whole set', () => {
-  it('covers all eleven SDD 5.4 templates', () => {
-    expect(TEMPLATE_KINDS).toHaveLength(11);
+  it('covers every mail template', () => {
+    expect(TEMPLATE_KINDS).toHaveLength(12);
     expect(Object.keys(SAMPLES).sort()).toEqual([...TEMPLATE_KINDS].sort());
   });
 

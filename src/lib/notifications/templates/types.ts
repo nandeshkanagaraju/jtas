@@ -1,5 +1,5 @@
 /**
- * Typed payloads for the eleven mail templates — SDD section 5.4.
+ * Typed payloads for the mail templates — SDD section 5.4.
  *
  * Each payload carries what its template renders and nothing else, so a
  * template cannot quietly start depending on data the sweeper does not load.
@@ -82,6 +82,13 @@ export interface ApprovalRequiredPayload extends SubtaskContext {
   completionNote: string | null;
 }
 
+/** The predecessor finished; this assignee can start. */
+export interface ReadyToStartPayload extends SubtaskContext {
+  kind: 'READY_TO_START';
+  predecessorTitle: string;
+  predecessorDepartment: string;
+}
+
 export interface JobCompletedPayload extends JobContext {
   kind: 'JOB_COMPLETED';
   jobId: string;
@@ -118,6 +125,7 @@ export type TemplatePayload =
   | DeadlineChangedPayload
   | ExtensionRequestedPayload
   | ApprovalRequiredPayload
+  | ReadyToStartPayload
   | JobCompletedPayload
   | DailyDigestPayload;
 

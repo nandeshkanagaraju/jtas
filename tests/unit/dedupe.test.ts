@@ -9,6 +9,7 @@ import {
   overdueMemberKey,
   problemRaisedKey,
   problemResolvedKey,
+  readyToStartKey,
   reminderKey,
 } from '@/lib/notifications/dedupe';
 import { fromISTInput, istDateKey } from '@/lib/utils/time';
@@ -26,6 +27,7 @@ describe('the SDD 5.1 key formats', () => {
     expect(overdueMdKey(SUBTASK, 2, USER)).toBe('subtask:sub-1:OVERDUE_MD:2:user-1');
     expect(problemRaisedKey('prob-1', USER)).toBe('problem:prob-1:RAISED:user-1');
     expect(digestKey(USER, '2026-09-13')).toBe('digest:user-1:2026-09-13');
+    expect(readyToStartKey(SUBTASK, 'sub-0', USER)).toBe('subtask:sub-1:READY:sub-0:user-1');
   });
 });
 

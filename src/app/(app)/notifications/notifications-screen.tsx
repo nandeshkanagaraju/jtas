@@ -35,6 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   DEADLINE_CHANGED: 'Deadline changed',
   EXTENSION_REQUESTED: 'More time asked',
   APPROVAL_REQUIRED: 'Needs approval',
+  READY_TO_START: 'Ready to start',
   JOB_COMPLETED: 'Job complete',
   DAILY_DIGEST_MD: 'Daily summary',
 };

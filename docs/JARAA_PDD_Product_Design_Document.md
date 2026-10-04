@@ -1,10 +1,10 @@
 # Product Design Document (PDD)
 ## Jaraa Task & Accountability System (JTAS)
 **Client:** Jaraa Global Engineering Pvt Ltd
-**Document version:** 1.0
-**Date:** 12 September 2026
+**Document version:** 1.1
+**Date:** 4 October 2026
 **Owner:** Product / Engineering
-**Status:** Draft for MD approval
+**Status:** Sections 1–13 are the Phase 1 contract. Section 14 is a draft for the MD to confirm before any of it is built.
 
 ---
 
@@ -120,6 +120,11 @@ Planning ──► Purchase ──► Store ──► Production ──► Quali
 > every order will not survive contact with a busy MD. A template stores the eight
 > standard subtasks with day/hour offsets from the job deadline, so a new job is
 > "pick template → set due date → review → publish" in under a minute.
+
+> **4 October 2026.** The MD described two material routes, split production
+> operations, coating sent to a vendor, and a maintenance flow that is not part
+> of a job. That proposal is **section 14**. The diagram above remains the live
+> template until he confirms section 14.
 
 ---
 
@@ -312,3 +317,259 @@ NOT IN (COMPLETED, CANCELLED)`), so a subtask can be simultaneously
 5. Hosting preference: cloud (recommended) or an in-office server?
 6. Is a Deputy MD wanted from day one, and who?
 7. Are Accounts and HR subtasks needed on every job, or only on some?
+
+The questions from the 4 October meeting are in section 14.11. They are separate from the list above.
+
+---
+
+## 14. Shop-floor revision — 4 October 2026
+
+**Status: draft for the MD to confirm. Nothing in this section is to be built until he says the reading is right.**
+
+This section records what was said in the client meeting and how it would sit on top of the system already built (sections 1–13). It is the note to take back to him.
+
+**An option, if he would rather see it arrive in pieces.** The full scope below stays the proposal. This is a way to approve the urgent part first.
+
+| Phase | What is built | What he can see at the end | Time |
+|---|---|---|---|
+| **A** | Commitment dates, with downstream departments notified when a date is set or changed. The two material routes as separate templates. Quality split into incoming inspection and final inspection. | A company-material job and a customer-material job, each with its own chain. Purchase (or Store, on customer material) commits a date, and the later departments are told. Incoming material and finished parts are inspected as two separate tasks. | 2–3 weeks |
+| **B** | Production split into Cutting, CNC, Opr 1, Opr 2 and WIP. Quantity completed, accepted, rejected and despatched, rolled up on the job. | Each operation is its own update, and the job header shows ordered, machined, accepted, rejected and despatched. | 3–4 weeks |
+| **C** | The Maintenance breakdown flow. | A machine breakdown is raised, Maintenance is told, spares go through Purchase when needed, and Production is told when the machine is back. | After A and B. Estimate in 14.10: 8–12 days. |
+| **D** | SMS and WhatsApp for department heads. | Heads get the same events by SMS and WhatsApp as well as email. | Starts only after his DLT registration and WhatsApp business verification are through. |
+
+Phase A is the part he described as most urgent. Phases B, C and D wait on his yes to this reading, and D also waits on his paperwork.
+
+One item from the same conversation is already in the software, because it is small and he asked for it directly: when a department finishes and that unblocks the next task, the next assignee is emailed that they can start. That mail is described in 14.8. It does not depend on confirming the rest of this section.
+
+### 14.1 Two material routes
+
+A job declares how the raw material arrives. The two routes share Planning at the front and Production onwards at the back. They differ in the middle.
+
+**Company material.** Jaraa buys it. Purchase places the order, states a lead time, and the material arrives later.
+
+```mermaid
+flowchart LR
+  planning[Planning]
+  purchase[Purchase<br/>orders material<br/>commits a reach date]
+  store[Store<br/>unloads]
+  qualityIn[Quality<br/>incoming inspection]
+  production[Production<br/>see 14.4]
+  coating[Coating<br/>sent to a vendor<br/>see 14.5]
+  qualityFinal[Quality<br/>final inspection]
+  dispatch[Dispatch]
+  accounts[Accounts]
+
+  planning --> purchase --> store --> qualityIn --> production --> coating --> qualityFinal --> dispatch --> accounts
+```
+
+**Customer material.** The customer sends the material. Uno Minda is a continuous supply; other customers send material for two or three months. There is no Purchase step on this route.
+
+```mermaid
+flowchart LR
+  planning[Planning]
+  storeIn[Store<br/>receives]
+  qualityIn[Quality<br/>verifies]
+  storeOut[Store<br/>issues to Production]
+  production[Production<br/>see 14.4]
+  coating[Coating<br/>sent to a vendor<br/>see 14.5]
+  qualityFinal[Quality<br/>final inspection]
+  dispatch[Dispatch]
+  accounts[Accounts]
+
+  planning --> storeIn --> qualityIn --> storeOut --> production --> coating --> qualityFinal --> dispatch --> accounts
+```
+
+Store appears twice on the customer route: once to receive, once to issue after Quality has verified. Those are two tasks for the same department, which the current product already allows.
+
+HR stays off to the side of both routes, as it does today: manpower and shift allocation, started from Planning, running while the material moves.
+
+The coating box is drawn after Production and before final inspection. He described coating as a vendor step. He did not say where it sits. That position is a proposal, and it is question 6 in 14.11.
+
+### 14.2 Commitment dates
+
+This is the point he spent time on.
+
+The department sets its own date and commits to it. Purchase, for example, says "ordered 1 October, material reaches 8 October". Downstream departments see that date and prepare against it: buying tools, booking machine time. The MD can change the date when he needs to. The department proposes it.
+
+Rules:
+
+| | |
+|---|---|
+| Who sets it | The department that owns the task. |
+| Who can change it | That department, and the MD. An MD change is recorded as his, with a reason, the same way a deadline change is recorded today. |
+| What downstream plans against | The commitment date, once it exists. |
+| What happens when it is set or changed | Downstream departments are notified **first**, before any other consequence of that change. The date and those notices are one action: the date is not treated as set until the notices are queued. |
+
+"Downstream" here means every later department on the same job, following the arrows in 14.1, so Production can book a machine when Purchase commits a reach date. The next department alone is told when it is their turn to start (14.8). Those are two different messages.
+
+Today the MD (or the template) sets every deadline at publish, and a department cannot propose one. Commitment date is a new field on the task. The template date can remain a suggestion. Whether that suggestion counts as a commitment before the department confirms it is question 2 in 14.11.
+
+### 14.3 Quality appears twice
+
+| Inspection | Question it answers | Where it sits |
+|---|---|---|
+| Incoming | Is the received raw material what was ordered, and is it in good condition? | After Store unloads (company material) or after Store receives (customer material). |
+| Final | Is the finished part acceptable? | After coating, before Dispatch. |
+
+If incoming material is rejected, Quality raises a **problem against the Purchase task**. It does not create a new task. Purchase then takes it up with the supplier. The problem uses the flow already built: a written description, a severity, the MD's inbox, and the Purchase task moving to problem until the MD resolves it.
+
+On customer material there is no Purchase task. Who owns that rejection is question 5 in 14.11.
+
+### 14.4 Production splits into tracked operations
+
+Production is no longer one task. Each operation is its own task, in order:
+
+```mermaid
+flowchart LR
+  cutting[Cutting]
+  cnc[CNC]
+  opr1[Opr 1<br/>milling and ID bore]
+  opr2[Opr 2<br/>back-side milling and ID bore]
+  wip[WIP]
+
+  cutting --> cnc --> opr1 --> opr2 --> wip
+```
+
+Each operation is tracked on its own. Completing Cutting is what tells the CNC assignee they can start, and so on down the line.
+
+**Question for the MD.** This means the Production head updates the job several times — once per operation — where today he updates it once. Please confirm that load is acceptable before this is built. It is question 1 in 14.11.
+
+### 14.5 Coating is sent out
+
+Coating is a vendor step with a lead time. It is a wait on an outside party. It is shaped like Purchase (a date we are waiting on, set as a commitment) and unlike Production (nobody in the shop is cutting or machining).
+
+It is a task on the job so the chain waits for it. It is not a new department, and it is not a machine operation. Who is named as the assignee — the person who sends the parts out and chases the vendor — is question 7 in 14.11.
+
+### 14.6 Maintenance is a new department
+
+Maintenance fixes CNC and VMC machines. A breakdown is its own flow. It is not a task inside a job.
+
+```mermaid
+flowchart TD
+  break[Machine breaks down]
+  slip[Breakdown slip raised]
+  maint[Maintenance is informed]
+  need{Spares needed?}
+  pr[Maintenance raises a purchase request]
+  buy[Purchase buys the spares]
+  repair[Maintenance repairs the machine]
+  back[Production is told the machine is available]
+
+  break --> slip --> maint --> need
+  need -->|Yes| pr --> buy --> repair --> back
+  need -->|No| repair
+```
+
+The slip names the machine. It may name the job that was running, so the MD can see why that job is standing, and the job's own chain does not gain a Maintenance task.
+
+"Purchase buys the spares" reuses Purchase as a department. It does not, in this proposal, become a full purchase-order or inventory system. The lightweight shape is: the breakdown carries a spares request, Purchase gets a task to buy them, and closing that task returns the breakdown to Maintenance. A stores ledger for spares is out of this proposal.
+
+### 14.7 Revised department list
+
+| Department | Change |
+|---|---|
+| Planning | Unchanged. Stays at the front of both material routes, subject to question 3. |
+| Purchase | Unchanged as a department. Absent from the customer-material route. Also buys spares on a breakdown. |
+| Store | Unchanged as a department. On customer material it has two tasks: receive, then issue. |
+| Production | Unchanged as a department. Its work on a job becomes the five operations in 14.4. |
+| Quality | Unchanged as a department. Two tasks on a job: incoming, then final. |
+| Dispatch | Unchanged. |
+| Accounts | Unchanged. Still subject to the open question in section 13. |
+| HR | Unchanged. Still parallel, still subject to the open question in section 13. |
+| **Maintenance** | **New.** Owns breakdowns. Does not appear on the job template. |
+
+Coating is an external wait on the job (14.5), not a department in this list.
+
+### 14.8 Notification matrix
+
+Channels:
+
+| Person | Phase 1 (now) | Phase 2 (after his approval, and after his paperwork) |
+|---|---|---|
+| MD | Email only | Email only. He does not get SMS or WhatsApp. |
+| Department heads | Email | Email, plus SMS and WhatsApp |
+
+Phase 1 uses the email path already running. SMS and WhatsApp are a later phase. The software already has a slot for those channels; filling it is a small build **after** the paperwork below. The wait is on Jaraa's side.
+
+**Paperwork, so the lead time is visible.** Both of these are registrations in his company's name. Neither is a code change, and neither can be started from the engineering side.
+
+| Channel | What Jaraa has to do | Lead time | Cost |
+|---|---|---|---|
+| Transactional SMS in India | DLT registration: company documents, a sender id, and approval of each message template. | Typically 1–3 weeks after the documents are submitted. | Registration plus per-SMS charges from the operator. |
+| WhatsApp | WhatsApp Business API: Meta business verification, then a provider account. | Verification is in Meta's queue; it is often longer than the SMS registration and it is not on a fixed clock. | Per-message charge. |
+
+Until those are approved, heads receive the same events by email.
+
+| Event | Who is told | Channel | Phase |
+|---|---|---|---|
+| A task finishes and the next task is unblocked. "You can start." | The assignee of the next task. | Email | **Phase 1. Already built.** |
+| A task is created (job published, or a task added). | Downstream departments, so they can see work coming. | Email | Phase 1, after this section is confirmed. |
+| A commitment date is set or changed. | Downstream departments **first**. If the MD changed it, the owning department is told as well. The MD is copied by email. | Email to everyone in this row. SMS and WhatsApp to department heads only. | Email in Phase 1 after confirmation. SMS and WhatsApp in Phase 2. |
+| Existing mails: assignment, reminder, overdue to the member, problem raised, problem resolved, deadline changed, daily digest. | As already specified in section 7.6. The MD's copies stay email only. | Email | Already live. |
+
+The product has no "department head" flag today. Every user is a member, the MD, a deputy, or the admin. Until heads are named, "tell the department" means tell the assignee of that department's task on the job. Question 8 asks him to name the heads, because SMS and WhatsApp in Phase 2 are for heads, not for every member.
+
+### 14.9 Quantity tracking
+
+He wants, on each job, how many pieces are ready for dispatch, how many were accepted, how many were rejected, from the first step to the last, and a separate update at each step.
+
+**Proposal: quantities on the tasks, added up on the job.** This is a few numbers typed when a task is updated. It is not a stock system and it is not a manufacturing execution system.
+
+| Who types it | Field | On which task |
+|---|---|---|
+| Production | Quantity completed at this operation | Each operation in 14.4 |
+| Quality | Quantity accepted, quantity rejected | Incoming inspection, and final inspection |
+| Dispatch | Quantity despatched | Dispatch |
+
+The job header shows:
+
+| Figure | Where it comes from |
+|---|---|
+| Ordered | The quantity already on the job. |
+| Machined | Quantity completed on the last production operation (WIP), so the operations are not added together and counted twice. |
+| Accepted | Quantity accepted at **final** inspection. |
+| Rejected | Quantity rejected at **final** inspection. Incoming rejection is shown on its own line, because that is raw material, not a finished piece. |
+| Despatched | Quantity despatched. |
+| Ready for dispatch | Accepted minus despatched. |
+
+Each operation still shows its own completed quantity, so he can see where the batch thinned.
+
+**What this gives him.** A job-level picture, updated when people update their tasks, of ordered, machined, accepted, rejected, despatched, and ready to go, plus the number each step reported.
+
+**What this leaves out, on purpose.** There is no identity for a single piece. There is no record of which bar became which part. A quantity is the number the person entered. The machine does not confirm it. There is no bin, location, heat number, or serial. Rejected pieces do not automatically travel back to an earlier operation; someone would raise that as a problem or a task if rework is required. Store does not gain a stock ledger.
+
+### 14.10 What this changes in the current build
+
+The system live today has one template: Planning → Purchase → Store → Production → Quality → Dispatch → Accounts, with HR in parallel. Production is one task. Quality is one task, and the Store task's title still says the inspection happens inside Store. The MD sets deadlines at publish. A member can raise a problem only on their own task. The job has a single quantity. There is no Maintenance department and no breakdown. Email is the channel that sends; SMS and WhatsApp are named and not connected.
+
+Estimates below are working days for one engineer who already knows this codebase, after he confirms this section. They are ranges, not a quotation. They assume the lightweight readings in this section, not an inventory system, a purchase-order system, or a machine-monitoring system.
+
+| Piece | What has to change | Effort |
+|---|---|---|
+| "You can start" email | When a task completes, the next assignee is mailed. | Done. |
+| Two material routes | A choice on the job, and a second template that skips Purchase and splits Store into receive and issue. | 3–5 days |
+| Quality twice, rejection onto Purchase | Two Quality tasks. Allow Quality to raise a problem on the Purchase task, using the existing problem flow. | 3–5 days |
+| Five production operations | Five tasks in the template, chained. The engine already supports that. The load on the Production head is the open question. | 1–2 days |
+| Commitment dates | A date the department sets, the MD can override, audited. Downstream notified first on every set and every change. This touches the centre of the product, which is why it is the large item. | 6–10 days |
+| Coating as a vendor wait | A task kind that is a wait on an outside date, shaped like a commitment, chained into the job. Sensible to build with commitment dates. | 2–4 days |
+| Maintenance and breakdowns | A new department and a new record: slip, inform Maintenance, optional spares request that becomes a Purchase task, then tell Production the machine is back. Beside the job, not inside it. | 8–12 days |
+| Rest of the Phase 1 notification matrix | Mails for "task created, tell downstream" and "commitment changed, tell downstream first", once heads or assignees are defined. | 4–6 days |
+| Quantity rollup | The fields in 14.9, entry on the task update, totals on the job header. | 4–6 days |
+| SMS and WhatsApp | Connect the channels that are already named. Starts when DLT templates and WhatsApp business verification are approved. | 5–8 days of build, after his paperwork (1–3 weeks for DLT, plus Meta's verification, which is not on our clock). |
+
+Taken together, after confirmation, the job-side changes (routes, quality, operations, commitments, coating, quantities, and the extra emails) are on the order of **five to seven weeks**. Maintenance is a further **two to two and a half weeks** and can follow the job-side work. SMS and WhatsApp follow his paperwork and can overlap the end of the build. They cannot start ahead of it.
+
+### 14.11 Open questions for the MD
+
+1. **Production updates.** Splitting Production into Cutting, CNC, Opr 1, Opr 2 and WIP means the Production head updates several times on each job, once per operation, instead of once. Is that acceptable?
+2. **When a commitment exists.** Does the date suggested by the template count as the commitment until the department changes it, or is there no commitment until the department explicitly sets one?
+3. **Planning.** Both routes above still start with Planning, as the current product does. Does he want Planning on every job, on both routes?
+4. **Continuous customer supply.** For a customer such as Uno Minda, who sends material continuously, is one job's material received once, or does Store keep receiving against the same job over the two or three months?
+5. **Incoming rejection when the customer supplied the material.** There is no Purchase task to hang the problem on. Who takes it up — the customer, Planning, or Store?
+6. **Where coating sits.** The diagram places it after WIP and before final inspection. Is that the right place, and is it on every job?
+7. **Who chases the coating vendor.** Which person is the assignee of that wait?
+8. **Department heads.** Who is the head of each department? Phase 2 SMS and WhatsApp go to heads. Until he names them, Phase 1 email goes to the assignee of the task.
+9. **Partial quantities.** Can incoming inspection accept some of a lot and reject the rest, and does Production then run on the accepted quantity?
+10. **A breakdown and the job clock.** When a CNC or VMC is down, should the production operation that was using it stop being chased as overdue until Maintenance closes the slip?
+11. **Spares.** Is "Maintenance raises a PR, Purchase buys" enough as a task on the breakdown, or does he want a separate purchase-requisition document? This proposal is the task. A requisition register is a larger piece and is not in the estimate above.
+12. **Pieces all the way through.** The quantity model is in pieces. If incoming material is bars or kg, does he still want those counts in the same job header, or only the piece counts from Cutting onward?

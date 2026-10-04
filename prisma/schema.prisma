@@ -83,6 +83,9 @@ enum NotifType {
   /// a nudge, not an escalation, and mailing every one would make the mail
   /// that does matter harder to see.
   COMMENT_MENTION
+  /// The predecessor finished and this subtask is no longer blocked.
+  /// Mailed to the assignee so they know they can start.
+  READY_TO_START
 }
 
 enum NotifChannel {

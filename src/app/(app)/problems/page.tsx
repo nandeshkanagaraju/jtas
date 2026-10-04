@@ -38,7 +38,10 @@ export default async function ProblemsPage() {
           acknowledgedAt: problem.acknowledgedAt?.toISOString() ?? null,
           resolvedAt: problem.resolvedAt?.toISOString() ?? null,
           createdAt: problem.createdAt.toISOString(),
-          subtask: { ...problem.subtask, deadline: problem.subtask.deadline.toISOString() },
+          subtask: {
+            ...problem.subtask,
+            deadline: problem.subtask.deadline?.toISOString() ?? null,
+          },
         })),
       }}
       departments={departments}

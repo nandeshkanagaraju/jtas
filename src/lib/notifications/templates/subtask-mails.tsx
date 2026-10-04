@@ -14,6 +14,11 @@ import { subtaskLink } from './links';
 import type {
   ApprovalRequiredPayload,
   AssignedPayload,
+  CommitmentMadePayload,
+  CommitmentMissedMdPayload,
+  CommitmentMissedMemberPayload,
+  CommitmentOpenPayload,
+  CommitmentReminderPayload,
   DeadlineChangedPayload,
   OverdueMemberPayload,
   ReadyToStartPayload,
@@ -132,6 +137,108 @@ export function DeadlineChangedEmail(payload: DeadlineChangedPayload) {
           ['Reason', payload.reason],
         ]}
       />
+
+      <ActionButton href={subtaskLink(payload.subtaskId)} label="Open the task" />
+    </EmailLayout>
+  );
+}
+
+export function CommitmentOpenEmail(payload: CommitmentOpenPayload) {
+  return (
+    <EmailLayout preview={`You can commit: ${payload.jobCode} — ${payload.subtaskTitle}`}>
+      <Heading>You can commit</Heading>
+      <Paragraph>Dear {payload.assigneeName},</Paragraph>
+      <Paragraph>
+        <strong>{payload.subtaskTitle}</strong> is yours. Commit a finish date by{' '}
+        <strong>{payload.commitmentDueIst}</strong>. That is 24 hours from the moment this task
+        became yours, and the clock does not pause overnight.
+      </Paragraph>
+      <Paragraph>You can start the work now. The date is what is being asked for.</Paragraph>
+
+      <FactTable
+        rows={[
+          ...subtaskFacts({ ...payload, deadlineIst: payload.commitmentDueIst }),
+          ['Commit by', payload.commitmentDueIst],
+        ]}
+      />
+
+      <ActionButton href={subtaskLink(payload.subtaskId)} label="Commit a date" />
+    </EmailLayout>
+  );
+}
+
+export function CommitmentReminderEmail(payload: CommitmentReminderPayload) {
+  return (
+    <EmailLayout preview={`Commit a date: ${payload.jobCode} — ${payload.subtaskTitle}`}>
+      <Heading>Six hours left to commit</Heading>
+      <Paragraph>Dear {payload.assigneeName},</Paragraph>
+      <Paragraph>
+        <strong>{payload.subtaskTitle}</strong> still has no finish date. Commit one by{' '}
+        <strong>{payload.commitmentDueIst}</strong>, or report a problem and say why you cannot.
+      </Paragraph>
+
+      <FactTable rows={[['Commit by', payload.commitmentDueIst]]} />
+
+      <ActionButton href={subtaskLink(payload.subtaskId)} label="Commit a date" />
+    </EmailLayout>
+  );
+}
+
+export function CommitmentMissedMemberEmail(payload: CommitmentMissedMemberPayload) {
+  return (
+    <EmailLayout preview={`Commitment missed: ${payload.jobCode} — ${payload.subtaskTitle}`}>
+      <Heading>The time to commit a date has passed</Heading>
+      <Paragraph>Dear {payload.assigneeName},</Paragraph>
+      <Paragraph>
+        <strong>{payload.subtaskTitle}</strong> was due a finish date at{' '}
+        <strong>{payload.commitmentDueIst}</strong>. Commit the date now, or report a problem and
+        write the reason. The MD has been told.
+      </Paragraph>
+
+      <FactTable rows={[['Commit was due', payload.commitmentDueIst]]} />
+
+      <ActionButton href={subtaskLink(payload.subtaskId, 'problem')} label="Commit or report why" />
+    </EmailLayout>
+  );
+}
+
+export function CommitmentMissedMdEmail(payload: CommitmentMissedMdPayload) {
+  return (
+    <EmailLayout preview={`Commitment missed: ${payload.jobCode} — ${payload.departmentName}`}>
+      <Heading>A department missed its commitment window</Heading>
+      <Paragraph>Dear Sir,</Paragraph>
+      <Paragraph>
+        {payload.assigneeName} ({payload.departmentName}) has not committed a finish date for{' '}
+        <strong>{payload.subtaskTitle}</strong>. The 24 hours ended at {payload.commitmentDueIst}.
+        They have been asked to commit, or to report why they cannot.
+      </Paragraph>
+
+      <FactTable
+        rows={[
+          ['Job', `${payload.jobCode} — ${payload.jobTitle}`],
+          ['Department', payload.departmentName],
+          ['Assignee', payload.assigneeName],
+          ['Commit was due', payload.commitmentDueIst],
+        ]}
+      />
+
+      <ActionButton href={subtaskLink(payload.subtaskId)} label="Open the task" />
+    </EmailLayout>
+  );
+}
+
+export function CommitmentMadeEmail(payload: CommitmentMadePayload) {
+  return (
+    <EmailLayout preview={`Date committed: ${payload.jobCode} — ${payload.subtaskTitle}`}>
+      <Heading>The previous step has a date</Heading>
+      <Paragraph>Dear {payload.readerName},</Paragraph>
+      <Paragraph>
+        {payload.departmentName} committed a finish date of <strong>{payload.deadlineIst}</strong>{' '}
+        for <strong>{payload.subtaskTitle}</strong>. You are next. Your own date is not due until
+        that step is finished.
+      </Paragraph>
+
+      <FactTable rows={subtaskFacts(payload)} />
 
       <ActionButton href={subtaskLink(payload.subtaskId)} label="Open the task" />
     </EmailLayout>

@@ -171,7 +171,9 @@ export function ProblemDrawer({
             <div>
               <dt className="text-muted-foreground text-xs">Current deadline</dt>
               <dd className="tabular font-medium">
-                {formatIST(new Date(problem.subtask.deadline))}
+                {problem.subtask.deadline
+                  ? formatIST(new Date(problem.subtask.deadline))
+                  : 'No date yet'}
               </dd>
             </div>
             <div className="col-span-2">
@@ -238,7 +240,11 @@ export function ProblemDrawer({
                 onChange={setDraft}
                 departments={departments}
                 candidates={candidates}
-                currentDeadline={formatIST(new Date(problem.subtask.deadline))}
+                currentDeadline={
+                  problem.subtask.deadline
+                    ? formatIST(new Date(problem.subtask.deadline))
+                    : 'No date yet'
+                }
                 busy={busy}
               />
 

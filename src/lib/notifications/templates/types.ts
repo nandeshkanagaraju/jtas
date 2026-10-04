@@ -82,6 +82,40 @@ export interface ApprovalRequiredPayload extends SubtaskContext {
   completionNote: string | null;
 }
 
+/** The department can commit a date. The window closes at `commitmentDueIst`. */
+export interface CommitmentOpenPayload extends SubtaskContext {
+  kind: 'COMMITMENT_OPEN';
+  commitmentDueIst: string;
+  minutesLeft: number;
+}
+
+/** Six hours before the commitment window closes. */
+export interface CommitmentReminderPayload extends SubtaskContext {
+  kind: 'COMMITMENT_REMINDER';
+  commitmentDueIst: string;
+  minutesLeft: number;
+}
+
+/** The window closed. The member is told to commit or to report why. */
+export interface CommitmentMissedMemberPayload extends SubtaskContext {
+  kind: 'COMMITMENT_MISSED_MEMBER';
+  commitmentDueIst: string;
+  delayMinutes: number;
+}
+
+/** The same miss, written for the MD. */
+export interface CommitmentMissedMdPayload extends SubtaskContext {
+  kind: 'COMMITMENT_MISSED_MD';
+  commitmentDueIst: string;
+  delayMinutes: number;
+}
+
+/** The next department is told a date exists. They are not asked to commit. */
+export interface CommitmentMadePayload extends SubtaskContext {
+  kind: 'COMMITMENT_MADE';
+  readerName: string;
+}
+
 /** The predecessor finished; this assignee can start. */
 export interface ReadyToStartPayload extends SubtaskContext {
   kind: 'READY_TO_START';
@@ -125,6 +159,11 @@ export type TemplatePayload =
   | DeadlineChangedPayload
   | ExtensionRequestedPayload
   | ApprovalRequiredPayload
+  | CommitmentOpenPayload
+  | CommitmentReminderPayload
+  | CommitmentMissedMemberPayload
+  | CommitmentMissedMdPayload
+  | CommitmentMadePayload
   | ReadyToStartPayload
   | JobCompletedPayload
   | DailyDigestPayload;

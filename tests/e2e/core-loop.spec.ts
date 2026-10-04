@@ -258,7 +258,7 @@ test('f — Purchase sees the new deadline and completes the task', async ({ pag
     const subtask = await prisma.subtask.findFirstOrThrow({
       where: { jobId, title: { contains: 'Raise PO' } },
     });
-    deadline = subtask.deadline;
+    deadline = subtask.deadline!;
 
     // Back in the member's hands, and already running: FR-43 returns a
     // resolved subtask to IN_PROGRESS rather than making somebody press Start
@@ -301,7 +301,7 @@ test('g — the dashboard reflects the on-time percentage', async ({ page }) => 
     // The same rule lib/domain/metrics applies: completedAt <= the deadline in
     // force. Both were finished well inside theirs, so this is 100 — the point
     // being that the screen agrees with the definition, not the number.
-    const onTime = completed.filter((row) => row.completedAt! <= row.deadline).length;
+    const onTime = completed.filter((row) => row.completedAt! <= row.deadline!).length;
     expected =
       `${Math.round((onTime / completed.length) * 1000) / 10}% of ${completed.length} ` +
       'completed subtasks were on time';

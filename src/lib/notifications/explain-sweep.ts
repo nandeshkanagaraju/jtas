@@ -36,7 +36,7 @@ export interface ExplainSweepInput {
     id: string;
     title: string;
     status: SubtaskStatus;
-    deadline: Date;
+    deadline: Date | null;
     reminderLeadMinutes: number;
     escalationCount: number;
     lastEscalatedAt: Date | null;
@@ -104,9 +104,10 @@ function dispatchFate(row: ExplainNotification, input: ExplainSweepInput): strin
 
 /** Plain-text report. Stable enough to read in a terminal and to assert on. */
 export function explainSweep(input: ExplainSweepInput): string {
+  const deadline = input.subtask.deadline ?? new Date(input.now.getTime() + 60_000);
   const overdue = overdueFilterVerdicts({
     now: input.now,
-    deadline: input.subtask.deadline,
+    deadline,
     subtaskStatus: input.subtask.status,
     jobStatus: input.job.status,
     jobIsDemo: input.job.isDemo,
@@ -123,15 +124,13 @@ export function explainSweep(input: ExplainSweepInput): string {
   const workerStale =
     heartbeatAgeSeconds === null || heartbeatAgeSeconds > input.staleAfterMinutes * 60;
 
-  const remindAt = new Date(
-    input.subtask.deadline.getTime() - input.subtask.reminderLeadMinutes * 60_000,
-  );
+  const remindAt = new Date(deadline.getTime() - input.subtask.reminderLeadMinutes * 60_000);
   const reminderRows = input.notifications.filter((row) => row.type === 'DEADLINE_REMINDER');
 
   const lines: string[] = [
     `Subtask ${input.subtask.id}`,
     `  ${input.subtask.title}`,
-    `  status ${input.subtask.status}, deadline ${formatIST(input.subtask.deadline)}, escalation ${input.subtask.escalationCount}`,
+    `  status ${input.subtask.status}, deadline ${input.subtask.deadline ? formatIST(input.subtask.deadline) : 'none'}, escalation ${input.subtask.escalationCount}`,
     `Job ${input.job.jobCode} — ${input.job.title}`,
     `  status ${input.job.status}, isDemo ${input.job.isDemo}`,
     `Assignee ${input.assignee.name} <${input.assignee.email}>`,

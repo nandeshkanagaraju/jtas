@@ -197,13 +197,17 @@ export function ProblemsScreen({
                       <p className="line-clamp-2 max-w-xl text-sm">{problem.description}</p>
                       {/* Deadline and status fold in here on a narrow screen. */}
                       <p className="text-muted-foreground text-xs lg:hidden">
-                        Due {formatIST(new Date(problem.subtask.deadline), 'dd MMM, hh:mm a')}
+                        {problem.subtask.deadline
+                          ? `Due ${formatIST(new Date(problem.subtask.deadline), 'dd MMM, hh:mm a')}`
+                          : 'No date yet'}
                       </p>
                     </div>
                   </TableCell>
 
                   <TableCell className="tabular hidden text-sm lg:table-cell">
-                    {formatIST(new Date(problem.subtask.deadline))}
+                    {problem.subtask.deadline
+                      ? formatIST(new Date(problem.subtask.deadline))
+                      : 'No date yet'}
                   </TableCell>
 
                   <TableCell className="hidden sm:table-cell">

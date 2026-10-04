@@ -13,13 +13,23 @@ import type { NotifChannel, NotifType } from '@prisma/client';
 import { prisma, type Db } from '@/lib/db/prisma';
 import { moduleLogger } from '@/lib/utils/logger';
 
-import { assignedKey, reminderKey } from './dedupe';
+import { commitmentReminderAt } from '@/lib/domain/commitment';
+
+import { assignedKey, commitmentOpenKey, commitmentReminderKey, reminderKey } from './dedupe';
 import { skippedReminderReason } from './sweep-filters';
 
 const log = moduleLogger('notifications');
 
 /** Types the sweeper deletes when a subtask's schedule is torn down. */
-const RESCHEDULABLE_TYPES: NotifType[] = ['DEADLINE_REMINDER', 'OVERDUE_MEMBER', 'OVERDUE_MD'];
+const RESCHEDULABLE_TYPES: NotifType[] = [
+  'DEADLINE_REMINDER',
+  'OVERDUE_MEMBER',
+  'OVERDUE_MD',
+  'COMMITMENT_OPEN',
+  'COMMITMENT_REMINDER',
+  'COMMITMENT_MISSED_MEMBER',
+  'COMMITMENT_MISSED_MD',
+];
 
 export interface EnqueueInput {
   type: NotifType;
@@ -141,8 +151,9 @@ export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
 export interface SchedulableSubtask {
   id: string;
   assigneeId: string;
-  deadline: Date;
+  deadline: Date | null;
   reminderLeadMinutes: number;
+  commitmentDueAt?: Date | null;
 }
 
 /**
@@ -174,7 +185,24 @@ export async function scheduleForSubtask(
     scheduledFor: now,
   });
 
-  const remindAt = new Date(subtask.deadline.getTime() - subtask.reminderLeadMinutes * 60_000);
+  // No work deadline yet. If their commitment window is already open, the
+  // chase for that window is what gets rebuilt — a reassignment has to reach
+  // the new owner, and the work reminder does not exist until a date does.
+  if (!subtask.deadline) {
+    if (subtask.commitmentDueAt) {
+      await enqueueCommitmentWindow(
+        db,
+        subtask.id,
+        subtask.assigneeId,
+        subtask.commitmentDueAt,
+        now,
+      );
+    }
+    return;
+  }
+
+  const deadline = subtask.deadline;
+  const remindAt = new Date(deadline.getTime() - subtask.reminderLeadMinutes * 60_000);
 
   if (remindAt.getTime() <= now.getTime()) {
     const reason = skippedReminderReason({
@@ -195,7 +223,7 @@ export async function scheduleForSubtask(
       entityId: subtask.id,
       subject: 'Reminder was not scheduled',
       body: reason,
-      dedupeKeyFor: () => reminderKey(subtask.id, subtask.deadline),
+      dedupeKeyFor: () => reminderKey(subtask.id, deadline),
       scheduledFor: remindAt,
       status: 'SUPPRESSED',
       lastError: reason,
@@ -210,7 +238,7 @@ export async function scheduleForSubtask(
     entityId: subtask.id,
     subject: '',
     body: '',
-    dedupeKeyFor: () => reminderKey(subtask.id, subtask.deadline),
+    dedupeKeyFor: () => reminderKey(subtask.id, deadline),
     scheduledFor: remindAt,
   });
 }
@@ -221,10 +249,70 @@ export async function scheduleForSubtask(
  * Only `PENDING` rows are removed: anything already sent is history and must
  * stay, or the audit trail would lose the fact that somebody was chased.
  */
+/**
+ * Queues the "you can commit" mail and the reminder 6 hours before the window
+ * closes. The missed-window mail is not queued here: the sweeper raises it,
+ * on the same cadence as an overdue task, once the window has passed.
+ */
+export async function enqueueCommitmentWindow(
+  db: Db,
+  subtaskId: string,
+  assigneeId: string,
+  dueAt: Date,
+  now: Date,
+): Promise<void> {
+  await enqueue(db, {
+    type: 'COMMITMENT_OPEN',
+    userIds: [assigneeId],
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: '',
+    body: '',
+    dedupeKeyFor: (userId) => commitmentOpenKey(subtaskId, userId),
+    scheduledFor: now,
+  });
+
+  const remindAt = commitmentReminderAt(dueAt);
+
+  if (remindAt.getTime() <= now.getTime()) {
+    const reason = 'The commitment reminder was already due when the window opened.';
+    await enqueue(db, {
+      type: 'COMMITMENT_REMINDER',
+      userIds: [assigneeId],
+      entityType: 'SUBTASK',
+      entityId: subtaskId,
+      subject: 'Commitment reminder was not scheduled',
+      body: reason,
+      dedupeKeyFor: (userId) => commitmentReminderKey(subtaskId, dueAt, userId),
+      scheduledFor: remindAt,
+      status: 'SUPPRESSED',
+      lastError: reason,
+    });
+    return;
+  }
+
+  await enqueue(db, {
+    type: 'COMMITMENT_REMINDER',
+    userIds: [assigneeId],
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: '',
+    body: '',
+    dedupeKeyFor: (userId) => commitmentReminderKey(subtaskId, dueAt, userId),
+    scheduledFor: remindAt,
+  });
+}
+
 export async function rescheduleForSubtask(db: Db, subtaskId: string): Promise<void> {
   const subtask = await db.subtask.findUnique({
     where: { id: subtaskId },
-    select: { id: true, assigneeId: true, deadline: true, reminderLeadMinutes: true },
+    select: {
+      id: true,
+      assigneeId: true,
+      deadline: true,
+      reminderLeadMinutes: true,
+      commitmentDueAt: true,
+    },
   });
   if (!subtask) return;
 

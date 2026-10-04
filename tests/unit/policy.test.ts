@@ -267,6 +267,9 @@ describe('object-level rules', () => {
   });
 
   it('lets only the assignee request an extension (FR-33)', () => {
+    expect(can(member, 'subtask:commit', ownSubtask)).toBe(true);
+    expect(can(member, 'subtask:commit', foreignSubtask)).toBe(false);
+    expect(can(md, 'subtask:commit', ownSubtask)).toBe(false);
     expect(can(member, 'subtask:requestExtension', ownSubtask)).toBe(true);
     expect(can(member, 'subtask:requestExtension', foreignSubtask)).toBe(false);
     // Not even the MD asks himself for time; he changes the deadline directly.
@@ -391,6 +394,7 @@ describe('matrix completeness', () => {
     'subtask:edit',
     'subtask:reassign',
     'subtask:changeDeadline',
+    'subtask:commit',
     'subtask:approve',
     'subtask:updateStatus',
     'subtask:requestExtension',
@@ -443,7 +447,7 @@ describe('matrix completeness', () => {
 
   it('has a test checklist covering the whole Action union', () => {
     expect(new Set(ALL_ACTIONS).size).toBe(ALL_ACTIONS.length);
-    expect(ALL_ACTIONS).toHaveLength(35);
+    expect(ALL_ACTIONS).toHaveLength(36);
   });
 });
 
@@ -469,6 +473,7 @@ describe('cross-department subtask visibility', () => {
     expect(can(member, 'subtask:updateStatus', siblingSubtask)).toBe(false);
     expect(can(member, 'problem:raise', siblingSubtask)).toBe(false);
     expect(can(member, 'subtask:requestExtension', siblingSubtask)).toBe(false);
+    expect(can(member, 'subtask:commit', siblingSubtask)).toBe(false);
     expect(can(member, 'subtask:changeDeadline', siblingSubtask)).toBe(false);
     // A file is a claim about the work; the person accountable for a subtask
     // puts drawings against it (FR-34).

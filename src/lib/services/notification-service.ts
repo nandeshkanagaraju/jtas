@@ -15,6 +15,7 @@ import type { ProblemSeverity } from '@prisma/client';
 import type { Db } from '@/lib/db/prisma';
 import {
   approvalRequiredKey,
+  commitmentMadeKey,
   deadlineChangedKey,
   extensionRequestedKey,
   jobCompletedKey,
@@ -37,7 +38,13 @@ import {
 export async function scheduleForSubtask(db: Db, subtaskId: string): Promise<void> {
   const subtask = await db.subtask.findUnique({
     where: { id: subtaskId },
-    select: { id: true, assigneeId: true, deadline: true, reminderLeadMinutes: true },
+    select: {
+      id: true,
+      assigneeId: true,
+      deadline: true,
+      reminderLeadMinutes: true,
+      commitmentDueAt: true,
+    },
   });
   if (!subtask) return;
 
@@ -85,7 +92,8 @@ export async function notifyDeadlineChange(db: Db, subtaskId: string): Promise<v
     where: { id: subtaskId },
     select: { assigneeId: true, deadline: true, title: true },
   });
-  if (!subtask) return;
+  if (!subtask?.deadline) return;
+  const deadline = subtask.deadline;
 
   await enqueue(db, {
     type: 'DEADLINE_CHANGED',
@@ -94,7 +102,7 @@ export async function notifyDeadlineChange(db: Db, subtaskId: string): Promise<v
     entityId: subtaskId,
     subject: 'Your deadline has changed',
     body: `The deadline for ${subtask.title} has been changed.`,
-    dedupeKeyFor: (userId) => deadlineChangedKey(subtaskId, subtask.deadline, userId),
+    dedupeKeyFor: (userId) => deadlineChangedKey(subtaskId, deadline, userId),
   });
 }
 
@@ -178,6 +186,37 @@ export async function notifyExtensionRequested(db: Db, extensionRequestId: strin
     subject: 'Somebody has asked for more time',
     body: 'A member has asked to move a deadline.',
     dedupeKeyFor: (userId) => extensionRequestedKey(extensionRequestId, userId),
+  });
+}
+
+/**
+ * Tells the assignee of the next task that a date was committed, so they can
+ * prepare. They are not asked to commit yet. Their own window starts when
+ * this task is completed and they are unblocked.
+ */
+export async function notifyCommitmentMade(db: Db, subtaskId: string): Promise<void> {
+  const subtask = await db.subtask.findUnique({
+    where: { id: subtaskId },
+    select: { deadline: true, title: true },
+  });
+  if (!subtask?.deadline) return;
+
+  const next = await db.subtask.findMany({
+    where: { dependsOnId: subtaskId },
+    select: { assigneeId: true },
+  });
+  if (next.length === 0) return;
+
+  const deadline = subtask.deadline;
+
+  await enqueue(db, {
+    type: 'COMMITMENT_MADE',
+    userIds: next.map((row) => row.assigneeId),
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: 'The previous department committed a date',
+    body: `${subtask.title} has a finish date. You are next.`,
+    dedupeKeyFor: (userId) => commitmentMadeKey(subtaskId, deadline, userId),
   });
 }
 

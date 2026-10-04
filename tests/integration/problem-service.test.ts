@@ -364,7 +364,7 @@ describe('acceptance: MD resolves with EXTEND', () => {
 
     const updated = await loadSubtaskForWrite(subtask.id);
     expect(updated.status).toBe('IN_PROGRESS');
-    expect(formatIST(updated.deadline, "yyyy-MM-dd'T'HH:mm")).toBe('2027-06-16T18:00');
+    expect(formatIST(updated.deadline!, "yyyy-MM-dd'T'HH:mm")).toBe('2027-06-16T18:00');
 
     // Extending through the inbox leaves the same trail as extending anywhere
     // else — there is no second, weaker path.
@@ -461,7 +461,7 @@ describe('resolveProblem — the other actions', () => {
 
     const after = await loadSubtaskForWrite(subtask.id);
     expect(after.status).toBe('IN_PROGRESS');
-    expect(after.deadline.toISOString()).toBe(before.deadline.toISOString());
+    expect(after.deadline!.toISOString()).toBe(before.deadline!.toISOString());
     expect(after.assigneeId).toBe(before.assigneeId);
   });
 

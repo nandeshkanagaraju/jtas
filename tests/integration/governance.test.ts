@@ -461,7 +461,7 @@ describe('job templates', () => {
     // A template is a recipe; the jobs already made from it are meals.
     const after = await testDb.subtask.findUniqueOrThrow({ where: { id: subtask.id } });
     expect(after.title).toBe('Original step');
-    expect(after.deadline.toISOString()).toBe(fromISTInput('2027-01-20T18:00').toISOString());
+    expect(after.deadline!.toISOString()).toBe(fromISTInput('2027-01-20T18:00').toISOString());
   });
 
   it('archives rather than deletes', async () => {

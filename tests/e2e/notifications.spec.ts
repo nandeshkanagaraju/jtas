@@ -117,12 +117,12 @@ test('the reminder is scheduled at the deadline minus the lead, with the right k
 
     // Timing: six hours before, to the millisecond.
     expect(reminder!.scheduledFor.toISOString()).toBe(
-      new Date(subtask.deadline.getTime() - 360 * 60_000).toISOString(),
+      new Date(subtask.deadline!.getTime() - 360 * 60_000).toISOString(),
     );
 
     // Key: embeds the deadline, so an extension produces a different one and
     // the old can never fire (SDD 5.1).
-    expect(reminder!.dedupeKey).toBe(reminderKey(subtask.id, subtask.deadline));
+    expect(reminder!.dedupeKey).toBe(reminderKey(subtask.id, subtask.deadline!));
   } finally {
     await prisma.$disconnect();
   }
@@ -140,7 +140,7 @@ test('a reminder fires once however many times the sweeper runs', async () => {
 
     await clearMailpit();
 
-    const at = new Date(subtask.deadline.getTime() - 360 * 60_000);
+    const at = new Date(subtask.deadline!.getTime() - 360 * 60_000);
 
     for (let i = 0; i < 6; i++) sweep('dispatch', new Date(at.getTime() + i * 60_000));
 

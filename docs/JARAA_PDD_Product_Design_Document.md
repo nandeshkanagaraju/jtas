@@ -332,7 +332,7 @@ This section records what was said in the client meeting and how it would sit on
 
 | Phase | What is built | What he can see at the end | Time |
 |---|---|---|---|
-| **A** | Commitment dates, with downstream departments notified when a date is set or changed. The two material routes as separate templates. Quality split into incoming inspection and final inspection. | A company-material job and a customer-material job, each with its own chain. Purchase (or Store, on customer material) commits a date, and the later departments are told. Incoming material and finished parts are inspected as two separate tasks. | 2–3 weeks |
+| **A** | Sequential commitment dates (14.2). The two material routes as separate templates. Quality split into incoming inspection and final inspection. | A company-material job and a customer-material job, each with its own chain. A department commits its date when its turn arrives, within 24 hours, and the next department is told. Incoming material and finished parts are inspected as two separate tasks. | About 2 to 2½ weeks |
 | **B** | Production split into Cutting, CNC, Opr 1, Opr 2 and WIP. Quantity completed, accepted, rejected and despatched, rolled up on the job. | Each operation is its own update, and the job header shows ordered, machined, accepted, rejected and despatched. | 3–4 weeks |
 | **C** | The Maintenance breakdown flow. | A machine breakdown is raised, Maintenance is told, spares go through Purchase when needed, and Production is told when the machine is back. | After A and B. Estimate in 14.10: 8–12 days. |
 | **D** | SMS and WhatsApp for department heads. | Heads get the same events by SMS and WhatsApp as well as email. | Starts only after his DLT registration and WhatsApp business verification are through. |
@@ -387,22 +387,102 @@ The coating box is drawn after Production and before final inspection. He descri
 
 ### 14.2 Commitment dates
 
-This is the point he spent time on.
+Specified on 4 October 2026. This replaces the open question of whether a template date counts as a commitment. It does not. A date exists when the department commits it, or when the MD sets one.
 
-The department sets its own date and commits to it. Purchase, for example, says "ordered 1 October, material reaches 8 October". Downstream departments see that date and prepare against it: buying tools, booking machine time. The MD can change the date when he needs to. The department proposes it.
+**A job is published with no subtask deadlines.** The customer date stays on the job. The tasks under it have no date yet, so nothing is overdue and nobody is chased for work that has not been committed.
 
-Rules:
+**A department commits when its turn arrives.** That is the moment its predecessor is completed and the task becomes unblocked. Store does not commit on the day the job is published. Store commits when the material step in front of it has finished, because that is the first moment Store knows when the material actually lands.
 
-| | |
+**The first department commits at publish.** It has no predecessor, so its turn arrives when the MD publishes the job, and its 24 hours start then. A job published at 10:00 AM on 6 October means that first department's commitment is due by 10:00 AM on 7 October.
+
+On both routes in 14.1, that department is **Planning**. Customer material does not change this. That route has no Purchase task, so Purchase does not commit on a customer-material job. Planning does, at publish, and Store still waits until Planning has finished.
+
+Purchase commits at publish only when Purchase is the first task on the job. That is not how either route is drawn. It would become true only if Planning were taken off a company-material job. On a customer-material job with Planning taken off, the first task is Store receiving the material, and Store's 24 hours would start at publish.
+
+HR has no predecessor either. It runs beside the chain, and its 24 hours also start at publish, the same morning as Planning.
+
+**From that moment the department has 24 hours of clock time.** The 24 hours do not pause for the night, a Sunday, or a holiday. A task unblocked at 10:00 AM on 6 October must be committed by 10:00 AM on 7 October.
+
+**Once committed, the date is fixed.** The department cannot edit it. Moving it is an extension request, which is the flow already built: the member asks, the MD decides, and the change is recorded as his decision.
+
+**If the 24 hours pass with no commitment,** the department has to say why, and the MD is told so he can chase them. That reason is a problem on the same task, using the problem flow already built. "Cannot commit yet" is a problem in the sense the system already handles. It is not a new kind of record.
+
+**The MD can set or override any date at any time,** as he can today. A date he sets is the commitment: it is fixed, the department cannot edit it, and a later move is again an extension he decides. The department is told when he sets or changes their date, which is the deadline-changed mail already built.
+
+#### What the member sees
+
+When the task is still blocked, the screen is the one already built: waiting on the previous step, and the work buttons stay unavailable.
+
+When the task becomes unblocked and no date has been set, the commitment is the first thing on the screen:
+
+- Whose task it is, and the job.
+- "Commit a finish date by {time}" — the unblock instant plus 24 hours, shown in IST.
+- A date-and-time field, and a button that commits it.
+- Beside that, **Report problem**, for "cannot commit yet", with the same description and severity the problem form already requires.
+
+Starting the work and marking it complete stay available, so a department that already knows its date is not held up by the form. What is being chased during those 24 hours is the commitment. There is no work deadline until one exists.
+
+After the date is committed, the screen shows it as fixed. There is no control to edit it. **Request more time** is the existing panel: the member asks, the MD decides.
+
+#### What the MD sees on the job
+
+Each task on the job shows one of these, and a task with no date is not drawn as if it were on time:
+
+| State | What the row shows |
 |---|---|
-| Who sets it | The department that owns the task. |
-| Who can change it | That department, and the MD. An MD change is recorded as his, with a reason, the same way a deadline change is recorded today. |
-| What downstream plans against | The commitment date, once it exists. |
-| What happens when it is set or changed | Downstream departments are notified **first**, before any other consequence of that change. The date and those notices are one action: the date is not treated as set until the notices are queued. |
+| Not their turn | Still blocked. No date. No 24-hour clock. |
+| Awaiting commitment | Unblocked. Time left until the 24 hours run out. |
+| Committed | The date the department committed. |
+| Set by the MD | The date he set, marked as his. |
+| Problem | An open problem, including "cannot commit yet", with its age, as the problem inbox already shows. |
 
-"Downstream" here means every later department on the same job, following the arrows in 14.1, so Production can book a machine when Purchase commits a reach date. The next department alone is told when it is their turn to start (14.8). Those are two different messages.
+#### Notifications
 
-Today the MD (or the template) sets every deadline at publish, and a department cannot propose one. Commitment date is a new field on the task. The template date can remain a suggestion. Whether that suggestion counts as a commitment before the department confirms it is question 2 in 14.11.
+Four moments. Email in Phase A. SMS and WhatsApp, when they exist, follow the channel rules in 14.8. The 24-hour window is clock time, so the reminder and the missed-window mail are sent when they fall due. They are not held back for working hours, because holding them could push them past the window.
+
+| Event | Who is told | What it reuses |
+|---|---|---|
+| You can commit. Sent at the moment the task is unblocked, as part of the "you can start" mail already built. The mail names the time the commitment is due. | The assignee. | The unblock mail already live. The wording gains the 24-hour commitment. |
+| Reminder, 6 hours before the 24 hours are up. Same lead time as other reminders. | The assignee. | The existing reminder. A new wording, because what is due is a commitment, not the work. |
+| The window was missed, and no problem has been raised. | The assignee, and the MD. | The existing overdue mail, to the member and to the MD. The member's mail tells them to commit or to report a problem with the reason. Repeats follow the escalation already built, and stop once a problem is open, which is the rule already in section 7.5. |
+| A date was committed. | The assignee of the next task, so they can prepare. If the MD set or overrode the date, the owning department is told as well. | A new mail for the next department. The mail to the owning department, when the MD moves a date, is the deadline-changed mail already built. The date and that notice are one action: the date is not treated as set until the notice is queued. |
+
+The next department is told the date. They are not asked to commit yet. Their own 24 hours start only when this task is completed and they are unblocked.
+
+#### What is reused, and what is new
+
+| Already built | How this uses it |
+|---|---|
+| Unblock, and the "you can start" mail | The moment a commitment can be made. The mail gains the time the commitment is due. |
+| Extension request | The only way a department moves a date after committing. The MD decides. |
+| Problem, with the MD's inbox | "Cannot commit yet." The member writes the reason. The MD is notified and chases them. |
+| Overdue escalation | A missed 24-hour window with no problem raised. Member and MD are both told, on the cadence already built. |
+| MD deadline change, with its audit and its mail | The MD sets or overrides a date at any time. |
+
+What is genuinely new is small: a task may have no date; a commit action that sets the date once; a 24-hour clock that starts at unblock; the member screen and the MD row states above; and the wording of the reminder, the missed window, and the mail to the next department.
+
+#### Option, not a decision — a projected finish
+
+Sequential commitment has a cost he should see before he accepts it. Until late in the job, most departments have not committed, so the job page cannot yet say, from real dates alone, whether the customer date will be met.
+
+**Option.** The job header shows a projected finish: the committed date where a department has committed one, and the usual duration of each later step where it has not. Each estimated step is marked as an estimate. The projection is flagged when it falls after the job's customer date.
+
+**Worked example.** The valve-body job, company material, customer date 20 October. It is published on the morning of 6 October. Planning finishes that same morning. Purchase commits the same day: material reaches **12 October**. The six steps after Purchase have not committed. Their usual durations are:
+
+| Step | Usual duration | Projected date |
+|---|---|---|
+| Store unloads | 1 day | 13 October |
+| Quality, incoming | 1 day | 14 October |
+| Production | 8 days | 22 October |
+| Coating, at the vendor | 4 days | 26 October |
+| Quality, final | 1 day | 27 October |
+| Dispatch | 1 day | **28 October** |
+
+Sixteen days after 12 October is 28 October. The customer date is 20 October. On 6 October — day one, with Store, Quality, Production, Coating and Dispatch still blank — the job header shows projected dispatch **28 October** and flags it red. That is eight days past the customer date, visible the morning Purchase commits, not after those six departments have each taken their turn.
+
+Without this option the same morning shows Purchase at 12 October and a blank after it. He would not see 28 October until the later departments commit, which is the warning sequential commitment otherwise costs him.
+
+He can accept this or decline it. Declining it leaves the page as specified above: real commitments only, and a blank where a department has not committed. The option is about two to three days on top of 14.2, because those usual durations already exist as the template offsets and this is one figure on the job header. It is not included in the Phase A estimate. It is question 3 in 14.11.
 
 ### 14.3 Quality appears twice
 
@@ -468,7 +548,7 @@ The slip names the machine. It may name the job that was running, so the MD can 
 
 | Department | Change |
 |---|---|
-| Planning | Unchanged. Stays at the front of both material routes, subject to question 3. |
+| Planning | Unchanged. Stays at the front of both material routes, subject to question 2. |
 | Purchase | Unchanged as a department. Absent from the customer-material route. Also buys spares on a breakdown. |
 | Store | Unchanged as a department. On customer material it has two tasks: receive, then issue. |
 | Production | Unchanged as a department. Its work on a job becomes the five operations in 14.4. |
@@ -502,9 +582,11 @@ Until those are approved, heads receive the same events by email.
 
 | Event | Who is told | Channel | Phase |
 |---|---|---|---|
-| A task finishes and the next task is unblocked. "You can start." | The assignee of the next task. | Email | **Phase 1. Already built.** |
-| A task is created (job published, or a task added). | Downstream departments, so they can see work coming. | Email | Phase 1, after this section is confirmed. |
-| A commitment date is set or changed. | Downstream departments **first**. If the MD changed it, the owning department is told as well. The MD is copied by email. | Email to everyone in this row. SMS and WhatsApp to department heads only. | Email in Phase 1 after confirmation. SMS and WhatsApp in Phase 2. |
+| A task finishes and the next task is unblocked. "You can start", and the commitment is due in 24 hours (14.2). | The assignee of the next task. | Email | The start mail is **already built**. The 24-hour sentence is part of Phase A. |
+| Reminder, 6 hours before the commitment is due. | The assignee. | Email | Phase A. |
+| The 24-hour commitment window was missed, and no problem was raised. | The assignee, and the MD. | Email. The MD stays email only. | Phase A. |
+| A commitment was made. | The assignee of the next task. The owning department as well, when the MD set or overrode the date. | Email | Phase A. |
+| A task is created (job published, or a task added). | Downstream departments, so they can see work coming. | Email | Phase A, after this section is confirmed. |
 | Existing mails: assignment, reminder, overdue to the member, problem raised, problem resolved, deadline changed, daily digest. | As already specified in section 7.6. The MD's copies stay email only. | Email | Already live. |
 
 The product has no "department head" flag today. Every user is a member, the MD, a deputy, or the admin. Until heads are named, "tell the department" means tell the assignee of that department's task on the job. Question 8 asks him to name the heads, because SMS and WhatsApp in Phase 2 are for heads, not for every member.
@@ -540,7 +622,7 @@ Each operation still shows its own completed quantity, so he can see where the b
 
 ### 14.10 What this changes in the current build
 
-The system live today has one template: Planning → Purchase → Store → Production → Quality → Dispatch → Accounts, with HR in parallel. Production is one task. Quality is one task, and the Store task's title still says the inspection happens inside Store. The MD sets deadlines at publish. A member can raise a problem only on their own task. The job has a single quantity. There is no Maintenance department and no breakdown. Email is the channel that sends; SMS and WhatsApp are named and not connected.
+The system live today has one template: Planning → Purchase → Store → Production → Quality → Dispatch → Accounts, with HR in parallel. Production is one task. Quality is one task, and the Store task's title still says the inspection happens inside Store. The MD sets every task deadline when the job is published, and a member cannot move their own. A member can raise a problem only on their own task, and can ask for more time, which the MD decides. The job has a single quantity. There is no Maintenance department and no breakdown. Email is the channel that sends; SMS and WhatsApp are named and not connected. Completing a task already emails the next assignee that they can start.
 
 Estimates below are working days for one engineer who already knows this codebase, after he confirms this section. They are ranges, not a quotation. They assume the lightweight readings in this section, not an inventory system, a purchase-order system, or a machine-monitoring system.
 
@@ -550,20 +632,23 @@ Estimates below are working days for one engineer who already knows this codebas
 | Two material routes | A choice on the job, and a second template that skips Purchase and splits Store into receive and issue. | 3–5 days |
 | Quality twice, rejection onto Purchase | Two Quality tasks. Allow Quality to raise a problem on the Purchase task, using the existing problem flow. | 3–5 days |
 | Five production operations | Five tasks in the template, chained. The engine already supports that. The load on the Production head is the open question. | 1–2 days |
-| Commitment dates | A date the department sets, the MD can override, audited. Downstream notified first on every set and every change. This touches the centre of the product, which is why it is the large item. | 6–10 days |
+| Sequential commitment (14.2) | A task is published with no date. The department commits once, within 24 hours of becoming unblocked. After that, a move is an extension request. A missed window is a problem plus the overdue mail already built. The MD override already exists. New work is the empty date, the 24-hour clock, the two screens, and three mail wordings. | 4–6 days |
+| Projected finish (14.2, option) | Committed dates where they exist, template offsets for the rest, flagged against the customer date. Built only if he accepts it. | 2–3 days, on top of the row above |
 | Coating as a vendor wait | A task kind that is a wait on an outside date, shaped like a commitment, chained into the job. Sensible to build with commitment dates. | 2–4 days |
 | Maintenance and breakdowns | A new department and a new record: slip, inform Maintenance, optional spares request that becomes a Purchase task, then tell Production the machine is back. Beside the job, not inside it. | 8–12 days |
-| Rest of the Phase 1 notification matrix | Mails for "task created, tell downstream" and "commitment changed, tell downstream first", once heads or assignees are defined. | 4–6 days |
+| Mail when a task is created | Tell the later departments that work is coming. The commitment mails are already in the row above. | 1–2 days |
 | Quantity rollup | The fields in 14.9, entry on the task update, totals on the job header. | 4–6 days |
 | SMS and WhatsApp | Connect the channels that are already named. Starts when DLT templates and WhatsApp business verification are approved. | 5–8 days of build, after his paperwork (1–3 weeks for DLT, plus Meta's verification, which is not on our clock). |
 
-Taken together, after confirmation, the job-side changes (routes, quality, operations, commitments, coating, quantities, and the extra emails) are on the order of **five to seven weeks**. Maintenance is a further **two to two and a half weeks** and can follow the job-side work. SMS and WhatsApp follow his paperwork and can overlap the end of the build. They cannot start ahead of it.
+Phase A — the two routes, Quality split in two, and sequential commitment — is about **two to two and a half weeks**. The commitment piece inside it is 4–6 days, down from the earlier 6–10, because the extension, the problem, the overdue mail and the MD's override are already built. The projected finish is not in that figure.
+
+The rest of the job-side work (production operations, coating, the mail when a task is created, quantities) is about **two to three weeks** after Phase A. Maintenance is a further **two to two and a half weeks**. SMS and WhatsApp follow his paperwork and can overlap the end of the build. They cannot start ahead of it.
 
 ### 14.11 Open questions for the MD
 
 1. **Production updates.** Splitting Production into Cutting, CNC, Opr 1, Opr 2 and WIP means the Production head updates several times on each job, once per operation, instead of once. Is that acceptable?
-2. **When a commitment exists.** Does the date suggested by the template count as the commitment until the department changes it, or is there no commitment until the department explicitly sets one?
-3. **Planning.** Both routes above still start with Planning, as the current product does. Does he want Planning on every job, on both routes?
+2. **Planning.** Both routes above still start with Planning, as the current product does. Does he want Planning on every job, on both routes?
+3. **Projected finish.** On the valve-body example in 14.2, Purchase commits material on 12 October and the header goes red that same morning: projected dispatch 28 October against a customer date of 20 October, while the six later steps have not committed yet. Does he want that early warning, or real commitments only?
 4. **Continuous customer supply.** For a customer such as Uno Minda, who sends material continuously, is one job's material received once, or does Store keep receiving against the same job over the two or three months?
 5. **Incoming rejection when the customer supplied the material.** There is no Purchase task to hang the problem on. Who takes it up — the customer, Planning, or Store?
 6. **Where coating sits.** The diagram places it after WIP and before final inspection. Is that the right place, and is it on every job?

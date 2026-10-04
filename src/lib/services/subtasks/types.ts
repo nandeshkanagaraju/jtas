@@ -20,6 +20,8 @@ export const SUBTASK_SELECT = {
   title: true,
   description: true,
   deadline: true,
+  deadlineOrigin: true,
+  commitmentDueAt: true,
   reminderLeadMinutes: true,
   requiresApproval: true,
   dependsOnId: true,
@@ -33,7 +35,9 @@ export const SUBTASK_SELECT = {
   updatedAt: true,
   department: { select: { id: true, name: true, code: true, sequenceOrder: true } },
   assignee: { select: { id: true, name: true, email: true, isActive: true } },
-  dependsOn: { select: { id: true, title: true, status: true, deadline: true } },
+  dependsOn: {
+    select: { id: true, title: true, status: true, deadline: true, commitmentDueAt: true },
+  },
   // The live problem, if any — so the job timeline can show the amber marker
   // and the drawer can show the member's words without a second query (M6.4).
   problems: {
@@ -74,10 +78,20 @@ export interface SubtaskSummary {
   assignee: { id: string; name: string; email: string; isActive: boolean };
   title: string;
   description: string | null;
-  deadline: Date;
+  deadline: Date | null;
+  /** DEPARTMENT when they committed it, MD when he set or moved it. */
+  deadlineOrigin: 'DEPARTMENT' | 'MD' | null;
+  /** When the 24-hour window closes. Null until their turn arrives. */
+  commitmentDueAt: Date | null;
   reminderLeadMinutes: number;
   requiresApproval: boolean;
-  dependsOn: { id: string; title: string; status: SubtaskStatus; deadline: Date } | null;
+  dependsOn: {
+    id: string;
+    title: string;
+    status: SubtaskStatus;
+    deadline: Date | null;
+    commitmentDueAt: Date | null;
+  } | null;
   status: SubtaskStatus;
   startedAt: Date | null;
   completedAt: Date | null;
@@ -115,6 +129,8 @@ export function toSubtaskSummary(row: SubtaskRow, now: Date = new Date()): Subta
     title: row.title,
     description: row.description,
     deadline: row.deadline,
+    deadlineOrigin: row.deadlineOrigin,
+    commitmentDueAt: row.commitmentDueAt,
     reminderLeadMinutes: row.reminderLeadMinutes,
     requiresApproval: row.requiresApproval,
     dependsOn: row.dependsOn,
@@ -123,9 +139,10 @@ export function toSubtaskSummary(row: SubtaskRow, now: Date = new Date()): Subta
     completedAt: row.completedAt,
     completionNote: row.completionNote,
     escalationCount: row.escalationCount,
-    isOverdue: !terminal && now.getTime() > row.deadline.getTime(),
+    isOverdue: !terminal && !!row.deadline && now.getTime() > row.deadline.getTime(),
     openProblem: row.problems[0] ?? null,
-    exceedsJobDeadline: row.deadline.getTime() > row.job.overallDeadline.getTime(),
+    exceedsJobDeadline:
+      !!row.deadline && row.deadline.getTime() > row.job.overallDeadline.getTime(),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

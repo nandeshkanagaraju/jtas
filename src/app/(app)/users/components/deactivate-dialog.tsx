@@ -124,7 +124,9 @@ export function DeactivateDialog({
                     </div>
                     <p className="text-muted-foreground text-xs">
                       {subtask.jobCode} · {subtask.departmentName} · due{' '}
-                      <span className="tabular">{formatIST(new Date(subtask.deadline))}</span>
+                      <span className="tabular">
+                        {subtask.deadline ? formatIST(new Date(subtask.deadline)) : 'no date yet'}
+                      </span>
                     </p>
                   </li>
                 ))}

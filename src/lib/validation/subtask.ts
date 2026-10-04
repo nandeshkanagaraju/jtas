@@ -75,7 +75,11 @@ export const subtaskDraftSchema = z.object({
     .max(5_000)
     .optional()
     .or(z.literal('').transform(() => undefined)),
-  deadline: istDateTimeSchema,
+  /**
+   * Omitted on a new job. The department commits it when its turn arrives.
+   * A date supplied here was set by the MD and is already committed.
+   */
+  deadline: istDateTimeSchema.optional(),
   reminderLeadMinutes: reminderLeadSchema,
   requiresApproval: z.boolean().default(false),
   dependsOnId: z.string().min(1).nullable().optional(),
@@ -142,6 +146,14 @@ export const subtaskStatusChangeSchema = z.object({
 });
 
 export type SubtaskStatusChangeInput = z.infer<typeof subtaskStatusChangeSchema>;
+
+/** The assignee's one chance to name the finish date. */
+export const commitDeadlineSchema = z.object({
+  deadline: istDateTimeSchema,
+  deadlineOverrideReason: z.string().trim().min(5).max(500).optional(),
+});
+
+export type CommitDeadlineInput = z.infer<typeof commitDeadlineSchema>;
 
 export const changeDeadlineSchema = z.object({
   newDeadline: istDateTimeSchema,

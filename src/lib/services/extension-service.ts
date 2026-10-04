@@ -61,6 +61,13 @@ export async function requestExtension(
     );
   }
 
+  if (!subtask.deadline) {
+    throw validationError('Commit a finish date before asking for more time.', {
+      reason: 'NO_DEADLINE',
+      fields: { requestedDeadline: ['There is no date to extend yet.'] },
+    });
+  }
+
   const requestedDeadline = fromISTInput(input.requestedDeadline);
 
   if (requestedDeadline.getTime() <= subtask.deadline.getTime()) {
@@ -99,7 +106,7 @@ export async function requestExtension(
       action: 'EXTENSION_REQUESTED',
       entityType: 'SUBTASK',
       entityId: subtaskId,
-      before: { deadline: subtask.deadline.toISOString() },
+      before: { deadline: subtask.deadline?.toISOString() ?? null },
       after: {
         requestedDeadline: requestedDeadline.toISOString(),
         reason: input.reason,

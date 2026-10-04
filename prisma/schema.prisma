@@ -86,6 +86,24 @@ enum NotifType {
   /// The predecessor finished and this subtask is no longer blocked.
   /// Mailed to the assignee so they know they can start.
   READY_TO_START
+  /// The department's turn has arrived and they have 24 hours to commit a date.
+  COMMITMENT_OPEN
+  /// Six hours before that window closes.
+  COMMITMENT_REMINDER
+  /// The window closed with no date and no problem. Sent to the assignee.
+  COMMITMENT_MISSED_MEMBER
+  /// The same miss, sent to the MD and deputies.
+  COMMITMENT_MISSED_MD
+  /// A date was committed. Sent to the assignee of the next task.
+  COMMITMENT_MADE
+}
+
+/// Who fixed a subtask's date. A null deadline has no origin.
+enum DeadlineOrigin {
+  /// The department committed it when their turn arrived.
+  DEPARTMENT
+  /// The MD set or overrode it.
+  MD
 }
 
 enum NotifChannel {
@@ -230,7 +248,19 @@ model Subtask {
 
   title               String
   description         String?
-  deadline            DateTime // UTC
+  /// Null until the department commits a date, or the MD sets one.
+  /// A row that already had a date when this became optional stays committed.
+  deadline            DateTime?
+  /// DEPARTMENT when the assignee committed it, MD when he set or moved it.
+  /// Null while there is no date. Existing dates are backfilled as DEPARTMENT.
+  deadlineOrigin      DeadlineOrigin?
+  /// When the 24-hour commitment window closes. Null until their turn arrives,
+  /// and left in place afterwards as the record of when they were asked.
+  commitmentDueAt     DateTime?
+  /// Separate from the work-overdue clock, so a missed commitment does not
+  /// burn the escalations a later real deadline is entitled to.
+  commitmentEscalationCount   Int       @default(0)
+  commitmentLastEscalatedAt   DateTime?
   reminderLeadMinutes Int       @default(360) // 6 hours
   requiresApproval    Boolean   @default(false)
   dependsOnId         String?
@@ -280,7 +310,8 @@ model DeadlineChange {
   id          String   @id @default(cuid())
   subtaskId   String
   subtask     Subtask  @relation(fields: [subtaskId], references: [id])
-  oldDeadline DateTime
+  /// Null when the MD set the first date on a task that had none.
+  oldDeadline DateTime?
   newDeadline DateTime
   reason      String
   changedById String

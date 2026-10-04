@@ -26,7 +26,7 @@
 /** A completed or still-open subtask, reduced to what the metrics need. */
 export interface MeasurableSubtask {
   status: string;
-  deadline: Date;
+  deadline: Date | null;
   completedAt: Date | null;
 }
 
@@ -78,7 +78,7 @@ export function deadlineInForceAt(
  * grows.
  */
 export function isOnTime(subtask: MeasurableSubtask, moves: readonly DeadlineMove[] = []): boolean {
-  if (!subtask.completedAt || !isMeasurable(subtask)) return false;
+  if (!subtask.completedAt || !subtask.deadline || !isMeasurable(subtask)) return false;
 
   const deadline = deadlineInForceAt(subtask.completedAt, subtask.deadline, moves);
 
@@ -97,7 +97,7 @@ export function delayHours(
   subtask: MeasurableSubtask,
   moves: readonly DeadlineMove[] = [],
 ): number {
-  if (!subtask.completedAt || !isMeasurable(subtask)) return 0;
+  if (!subtask.completedAt || !subtask.deadline || !isMeasurable(subtask)) return 0;
 
   const deadline = deadlineInForceAt(subtask.completedAt, subtask.deadline, moves);
   const ms = subtask.completedAt.getTime() - deadline.getTime();
@@ -107,6 +107,7 @@ export function delayHours(
 
 /** How overdue an unfinished subtask is right now, in hours. Zero if not yet due. */
 export function overdueHours(subtask: Pick<MeasurableSubtask, 'deadline'>, now: Date): number {
+  if (!subtask.deadline) return 0;
   const ms = now.getTime() - subtask.deadline.getTime();
   return ms <= 0 ? 0 : ms / 3_600_000;
 }

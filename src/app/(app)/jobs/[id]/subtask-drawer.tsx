@@ -80,13 +80,17 @@ export function SubtaskDrawer({
     setOverride('');
     setError(null);
     setNewAssignee(undefined);
-    setNewDeadline(formatIST(new Date(subtask.deadline), "yyyy-MM-dd'T'HH:mm"));
+    setNewDeadline(
+      subtask.deadline ? formatIST(new Date(subtask.deadline), "yyyy-MM-dd'T'HH:mm") : '',
+    );
     setLeadMinutes(subtask.reminderLeadMinutes);
   }, [open, subtask]);
 
   if (!subtask) return null;
 
-  const currentDeadlineValue = formatIST(new Date(subtask.deadline), "yyyy-MM-dd'T'HH:mm");
+  const currentDeadlineValue = subtask.deadline
+    ? formatIST(new Date(subtask.deadline), "yyyy-MM-dd'T'HH:mm")
+    : '';
   const closed = subtask.status === 'COMPLETED' || subtask.status === 'CANCELLED';
 
   async function run(action: () => Promise<unknown>, message: string) {
@@ -230,7 +234,9 @@ export function SubtaskDrawer({
                 deadline={
                   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(newDeadline)
                     ? fromISTInput(newDeadline)
-                    : new Date(subtask.deadline)
+                    : subtask.deadline
+                      ? new Date(subtask.deadline)
+                      : new Date(Date.now() + 24 * 60 * 60 * 1000)
                 }
                 onMinutes={setLeadMinutes}
               />

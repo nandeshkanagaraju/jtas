@@ -33,6 +33,30 @@ const STATUS_STYLES: Record<string, { label: string; tone: Tone }> = {
   CANCELLED: { label: 'Cancelled', tone: 'neutral' },
 };
 
+function commitmentLine(subtask: SubtaskDto): {
+  primary: string;
+  secondary: string;
+  late: boolean;
+} {
+  if (subtask.deadline) {
+    const when = formatIST(new Date(subtask.deadline), 'dd MMM, hh:mm a');
+    const relative = deadlineLabel(new Date(subtask.deadline)).text;
+    const who = subtask.deadlineOrigin === 'MD' ? 'Set by the MD' : 'Committed';
+    return { primary: when, secondary: `${who} · ${relative}`, late: false };
+  }
+
+  if (subtask.status === 'BLOCKED' || !subtask.commitmentDueAt) {
+    return { primary: 'Not their turn', secondary: 'No date yet', late: false };
+  }
+
+  const label = deadlineLabel(new Date(subtask.commitmentDueAt));
+  return {
+    primary: 'Awaiting commitment',
+    secondary: label.overdue ? `Window closed · ${label.text}` : label.text,
+    late: label.overdue,
+  };
+}
+
 export function SubtaskStatusBadge({ status }: { status: string }) {
   const style = STATUS_STYLES[status] ?? STATUS_STYLES.PENDING;
   return (
@@ -68,7 +92,7 @@ export function SubtaskTimeline({
     <ol className="space-y-2">
       {subtasks.map((subtask) => {
         const style = STATUS_STYLES[subtask.status] ?? STATUS_STYLES.PENDING;
-        const label = deadlineLabel(new Date(subtask.deadline));
+        const commitment = commitmentLine(subtask);
         const isSelected = subtask.id === selectedId;
 
         return (
@@ -129,18 +153,16 @@ export function SubtaskTimeline({
 
                 <span className="flex shrink-0 items-center gap-3">
                   <span className="text-right">
-                    <span className="tabular block text-sm">
-                      {formatIST(new Date(subtask.deadline), 'dd MMM, hh:mm a')}
-                    </span>
+                    <span className="tabular block text-sm">{commitment.primary}</span>
                     <span
                       className={cn(
                         'block text-xs',
-                        subtask.isOverdue
+                        subtask.isOverdue || commitment.late
                           ? 'text-state-overdue font-medium'
                           : 'text-muted-foreground',
                       )}
                     >
-                      {label.text}
+                      {commitment.secondary}
                     </span>
                   </span>
 

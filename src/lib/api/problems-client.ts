@@ -17,7 +17,7 @@ export type ProblemDto = Omit<
   acknowledgedAt: string | null;
   resolvedAt: string | null;
   createdAt: string;
-  subtask: Omit<ProblemSummary['subtask'], 'deadline'> & { deadline: string };
+  subtask: Omit<ProblemSummary['subtask'], 'deadline'> & { deadline: string | null };
 };
 
 export type ProblemInboxDto = Omit<ProblemInbox, 'data'> & { data: ProblemDto[] };

@@ -8,6 +8,7 @@ import { initialStatusesOnPublish } from '@/lib/domain/subtask-dependencies';
 import { writeAudit } from '@/lib/services/audit-service';
 import { scheduleForSubtask } from '@/lib/services/notification-service';
 
+import { openCommitmentWindow } from './commitment';
 import type { Actor, RequestContext } from './types';
 
 export interface PublishInitResult {
@@ -31,7 +32,7 @@ export async function initialiseSubtasksOnPublish(
 ): Promise<PublishInitResult> {
   const subtasks = await db.subtask.findMany({
     where: { jobId },
-    select: { id: true, dependsOnId: true, status: true },
+    select: { id: true, dependsOnId: true, status: true, deadline: true },
   });
 
   const statuses = initialStatusesOnPublish(subtasks);
@@ -55,12 +56,16 @@ export async function initialiseSubtasksOnPublish(
       });
     }
 
-    // Scheduled for every subtask, blocked or not: a blocked subtask still has
-    // a deadline, and M7 decides whether to suppress its reminder.
+    // Assignment is scheduled either way. A work reminder is scheduled only
+    // when a date already exists. A dateless task whose turn has arrived —
+    // no predecessor, so it is not blocked — opens its 24-hour window now.
     await scheduleForSubtask(db, subtask.id);
 
     if (next === 'BLOCKED') result.blocked.push(subtask.id);
-    else result.pending.push(subtask.id);
+    else {
+      result.pending.push(subtask.id);
+      if (!subtask.deadline) await openCommitmentWindow(db, subtask.id);
+    }
   }
 
   return result;

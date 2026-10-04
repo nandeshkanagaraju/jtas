@@ -24,7 +24,12 @@ import { hoursBetween } from '@/lib/utils/time';
 import { channelFor, isRetryable, ProviderQuotaError } from './channels';
 import { loadEscalationConfig, loadSuppressOutsideHours, loadWorkingHours } from './config';
 import { isAllowedRecipient, mailGuardConfig, quotaStatus, suppressionReason } from './mail-guard';
-import { overdueMdKey, overdueMemberKey } from './dedupe';
+import {
+  commitmentMissedMdKey,
+  commitmentMissedMemberKey,
+  overdueMdKey,
+  overdueMemberKey,
+} from './dedupe';
 import { enqueue } from './notification-service';
 import { buildPayload } from './payloads';
 import { renderTemplate } from './templates';
@@ -407,7 +412,7 @@ export async function escalateOverdue(now: Date = new Date()): Promise<number> {
 
   for (const subtask of overdue) {
     const n = subtask.escalationCount + 1;
-    const delayHours = Math.max(0, Math.round(hoursBetween(subtask.deadline, now)));
+    const delayHours = Math.max(0, Math.round(hoursBetween(subtask.deadline!, now)));
 
     await prisma.$transaction(async (tx) => {
       // FR-52: the member is asked to finish the work.
@@ -460,6 +465,107 @@ export async function escalateOverdue(now: Date = new Date()): Promise<number> {
   return escalated;
 }
 
+/**
+ * A commitment window that closed with no date and no problem.
+ *
+ * Same cadence and the same ceiling as an overdue task. A reported problem
+ * moves the subtask to PROBLEM, which this query does not select, so the
+ * chase stops the way an overdue chase stops (section 7.5). It does not
+ * create the problem; the mail tells the member to commit or to report why.
+ */
+const COMMITMENT_CHASEABLE: readonly SubtaskStatus[] = [
+  'PENDING',
+  'IN_PROGRESS',
+  'AWAITING_APPROVAL',
+];
+
+export async function escalateMissedCommitments(now: Date = new Date()): Promise<number> {
+  const { intervalMinutes, maxCount } = await loadEscalationConfig();
+  const cutoff = new Date(now.getTime() - intervalMinutes * 60_000);
+
+  const missed = await prisma.subtask.findMany({
+    where: {
+      deadline: null,
+      commitmentDueAt: { lt: now },
+      status: { in: [...COMMITMENT_CHASEABLE] },
+      job: {
+        status: { notIn: [...EXCLUDED_OVERDUE_JOB_STATUSES] },
+        isDemo: false,
+      },
+      commitmentEscalationCount: { lt: maxCount },
+      OR: [{ commitmentLastEscalatedAt: null }, { commitmentLastEscalatedAt: { lt: cutoff } }],
+    },
+    select: {
+      id: true,
+      assigneeId: true,
+      commitmentDueAt: true,
+      commitmentEscalationCount: true,
+      title: true,
+    },
+    take: BATCH_SIZE,
+  });
+
+  if (missed.length === 0) return 0;
+
+  const commanders = await prisma.user.findMany({
+    where: { role: { in: ['MD', 'DEPUTY_MD'] }, isActive: true },
+    select: { id: true },
+  });
+  const commanderIds = commanders.map((row) => row.id);
+
+  let escalated = 0;
+
+  for (const subtask of missed) {
+    const n = subtask.commitmentEscalationCount + 1;
+    const due = subtask.commitmentDueAt ?? now;
+    const delayHours = Math.max(0, Math.round(hoursBetween(due, now)));
+
+    await prisma.$transaction(async (tx) => {
+      await enqueue(tx, {
+        type: 'COMMITMENT_MISSED_MEMBER',
+        userIds: [subtask.assigneeId],
+        entityType: 'SUBTASK',
+        entityId: subtask.id,
+        subject: 'Commit a date, or say why you cannot',
+        body: `${subtask.title} is ${formatElapsed(delayHours * 60)} past the time a date was due.`,
+        dedupeKeyFor: () => commitmentMissedMemberKey(subtask.id, n),
+        scheduledFor: now,
+      });
+
+      await enqueue(tx, {
+        type: 'COMMITMENT_MISSED_MD',
+        userIds: commanderIds,
+        entityType: 'SUBTASK',
+        entityId: subtask.id,
+        subject: 'A department missed its commitment window',
+        body: `${subtask.title} has no date, and the 24 hours to commit one have passed.`,
+        dedupeKeyFor: (userId) => commitmentMissedMdKey(subtask.id, n, userId),
+        scheduledFor: now,
+      });
+
+      await tx.subtask.update({
+        where: { id: subtask.id },
+        data: { commitmentEscalationCount: n, commitmentLastEscalatedAt: now },
+      });
+
+      await writeAudit(tx, {
+        actorId: null,
+        action: 'SUBTASK_COMMITMENT_MISSED',
+        entityType: 'SUBTASK',
+        entityId: subtask.id,
+        before: { commitmentEscalationCount: subtask.commitmentEscalationCount },
+        after: { commitmentEscalationCount: n, delayHours, recipients: commanderIds.length + 1 },
+        ipAddress: null,
+      });
+    });
+
+    escalated++;
+  }
+
+  log.info({ escalated }, 'missed commitment windows queued');
+  return escalated;
+}
+
 /** Records that the worker completed a pass, so a stall becomes observable. */
 export async function writeHeartbeat(db: Db = prisma, at: Date = new Date()): Promise<void> {
   const value = at.toISOString();
@@ -473,7 +579,7 @@ export async function writeHeartbeat(db: Db = prisma, at: Date = new Date()): Pr
 /** One full pass: dispatch, escalate, heartbeat. */
 export async function runSweep(now: Date = new Date()): Promise<SweepResult> {
   const result = await dispatchDue(now);
-  result.escalated = await escalateOverdue(now);
+  result.escalated = (await escalateOverdue(now)) + (await escalateMissedCommitments(now));
   await writeHeartbeat(prisma, now);
   return result;
 }

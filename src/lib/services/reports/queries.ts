@@ -43,7 +43,7 @@ export interface SubtaskRow {
   assignee: string;
   title: string;
   status: string;
-  plannedDeadline: Date;
+  plannedDeadline: Date | null;
   actualCompletion: Date | null;
   delayHours: number;
   extensions: number;
@@ -109,7 +109,7 @@ export async function jobRows(
     subtaskCount: job.subtasks.length,
     completedSubtasks: job.subtasks.filter((s) => s.status === 'COMPLETED').length,
     overdueSubtasks: job.subtasks.filter(
-      (s) => !s.completedAt && s.status !== 'CANCELLED' && s.deadline < now,
+      (s) => !s.completedAt && s.status !== 'CANCELLED' && !!s.deadline && s.deadline < now,
     ).length,
   }));
 }

@@ -42,7 +42,9 @@ export function rowProblems(row: SubtaskRowDraft): string[] {
   if (!row.departmentId) problems.push('Choose a department.');
   if (!row.assigneeId) problems.push('Choose who is responsible.');
   if (row.title.trim().length < 3) problems.push('Give it a title.');
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(row.deadline)) problems.push('Set a deadline.');
+  if (row.deadline !== '' && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(row.deadline)) {
+    problems.push('That deadline is not a complete date and time.');
+  }
   const lead = reminderLeadMinutesProblem(row.reminderLeadMinutes);
   if (lead) problems.push(lead);
   return problems;
@@ -118,8 +120,8 @@ export function SubtaskBuilder({
         <div className="space-y-0.5">
           <h2 className="font-medium">Department subtasks</h2>
           <p className="text-muted-foreground text-sm">
-            One row per piece of work. Each needs an owner and a deadline — that is what the system
-            chases.
+            One row per piece of work. Each needs an owner. Leave the date empty — the department
+            commits it when its turn arrives. A date you fill in here is set by you and stays fixed.
           </p>
         </div>
 

@@ -82,11 +82,15 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
       <div>
         <dt className="text-muted-foreground text-xs">Deadline</dt>
         <dd className="tabular font-medium">
-          {new Intl.DateTimeFormat('en-IN', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-            timeZone: 'Asia/Kolkata',
-          }).format(new Date(subtask.deadline))}
+          {subtask.deadline
+            ? new Intl.DateTimeFormat('en-IN', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+                timeZone: 'Asia/Kolkata',
+              }).format(new Date(subtask.deadline))
+            : subtask.commitmentDueAt
+              ? 'Awaiting commitment'
+              : 'Not their turn'}
           {subtask.isOverdue ? (
             <span className="text-state-overdue block text-xs font-medium">Overdue</span>
           ) : null}

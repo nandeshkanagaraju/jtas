@@ -133,7 +133,7 @@ describe('groupTasks', () => {
     ];
 
     const grouped = groupTasks(tasks, NOW);
-    expect(grouped.dueToday.map((t) => t.deadline.toISOString())).toEqual([
+    expect(grouped.dueToday.map((t) => t.deadline!.toISOString())).toEqual([
       fromISTInput('2026-09-13T15:00').toISOString(),
       fromISTInput('2026-09-13T17:00').toISOString(),
       fromISTInput('2026-09-13T20:00').toISOString(),

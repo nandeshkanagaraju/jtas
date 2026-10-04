@@ -26,7 +26,8 @@ export interface MyTask {
   partNumber: string | null;
   department: { id: string; name: string; code: string };
   title: string;
-  deadline: Date;
+  deadline: Date | null;
+  commitmentDueAt: Date | null;
   status: SubtaskStatus;
   /** Negative once the deadline has passed. */
   hoursRemaining: number;
@@ -37,7 +38,7 @@ export interface MyTask {
     title: string;
     departmentName: string;
     status: SubtaskStatus;
-    deadline: Date;
+    deadline: Date | null;
   } | null;
   hasOpenProblem: boolean;
   completedAt: Date | null;
@@ -70,6 +71,7 @@ export async function getMyTasks(userId: string, now: Date = new Date()): Promis
       jobId: true,
       title: true,
       deadline: true,
+      commitmentDueAt: true,
       status: true,
       completedAt: true,
       requiresApproval: true,
@@ -103,6 +105,7 @@ export async function getMyTasks(userId: string, now: Date = new Date()): Promis
     department: row.department,
     title: row.title,
     deadline: row.deadline,
+    commitmentDueAt: row.commitmentDueAt,
     status: row.status,
     hoursRemaining: hoursRemaining(row, now),
     requiresApproval: row.requiresApproval,

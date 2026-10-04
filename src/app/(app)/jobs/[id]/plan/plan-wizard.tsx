@@ -103,7 +103,7 @@ export function PlanWizard({
     const keyByOrder = new Map(template.items.map((item) => [item.order, `tpl-${item.order}`]));
 
     setRows(
-      scheduled.map(({ item, deadline }) => {
+      scheduled.map(({ item }) => {
         const candidate = users.find(
           (user) =>
             user.departmentId === item.department.id && user.isActive && user.role !== 'ADMIN',
@@ -114,7 +114,7 @@ export function PlanWizard({
           departmentId: item.department.id,
           assigneeId: candidate?.id ?? '',
           title: item.title,
-          deadline,
+          deadline: '',
           reminderLeadMinutes: item.reminderLeadMinutes,
           requiresApproval: false,
           // `!= null`, not truthiness: order 0 is the first step of the
@@ -149,7 +149,7 @@ export function PlanWizard({
           departmentId: row.departmentId,
           assigneeId: row.assigneeId,
           title: row.title,
-          deadline: row.deadline,
+          ...(row.deadline ? { deadline: row.deadline } : {}),
           reminderLeadMinutes: row.reminderLeadMinutes,
           requiresApproval: row.requiresApproval,
           dependsOnKey: row.dependsOnKey,

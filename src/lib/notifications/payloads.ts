@@ -25,6 +25,7 @@ const SUBTASK_CONTEXT = {
   jobId: true,
   title: true,
   deadline: true,
+  commitmentDueAt: true,
   status: true,
   reminderLeadMinutes: true,
   completionNote: true,
@@ -47,7 +48,7 @@ async function subtaskContext(subtaskId: string) {
     subtaskTitle: subtask.title,
     departmentName: subtask.department.name,
     assigneeName: subtask.assignee.name,
-    deadlineIst: ist(subtask.deadline),
+    deadlineIst: subtask.deadline ? ist(subtask.deadline) : 'Not committed',
     status: subtask.status.replace(/_/g, ' ').toLowerCase(),
     jobCode: subtask.job.jobCode,
     jobTitle: subtask.job.title,
@@ -80,7 +81,7 @@ export async function buildPayload(
 
     case 'DEADLINE_REMINDER': {
       const context = await subtaskContext(notification.entityId);
-      if (!context) return null;
+      if (!context?._raw.deadline) return null;
       return {
         kind: 'DEADLINE_REMINDER',
         ...context,
@@ -91,7 +92,7 @@ export async function buildPayload(
     case 'OVERDUE_MEMBER':
     case 'OVERDUE_MD': {
       const context = await subtaskContext(notification.entityId);
-      if (!context) return null;
+      if (!context?._raw.deadline) return null;
       return {
         kind: notification.type,
         ...context,
@@ -160,7 +161,7 @@ export async function buildPayload(
       return {
         kind: 'DEADLINE_CHANGED',
         ...context,
-        oldDeadlineIst: change ? ist(change.oldDeadline) : '—',
+        oldDeadlineIst: change?.oldDeadline ? ist(change.oldDeadline) : 'No date',
         reason: change?.reason ?? '',
       };
     }
@@ -197,6 +198,36 @@ export async function buildPayload(
         ...context,
         completedByName: context.assigneeName,
         completionNote: context._raw.completionNote,
+      };
+    }
+
+    case 'COMMITMENT_OPEN':
+    case 'COMMITMENT_REMINDER':
+    case 'COMMITMENT_MISSED_MEMBER':
+    case 'COMMITMENT_MISSED_MD': {
+      const context = await subtaskContext(notification.entityId);
+      if (!context || context._raw.deadline || !context._raw.commitmentDueAt) return null;
+      const due = context._raw.commitmentDueAt;
+      return {
+        kind: notification.type,
+        ...context,
+        commitmentDueIst: ist(due),
+        minutesLeft: Math.max(0, Math.round(minutesBetween(now, due))),
+        delayMinutes: Math.max(0, Math.round(minutesBetween(due, now))),
+      };
+    }
+
+    case 'COMMITMENT_MADE': {
+      const context = await subtaskContext(notification.entityId);
+      if (!context || !context._raw.deadline) return null;
+      const reader = await prisma.user.findUnique({
+        where: { id: notification.userId },
+        select: { name: true },
+      });
+      return {
+        kind: 'COMMITMENT_MADE',
+        ...context,
+        readerName: reader?.name ?? 'there',
       };
     }
 
@@ -326,7 +357,7 @@ export async function buildDigestPayload(now: Date = new Date()): Promise<Templa
   const toRow = (
     row: {
       title: string;
-      deadline: Date;
+      deadline: Date | null;
       department: { name: string };
       assignee: { name: string };
       job: { jobCode: string };
@@ -337,15 +368,19 @@ export async function buildDigestPayload(now: Date = new Date()): Promise<Templa
     departmentName: row.department.name,
     assigneeName: row.assignee.name,
     subtaskTitle: row.title,
-    deadlineIst: ist(row.deadline),
+    deadlineIst: row.deadline ? ist(row.deadline) : 'Not committed',
     minutes: displayMinutes(Math.max(0, hours * 60)),
   });
 
   return {
     kind: 'DAILY_DIGEST_MD',
     dateIst: formatIST(now, 'd MMM yyyy'),
-    overdue: overdue.map((row) => toRow(row, hoursBetween(row.deadline, now))),
-    dueToday: dueToday.map((row) => toRow(row, hoursBetween(now, row.deadline))),
+    overdue: overdue.flatMap((row) =>
+      row.deadline ? [toRow(row, hoursBetween(row.deadline, now))] : [],
+    ),
+    dueToday: dueToday.flatMap((row) =>
+      row.deadline ? [toRow(row, hoursBetween(now, row.deadline))] : [],
+    ),
     openProblems: problems.map((problem) => ({
       ...toRow(problem.subtask, hoursBetween(problem.createdAt, now)),
       severity: problem.severity,

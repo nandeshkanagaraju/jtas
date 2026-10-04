@@ -6,6 +6,7 @@ import type { SubtaskSummary } from '@/lib/services/subtasks';
 import type {
   BulkCreateSubtasksInput,
   ChangeDeadlineInput,
+  CommitDeadlineInput,
   ReassignInput,
   SubtaskStatusChangeInput,
   UpdateSubtaskInput,
@@ -14,16 +15,32 @@ import type {
 /** `SubtaskSummary` with dates as ISO strings — what crosses the wire. */
 export type SubtaskDto = Omit<
   SubtaskSummary,
-  'deadline' | 'startedAt' | 'completedAt' | 'createdAt' | 'updatedAt' | 'dependsOn' | 'openProblem'
+  | 'deadline'
+  | 'deadlineOrigin'
+  | 'commitmentDueAt'
+  | 'startedAt'
+  | 'completedAt'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'dependsOn'
+  | 'openProblem'
 > & {
   openProblem:
     (Omit<NonNullable<SubtaskSummary['openProblem']>, 'createdAt'> & { createdAt: string }) | null;
-  deadline: string;
+  deadline: string | null;
+  deadlineOrigin: 'DEPARTMENT' | 'MD' | null;
+  commitmentDueAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  dependsOn: { id: string; title: string; status: string; deadline: string } | null;
+  dependsOn: {
+    id: string;
+    title: string;
+    status: string;
+    deadline: string | null;
+    commitmentDueAt: string | null;
+  } | null;
 };
 
 export function fetchJobSubtasks(jobId: string): Promise<{ data: SubtaskDto[] }> {
@@ -49,6 +66,13 @@ export function changeSubtaskStatusRequest(
   input: SubtaskStatusChangeInput,
 ): Promise<{ subtask: SubtaskDto; previousStatus: string; unblocked: string[] }> {
   return apiPost(`/api/subtasks/${id}/status`, input);
+}
+
+export function commitSubtaskDeadlineRequest(
+  id: string,
+  input: CommitDeadlineInput,
+): Promise<{ subtask: SubtaskDto }> {
+  return apiPost(`/api/subtasks/${id}/commit`, input);
 }
 
 export function changeSubtaskDeadlineRequest(

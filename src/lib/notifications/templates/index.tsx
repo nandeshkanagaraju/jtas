@@ -13,6 +13,11 @@ import { formatElapsed } from '@/lib/utils/duration';
 import { jobLink, problemInboxLink, subtaskLink } from './links';
 import {
   ApprovalRequiredEmail,
+  CommitmentMadeEmail,
+  CommitmentMissedMdEmail,
+  CommitmentMissedMemberEmail,
+  CommitmentOpenEmail,
+  CommitmentReminderEmail,
   DeadlineChangedEmail,
   DeadlineReminderEmail,
   OverdueMemberEmail,
@@ -50,6 +55,16 @@ function subjectFor(payload: TemplatePayload): string {
       return `[JTAS] More time asked for: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'APPROVAL_REQUIRED':
       return `[JTAS] Approval needed: ${payload.jobCode} – ${payload.subtaskTitle}`;
+    case 'COMMITMENT_OPEN':
+      return `[JTAS] You can commit: ${payload.jobCode} – ${payload.subtaskTitle}`;
+    case 'COMMITMENT_REMINDER':
+      return `[JTAS] Commit a date by ${payload.commitmentDueIst}: ${payload.jobCode} – ${payload.subtaskTitle}`;
+    case 'COMMITMENT_MISSED_MEMBER':
+      return `[JTAS] Commit a date: ${payload.jobCode} – ${payload.subtaskTitle}`;
+    case 'COMMITMENT_MISSED_MD':
+      return `[JTAS] Commitment missed: ${payload.jobCode} – ${payload.departmentName} – ${payload.assigneeName}`;
+    case 'COMMITMENT_MADE':
+      return `[JTAS] Next up: ${payload.jobCode} – ${payload.departmentName} committed ${payload.deadlineIst}`;
     case 'READY_TO_START':
       return `[JTAS] You can start: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'JOB_COMPLETED':
@@ -80,6 +95,16 @@ function elementFor(payload: TemplatePayload): React.ReactElement {
       return <ExtensionRequestedEmail {...payload} />;
     case 'APPROVAL_REQUIRED':
       return <ApprovalRequiredEmail {...payload} />;
+    case 'COMMITMENT_OPEN':
+      return <CommitmentOpenEmail {...payload} />;
+    case 'COMMITMENT_REMINDER':
+      return <CommitmentReminderEmail {...payload} />;
+    case 'COMMITMENT_MISSED_MEMBER':
+      return <CommitmentMissedMemberEmail {...payload} />;
+    case 'COMMITMENT_MISSED_MD':
+      return <CommitmentMissedMdEmail {...payload} />;
+    case 'COMMITMENT_MADE':
+      return <CommitmentMadeEmail {...payload} />;
     case 'READY_TO_START':
       return <ReadyToStartEmail {...payload} />;
     case 'JOB_COMPLETED':
@@ -149,6 +174,11 @@ export const TEMPLATE_KINDS: TemplateKind[] = [
   'DEADLINE_CHANGED',
   'EXTENSION_REQUESTED',
   'APPROVAL_REQUIRED',
+  'COMMITMENT_OPEN',
+  'COMMITMENT_REMINDER',
+  'COMMITMENT_MISSED_MEMBER',
+  'COMMITMENT_MISSED_MD',
+  'COMMITMENT_MADE',
   'READY_TO_START',
   'JOB_COMPLETED',
   'DAILY_DIGEST_MD',

@@ -87,19 +87,38 @@ export function TaskCard({
           <p className="text-foreground mt-2 text-base">{task.title}</p>
 
           <p className="text-foreground mt-2 text-base font-semibold">
-            <Countdown
-              deadline={task.deadline}
-              className="!text-foreground text-base font-semibold"
-            />
+            {task.deadline ? (
+              <Countdown
+                deadline={task.deadline}
+                className="!text-foreground text-base font-semibold"
+              />
+            ) : task.commitmentDueAt ? (
+              <>
+                Awaiting commitment ·{' '}
+                <Countdown
+                  deadline={task.commitmentDueAt}
+                  className="!text-foreground text-base font-semibold"
+                />
+              </>
+            ) : (
+              'Not your turn yet'
+            )}
           </p>
           <p className="text-foreground text-sm tabular-nums">
-            {formatIST(new Date(task.deadline))}
+            {task.deadline
+              ? formatIST(new Date(task.deadline))
+              : task.commitmentDueAt
+                ? `Commit by ${formatIST(new Date(task.commitmentDueAt))}`
+                : 'No date yet'}
           </p>
 
           {blocked && task.dependency ? (
             <p className="text-foreground mt-3 text-base">
-              Waiting on {task.dependency.departmentName} — {task.dependency.title}, due{' '}
-              {formatIST(new Date(task.dependency.deadline), 'd MMM')}.
+              Waiting on {task.dependency.departmentName} — {task.dependency.title}
+              {task.dependency.deadline
+                ? `, due ${formatIST(new Date(task.dependency.deadline), 'd MMM')}`
+                : ''}
+              .
             </p>
           ) : null}
         </div>

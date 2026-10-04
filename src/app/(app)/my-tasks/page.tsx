@@ -30,10 +30,11 @@ export default async function MyTasksPage() {
             name,
             tasks.map((task) => ({
               ...task,
-              deadline: task.deadline.toISOString(),
+              deadline: task.deadline?.toISOString() ?? null,
+              commitmentDueAt: task.commitmentDueAt?.toISOString() ?? null,
               completedAt: task.completedAt?.toISOString() ?? null,
               dependency: task.dependency
-                ? { ...task.dependency, deadline: task.dependency.deadline.toISOString() }
+                ? { ...task.dependency, deadline: task.dependency.deadline?.toISOString() ?? null }
                 : null,
             })),
           ]),

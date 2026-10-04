@@ -42,12 +42,10 @@ export async function createSubtask(
 ): Promise<SubtaskRow> {
   const job = await loadJobForSubtasks(prisma, jobId);
 
-  const deadline = parseSubtaskDeadline(input.deadline);
-  const exceedsJobDeadline = assertDeadlineWithinJob(
-    deadline,
-    job.overallDeadline,
-    input.deadlineOverrideReason,
-  );
+  const deadline = input.deadline ? parseSubtaskDeadline(input.deadline) : null;
+  const exceedsJobDeadline = deadline
+    ? assertDeadlineWithinJob(deadline, job.overallDeadline, input.deadlineOverrideReason)
+    : false;
   const outsideDepartment = await assertAssignable(
     prisma,
     input.assigneeId,
@@ -68,6 +66,7 @@ export async function createSubtask(
         title: input.title,
         description: input.description ?? null,
         deadline,
+        deadlineOrigin: deadline ? 'MD' : null,
         // Omitted means the operator's configured default (M9.1).
         reminderLeadMinutes: input.reminderLeadMinutes ?? (await loadDefaultReminderLeadMinutes()),
         requiresApproval: input.requiresApproval,

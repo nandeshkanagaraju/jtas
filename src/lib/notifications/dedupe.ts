@@ -110,6 +110,44 @@ export function readyToStartKey(subtaskId: string, completedId: string, userId: 
   return `subtask:${subtaskId}:READY:${completedId}:${userId}`;
 }
 
+/** One "you can commit" notice per subtask per assignee. */
+export function commitmentOpenKey(subtaskId: string, userId: string): string {
+  return `subtask:${subtaskId}:COMMIT_OPEN:${userId}`;
+}
+
+/**
+ * One commitment reminder per window per assignee.
+ *
+ * The due instant is in the key so a window that was never opened twice cannot
+ * resurrect an old reminder, and a reassignment can still address the new owner.
+ */
+export function commitmentReminderKey(subtaskId: string, dueAt: Date, userId: string): string {
+  return `subtask:${subtaskId}:COMMIT_REMINDER:${dueAt.getTime()}:${userId}`;
+}
+
+/** The nth missed-window mail to the member. */
+export function commitmentMissedMemberKey(subtaskId: string, escalationNumber: number): string {
+  return `subtask:${subtaskId}:COMMIT_MISSED_MEMBER:${escalationNumber}`;
+}
+
+/** The nth missed-window mail to one MD or deputy. */
+export function commitmentMissedMdKey(
+  subtaskId: string,
+  escalationNumber: number,
+  userId: string,
+): string {
+  return `subtask:${subtaskId}:COMMIT_MISSED_MD:${escalationNumber}:${userId}`;
+}
+
+/**
+ * One notice per committed date per next-department assignee.
+ *
+ * Keyed on the date, so a later move by the MD tells them the new one.
+ */
+export function commitmentMadeKey(subtaskId: string, deadline: Date, userId: string): string {
+  return `subtask:${subtaskId}:COMMIT_MADE:${deadline.getTime()}:${userId}`;
+}
+
 /**
  * One mention notification per comment per person (build spec M10.1).
  *

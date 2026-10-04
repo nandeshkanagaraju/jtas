@@ -9,6 +9,7 @@ import { notFound, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
 import { recomputeJobStatus } from '@/lib/services/jobs';
 import {
+  notifyCommitmentMade,
   notifyDeadlineChange,
   notifyReassignment,
   rescheduleForSubtask,
@@ -61,7 +62,7 @@ export async function changeDeadline(
   const nextLead = input.reminderLeadMinutes;
   const leadChanged = nextLead !== undefined && nextLead !== subtask.reminderLeadMinutes;
 
-  if (newDeadline.getTime() === subtask.deadline.getTime() && !leadChanged) {
+  if (subtask.deadline && newDeadline.getTime() === subtask.deadline.getTime() && !leadChanged) {
     throw validationError('That is the deadline it already has.', {
       fields: { newDeadline: ['Choose a different date and time.'] },
     });
@@ -81,10 +82,14 @@ export async function changeDeadline(
       where: { id: subtaskId },
       data: {
         deadline: newDeadline,
+        deadlineOrigin: 'MD',
         ...(leadChanged ? { reminderLeadMinutes: nextLead } : {}),
-        // SDD 4.5: a new deadline starts a new escalation clock.
+        // SDD 4.5: a new deadline starts a new escalation clock, for the work
+        // and for a commitment window that this date closes.
         escalationCount: 0,
         lastEscalatedAt: null,
+        commitmentEscalationCount: 0,
+        commitmentLastEscalatedAt: null,
       },
       select: SUBTASK_SELECT,
     });
@@ -105,7 +110,7 @@ export async function changeDeadline(
       entityType: 'SUBTASK',
       entityId: subtaskId,
       before: {
-        deadline: oldDeadline.toISOString(),
+        deadline: oldDeadline?.toISOString() ?? null,
         escalationCount: subtask.escalationCount,
         ...(leadChanged ? { reminderLeadMinutes: subtask.reminderLeadMinutes } : {}),
       },
@@ -124,6 +129,7 @@ export async function changeDeadline(
     // be resurrected and a new one is created naturally (SDD 5.1).
     await rescheduleForSubtask(tx, subtaskId);
     await notifyDeadlineChange(tx, subtaskId);
+    await notifyCommitmentMade(tx, subtaskId);
 
     // A moved deadline can take the job out of DELAYED, or put it there.
     await recomputeJobStatus(tx, subtask.jobId, { actor, ctx });

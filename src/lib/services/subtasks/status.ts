@@ -24,6 +24,7 @@ import {
   notifyApprovalRequired,
   notifyReadyToStart,
 } from '@/lib/services/notification-service';
+import { openCommitmentWindow } from '@/lib/services/subtasks/commitment';
 import { assertNoLiveProblem, createProblem } from '@/lib/services/problems/core';
 import { getSettingNumber } from '@/lib/services/settings-service';
 import type { SubtaskStatusChangeInput } from '@/lib/validation/subtask';
@@ -225,7 +226,17 @@ async function unblockDependents(
     });
 
     unblocked.push(id);
-    await notifyReadyToStart(tx, id, completedId);
+
+    const opened = await tx.subtask.findUnique({
+      where: { id },
+      select: { deadline: true },
+    });
+    // A date already set — by the MD, or carried from before this model —
+    // means they can start, and they are not asked to commit. A dateless
+    // task opens its 24-hour window, and that mail is the one that tells
+    // them they can start.
+    if (opened?.deadline) await notifyReadyToStart(tx, id, completedId);
+    else await openCommitmentWindow(tx, id);
   }
 
   return unblocked;

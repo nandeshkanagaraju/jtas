@@ -122,7 +122,7 @@ export async function listJobs(user: SessionUser, query: ListJobsQuery): Promise
 type JobWithFacets = JobRow & {
   subtasks: Array<{
     status: SubtaskStatus;
-    deadline: Date;
+    deadline: Date | null;
     department: { id: string; name: string; code: string; sequenceOrder: number };
   }>;
 };

@@ -394,7 +394,7 @@ describe('extension requests', () => {
 
     expect(request.status).toBe('PENDING');
     // Asking is not getting.
-    expect((await loadSubtaskForWrite(subtask.id)).deadline.toISOString()).toBe(
+    expect((await loadSubtaskForWrite(subtask.id)).deadline!.toISOString()).toBe(
       fromISTInput('2027-06-10T18:00').toISOString(),
     );
     expect(await auditActionsFor(subtask.id)).toContain('EXTENSION_REQUESTED');
@@ -451,7 +451,7 @@ describe('extension requests', () => {
     expect(decided.decidedById).toBe(md.id);
 
     const updated = await loadSubtaskForWrite(subtask.id);
-    expect(formatIST(updated.deadline, "yyyy-MM-dd'T'HH:mm")).toBe('2027-06-14T18:00');
+    expect(formatIST(updated.deadline!, "yyyy-MM-dd'T'HH:mm")).toBe('2027-06-14T18:00');
 
     // The same trail as any other deadline change — not a second, weaker path.
     const change = await testDb.deadlineChange.findFirstOrThrow({
@@ -483,7 +483,7 @@ describe('extension requests', () => {
     );
 
     expect(decided.status).toBe('REJECTED');
-    expect((await loadSubtaskForWrite(subtask.id)).deadline.toISOString()).toBe(
+    expect((await loadSubtaskForWrite(subtask.id)).deadline!.toISOString()).toBe(
       fromISTInput('2027-06-10T18:00').toISOString(),
     );
     expect(await auditActionsFor(subtask.id)).toContain('EXTENSION_REJECTED');

@@ -135,8 +135,8 @@ describe('createSubtask', () => {
 
     expect(subtask.status).toBe('PENDING');
     // 18:00 IST is 12:30 UTC — built through fromISTInput, never new Date().
-    expect(subtask.deadline.toISOString()).toBe('2027-06-10T12:30:00.000Z');
-    expect(formatIST(subtask.deadline, 'HH:mm')).toBe('18:00');
+    expect(subtask.deadline!.toISOString()).toBe('2027-06-10T12:30:00.000Z');
+    expect(formatIST(subtask.deadline!, 'HH:mm')).toBe('18:00');
 
     expect(await auditActionsFor(subtask.id)).toContain('SUBTASK_CREATED');
   });
@@ -768,7 +768,7 @@ describe('changeDeadline', () => {
       ctx,
     );
 
-    expect(updated.deadline.toISOString()).toBe('2027-06-18T12:30:00.000Z');
+    expect(updated.deadline!.toISOString()).toBe('2027-06-18T12:30:00.000Z');
     // A fresh deadline starts a fresh clock, or it would escalate again at once.
     expect(updated.escalationCount).toBe(0);
     expect(updated.lastEscalatedAt).toBeNull();
@@ -778,7 +778,7 @@ describe('changeDeadline', () => {
     });
     expect(change.reason).toBe('Customer moved the collection date');
     expect(change.changedById).toBe(md.id);
-    expect(change.oldDeadline.toISOString()).toBe('2027-06-10T12:30:00.000Z');
+    expect(change.oldDeadline!.toISOString()).toBe('2027-06-10T12:30:00.000Z');
 
     expect(await auditActionsFor(subtask.id)).toContain('SUBTASK_DEADLINE_CHANGED');
   });

@@ -12,10 +12,15 @@ import type {
 } from '@/lib/validation/extension';
 
 /** `MyTask` with dates as ISO strings — what crosses the wire. */
-export type MyTaskDto = Omit<MyTask, 'deadline' | 'completedAt' | 'dependency'> & {
-  deadline: string;
+export type MyTaskDto = Omit<
+  MyTask,
+  'deadline' | 'commitmentDueAt' | 'completedAt' | 'dependency'
+> & {
+  deadline: string | null;
+  commitmentDueAt: string | null;
   completedAt: string | null;
-  dependency: (Omit<NonNullable<MyTask['dependency']>, 'deadline'> & { deadline: string }) | null;
+  dependency:
+    (Omit<NonNullable<MyTask['dependency']>, 'deadline'> & { deadline: string | null }) | null;
 };
 
 export type MyTasksDto = Omit<MyTasksResult, 'buckets' | 'now'> & {

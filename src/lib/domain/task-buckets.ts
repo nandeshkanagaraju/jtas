@@ -32,8 +32,8 @@ export type BucketName = (typeof BUCKET_ORDER)[number];
 /** The shape the bucketer needs; the service loads more than this. */
 export interface BucketableTask {
   status: SubtaskStatus;
-  /** UTC instant. */
-  deadline: Date;
+  /** UTC instant. Null while the department has not committed a date. */
+  deadline: Date | null;
   completedAt: Date | null;
 }
 
@@ -49,6 +49,7 @@ export const THIS_WEEK_DAYS = 7;
  */
 export function isOverdue(task: BucketableTask, now: Date): boolean {
   if (task.status === 'COMPLETED' || task.status === 'CANCELLED') return false;
+  if (!task.deadline) return false;
   return now.getTime() > task.deadline.getTime();
 }
 
@@ -81,6 +82,10 @@ export function bucketFor(task: BucketableTask, now: Date): BucketName | null {
   if (task.status === 'AWAITING_APPROVAL') return 'awaitingApproval';
 
   // PENDING, IN_PROGRESS and PROBLEM are bucketed by deadline.
+  // A task with no date yet is the member's to commit, so it sits with today's
+  // work rather than disappearing into a bucket that needs a deadline.
+  if (!task.deadline) return 'dueToday';
+
   if (isOverdue(task, now)) return 'overdue';
 
   // IST calendar day boundaries, so "today" ends at midnight in Coimbatore.
@@ -126,7 +131,7 @@ export function groupTasks<T extends BucketableTask>(tasks: readonly T[], now: D
     buckets[name].sort((a, b) =>
       name === 'recentlyCompleted'
         ? (b.completedAt?.getTime() ?? 0) - (a.completedAt?.getTime() ?? 0)
-        : a.deadline.getTime() - b.deadline.getTime(),
+        : (a.deadline?.getTime() ?? 0) - (b.deadline?.getTime() ?? 0),
     );
   }
 
@@ -135,6 +140,7 @@ export function groupTasks<T extends BucketableTask>(tasks: readonly T[], now: D
 
 /** Signed hours until the deadline; negative once it has passed. */
 export function hoursRemaining(task: BucketableTask, now: Date): number {
+  if (!task.deadline) return 0;
   return Math.round(hoursBetween(now, task.deadline) * 10) / 10;
 }
 

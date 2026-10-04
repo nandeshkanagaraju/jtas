@@ -127,7 +127,7 @@ export function jobSnapshot(row: JobRow): Prisma.InputJsonValue {
 
 /** Narrows loaded subtasks to what the status ladder needs. */
 export function toSubtaskSnapshots(
-  subtasks: ReadonlyArray<{ status: SubtaskSnapshot['status']; deadline: Date }>,
+  subtasks: ReadonlyArray<{ status: SubtaskSnapshot['status']; deadline: Date | null }>,
 ): SubtaskSnapshot[] {
   return subtasks.map((subtask) => ({ status: subtask.status, deadline: subtask.deadline }));
 }

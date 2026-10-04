@@ -86,13 +86,18 @@ export default async function TaskPage({
       currentUserId={session.id}
       subtask={{
         ...subtask,
-        deadline: subtask.deadline.toISOString(),
+        deadline: subtask.deadline?.toISOString() ?? null,
+        commitmentDueAt: subtask.commitmentDueAt?.toISOString() ?? null,
         startedAt: subtask.startedAt?.toISOString() ?? null,
         completedAt: subtask.completedAt?.toISOString() ?? null,
         createdAt: subtask.createdAt.toISOString(),
         updatedAt: subtask.updatedAt.toISOString(),
         dependsOn: subtask.dependsOn
-          ? { ...subtask.dependsOn, deadline: subtask.dependsOn.deadline.toISOString() }
+          ? {
+              ...subtask.dependsOn,
+              deadline: subtask.dependsOn.deadline?.toISOString() ?? null,
+              commitmentDueAt: subtask.dependsOn.commitmentDueAt?.toISOString() ?? null,
+            }
           : null,
         openProblem: subtask.openProblem
           ? { ...subtask.openProblem, createdAt: subtask.openProblem.createdAt.toISOString() }

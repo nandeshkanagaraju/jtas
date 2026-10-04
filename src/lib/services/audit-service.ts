@@ -60,6 +60,7 @@ export type AuditAction =
   // M7 — the notification engine. Written by the sweeper, which has no human
   // actor, so these rows carry a null actorId.
   | 'SUBTASK_OVERDUE_ESCALATED'
+  | 'SUBTASK_COMMITMENT_MISSED'
   | 'DIGEST_SENT'
   // M9 — governance. The settings row carries every key changed together, so
   // the record shows the decision rather than one key of it.

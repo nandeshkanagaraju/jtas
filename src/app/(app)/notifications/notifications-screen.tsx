@@ -36,6 +36,11 @@ const TYPE_LABELS: Record<string, string> = {
   EXTENSION_REQUESTED: 'More time asked',
   APPROVAL_REQUIRED: 'Needs approval',
   READY_TO_START: 'Ready to start',
+  COMMITMENT_OPEN: 'Commit a date',
+  COMMITMENT_REMINDER: 'Commit a date',
+  COMMITMENT_MISSED_MEMBER: 'Commitment missed',
+  COMMITMENT_MISSED_MD: 'Commitment missed',
+  COMMITMENT_MADE: 'Date committed',
   JOB_COMPLETED: 'Job complete',
   DAILY_DIGEST_MD: 'Daily summary',
 };

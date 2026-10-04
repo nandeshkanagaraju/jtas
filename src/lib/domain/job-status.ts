@@ -13,8 +13,8 @@ import type { JobStatus, SubtaskStatus } from '@prisma/client';
 /** The subtask fields the ladder actually depends on. */
 export interface SubtaskSnapshot {
   status: SubtaskStatus;
-  /** UTC instant. */
-  deadline: Date;
+  /** UTC instant. Null until a date is committed — a blank is not overdue. */
+  deadline: Date | null;
 }
 
 export interface JobStatusInput {
@@ -49,6 +49,7 @@ const MANUAL: readonly JobStatus[] = ['DRAFT', 'ON_HOLD', 'CANCELLED'];
  */
 export function isSubtaskOverdue(subtask: SubtaskSnapshot, now: Date): boolean {
   if (TERMINAL.includes(subtask.status)) return false;
+  if (!subtask.deadline) return false;
   return now.getTime() > subtask.deadline.getTime();
 }
 

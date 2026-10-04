@@ -22,6 +22,7 @@ import { formatIST } from '@/lib/utils/time';
 import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 import { CommentThread } from '@/components/collaboration/comment-thread';
 
+import { CommitmentPanel } from './commitment-panel';
 import { ExtensionPanel } from './extension-panel';
 import { TaskStatusAlerts } from './task-status-alerts';
 
@@ -70,6 +71,8 @@ export function TaskDetail({
   // else out of PROBLEM, so the buttons would only fail.
   const reported = subtask.status === 'PROBLEM';
   const canAct = permissions.updateStatus && !done && !cancelled && !waiting && !reported;
+  const owesCommitment =
+    !blocked && !done && !cancelled && !subtask.deadline && !!subtask.commitmentDueAt;
 
   // Deep link from a reminder email lands with the right control already open
   // and focused, so the flow from mail to update really is two taps.
@@ -123,6 +126,18 @@ export function TaskDetail({
         </Link>
       </Button>
 
+      {owesCommitment && subtask.commitmentDueAt ? (
+        <CommitmentPanel
+          subtaskId={subtask.id}
+          jobCode={subtask.jobCode}
+          jobTitle={subtask.jobTitle}
+          departmentName={subtask.department.name}
+          commitmentDueAt={subtask.commitmentDueAt}
+          onCommitted={() => router.refresh()}
+          onReportProblem={() => setReporting(true)}
+        />
+      ) : null}
+
       {/* Everything needed to decide, above the buttons (SDD 7.2). */}
       <Card>
         <CardHeader>
@@ -143,9 +158,15 @@ export function TaskDetail({
                 subtask.isOverdue && 'text-state-overdue',
               )}
             >
-              {formatIST(new Date(subtask.deadline))}
+              {subtask.deadline
+                ? formatIST(new Date(subtask.deadline))
+                : owesCommitment
+                  ? 'Awaiting your commitment'
+                  : 'No date yet'}
             </span>
-            <Countdown deadline={subtask.deadline} className="text-sm" />
+            {subtask.deadline ? (
+              <Countdown deadline={subtask.deadline} className="text-sm" />
+            ) : null}
             {subtask.requiresApproval ? (
               <Badge variant="outline" className="gap-1">
                 <Lock className="size-3" />
@@ -267,7 +288,7 @@ export function TaskDetail({
         </CardContent>
       </Card>
 
-      {permissions.requestExtension && !done && !cancelled ? (
+      {permissions.requestExtension && subtask.deadline && !done && !cancelled ? (
         <ExtensionPanel
           subtaskId={subtask.id}
           currentDeadline={subtask.deadline}

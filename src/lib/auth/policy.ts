@@ -124,6 +124,7 @@ export type Action =
   | 'subtask:edit'
   | 'subtask:reassign'
   | 'subtask:changeDeadline'
+  | 'subtask:commit'
   | 'subtask:approve'
   // "Update own subtask status" / "Update another's subtask status"
   | 'subtask:updateStatus'
@@ -170,6 +171,7 @@ export interface ResourceFor {
   'subtask:edit': SubtaskResource;
   'subtask:reassign': SubtaskResource;
   'subtask:changeDeadline': SubtaskResource;
+  'subtask:commit': SubtaskResource;
   'subtask:approve': SubtaskResource;
   'subtask:updateStatus': SubtaskResource;
   'subtask:requestExtension': SubtaskResource;
@@ -289,6 +291,13 @@ export function can<A extends Action>(
     // (FR-33, improvement I-11), never editing the deadline himself (FR-35).
     case 'subtask:changeDeadline':
       return isCommand(user);
+
+    // The assignee names the date once, when their turn arrives. The MD sets
+    // or moves a date through subtask:changeDeadline, not through this.
+    case 'subtask:commit': {
+      const subtask = resource as SubtaskResource;
+      return ownsSubtask(user, subtask);
+    }
 
     /**
      * A member sees a subtask when he holds it, or when it belongs to a job he

@@ -65,7 +65,7 @@ export interface ProblemSummary {
   subtask: {
     id: string;
     title: string;
-    deadline: Date;
+    deadline: Date | null;
     status: string;
     assignee: { id: string; name: string; email: string };
     department: { id: string; name: string; code: string };

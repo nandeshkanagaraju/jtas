@@ -78,7 +78,7 @@ export async function deactivateUser(
             id: subtask.id,
             title: subtask.title,
             status: subtask.status,
-            deadline: subtask.deadline.toISOString(),
+            deadline: subtask.deadline?.toISOString() ?? null,
             jobId: subtask.jobId,
             jobCode: subtask.jobCode,
             departmentName: subtask.departmentName,

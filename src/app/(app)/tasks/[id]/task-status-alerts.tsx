@@ -55,8 +55,11 @@ export function TaskStatusAlerts({
           <AlertTitle>Waiting on somebody else</AlertTitle>
           <AlertDescription>
             <span className="font-medium">{subtask.dependsOn.title}</span>{' '}
-            {PREDECESSOR_STATE[subtask.dependsOn.status] ?? 'is not finished'}, due{' '}
-            {formatIST(new Date(subtask.dependsOn.deadline))}. You can start once it is done.
+            {PREDECESSOR_STATE[subtask.dependsOn.status] ?? 'is not finished'}
+            {subtask.dependsOn.deadline
+              ? `, due ${formatIST(new Date(subtask.dependsOn.deadline))}`
+              : ', and has not committed a date yet'}
+            . You can start once it is done.
           </AlertDescription>
         </Alert>
       ) : null}

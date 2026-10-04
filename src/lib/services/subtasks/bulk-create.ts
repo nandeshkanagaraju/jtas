@@ -47,16 +47,20 @@ export async function bulkCreateSubtasks(
   // is worse than none.
   const prepared = await Promise.all(
     input.subtasks.map(async (draft, index) => {
-      const deadline = parseSubtaskDeadline(draft.deadline, {
-        field: `subtasks.${index}.deadline`,
-      });
+      const deadline = draft.deadline
+        ? parseSubtaskDeadline(draft.deadline, {
+            field: `subtasks.${index}.deadline`,
+          })
+        : null;
 
-      assertDeadlineWithinJob(
-        deadline,
-        job.overallDeadline,
-        draft.deadlineOverrideReason,
-        `subtasks.${index}.deadline`,
-      );
+      if (deadline) {
+        assertDeadlineWithinJob(
+          deadline,
+          job.overallDeadline,
+          draft.deadlineOverrideReason,
+          `subtasks.${index}.deadline`,
+        );
+      }
       await assertAssignable(
         prisma,
         draft.assigneeId,
@@ -92,6 +96,7 @@ export async function bulkCreateSubtasks(
           title: draft.title,
           description: draft.description ?? null,
           deadline,
+          deadlineOrigin: deadline ? 'MD' : null,
           reminderLeadMinutes: draft.reminderLeadMinutes ?? defaultLead,
           requiresApproval: draft.requiresApproval,
           // Real foreign keys only; in-batch references are linked below.

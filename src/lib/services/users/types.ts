@@ -45,7 +45,7 @@ export interface OpenSubtaskRef {
   id: string;
   title: string;
   status: SubtaskStatus;
-  deadline: Date;
+  deadline: Date | null;
   jobId: string;
   jobCode: string;
   departmentId: string;

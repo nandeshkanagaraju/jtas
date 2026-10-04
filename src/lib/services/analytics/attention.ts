@@ -111,7 +111,7 @@ export async function needsAttention(now: Date = new Date()): Promise<{
       title: subtask.title,
       departmentName: subtask.department.name,
       assigneeName: subtask.assignee.name,
-      deadline: subtask.deadline.toISOString(),
+      deadline: subtask.deadline?.toISOString() ?? '',
       overdueHours: round1(overdueHours(subtask, now)),
       status: subtask.status,
       escalationCount: subtask.escalationCount,

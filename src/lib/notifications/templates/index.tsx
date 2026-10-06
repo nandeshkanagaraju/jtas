@@ -14,6 +14,7 @@ import { jobLink, problemInboxLink, subtaskLink } from './links';
 import {
   ApprovalRequiredEmail,
   CommitmentMadeEmail,
+  PredecessorDateChangedEmail,
   CommitmentMissedMdEmail,
   CommitmentMissedMemberEmail,
   CommitmentOpenEmail,
@@ -65,6 +66,8 @@ function subjectFor(payload: TemplatePayload): string {
       return `[JTAS] Commitment missed: ${payload.jobCode} – ${payload.departmentName} – ${payload.assigneeName}`;
     case 'COMMITMENT_MADE':
       return `[JTAS] Next up: ${payload.jobCode} – ${payload.departmentName} committed ${payload.deadlineIst}`;
+    case 'PREDECESSOR_DATE_CHANGED':
+      return `[JTAS] Date moved: ${payload.jobCode} – ${payload.departmentName} now ${payload.deadlineIst}`;
     case 'READY_TO_START':
       return `[JTAS] You can start: ${payload.jobCode} – ${payload.subtaskTitle}`;
     case 'JOB_COMPLETED':
@@ -105,6 +108,8 @@ function elementFor(payload: TemplatePayload): React.ReactElement {
       return <CommitmentMissedMdEmail {...payload} />;
     case 'COMMITMENT_MADE':
       return <CommitmentMadeEmail {...payload} />;
+    case 'PREDECESSOR_DATE_CHANGED':
+      return <PredecessorDateChangedEmail {...payload} />;
     case 'READY_TO_START':
       return <ReadyToStartEmail {...payload} />;
     case 'JOB_COMPLETED':
@@ -179,6 +184,7 @@ export const TEMPLATE_KINDS: TemplateKind[] = [
   'COMMITMENT_MISSED_MEMBER',
   'COMMITMENT_MISSED_MD',
   'COMMITMENT_MADE',
+  'PREDECESSOR_DATE_CHANGED',
   'READY_TO_START',
   'JOB_COMPLETED',
   'DAILY_DIGEST_MD',

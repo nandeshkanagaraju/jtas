@@ -15,6 +15,7 @@ import type {
   ApprovalRequiredPayload,
   AssignedPayload,
   CommitmentMadePayload,
+  PredecessorDateChangedPayload,
   CommitmentMissedMdPayload,
   CommitmentMissedMemberPayload,
   CommitmentOpenPayload,
@@ -245,6 +246,32 @@ export function CommitmentMadeEmail(payload: CommitmentMadePayload) {
   );
 }
 
+export function PredecessorDateChangedEmail(payload: PredecessorDateChangedPayload) {
+  return (
+    <EmailLayout preview={`Date moved: ${payload.jobCode} — ${payload.departmentName}`}>
+      <Heading>The date you are planning against has moved</Heading>
+      <Paragraph>Dear {payload.readerName},</Paragraph>
+      <Paragraph>
+        {payload.departmentName} was going to finish <strong>{payload.subtaskTitle}</strong> on{' '}
+        <strong>{payload.oldDeadlineIst}</strong>. The MD has moved that to{' '}
+        <strong>{payload.deadlineIst}</strong>. You are next. Your own date is not due until that
+        step is finished.
+      </Paragraph>
+
+      <FactTable
+        rows={[
+          ...subtaskFacts(payload),
+          ['Was', payload.oldDeadlineIst],
+          ['Now', payload.deadlineIst],
+          ['Reason', payload.reason],
+        ]}
+      />
+
+      <ActionButton href={subtaskLink(payload.subtaskId)} label="Open the task" />
+    </EmailLayout>
+  );
+}
+
 export function ReadyToStartEmail(payload: ReadyToStartPayload) {
   return (
     <EmailLayout preview={`You can start: ${payload.jobCode} — ${payload.subtaskTitle}`}>
@@ -252,6 +279,12 @@ export function ReadyToStartEmail(payload: ReadyToStartPayload) {
       <Paragraph>Dear {payload.assigneeName},</Paragraph>
       <Paragraph>
         <strong>{payload.predecessorTitle}</strong> ({payload.predecessorDepartment}) is complete.
+        {payload.predecessorDeadlineIst ? (
+          <>
+            {' '}
+            They had committed <strong>{payload.predecessorDeadlineIst}</strong>.
+          </>
+        ) : null}{' '}
         You can start <strong>{payload.subtaskTitle}</strong>.
       </Paragraph>
 

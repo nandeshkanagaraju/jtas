@@ -5,10 +5,10 @@ import type { ProblemRaisedPayload } from '@/lib/notifications/templates/types';
 import { parseDayMonth } from '@/lib/telegram/dates';
 import { telegramReplyShouldRetry } from '@/lib/telegram/handle-update';
 import { webhookAuthorized } from '@/lib/telegram/secret';
-import { plainTextFor } from '@/lib/telegram/text';
+import { actionsFor, plainTextFor } from '@/lib/telegram/text';
 
 describe('telegram text', () => {
-  it('leads with the job code and part number and stays under 300 characters', () => {
+  it('carries the job, the part, the assignee and the full problem', () => {
     const payload: ProblemRaisedPayload = {
       kind: 'PROBLEM_RAISED',
       subtaskId: 'sub',
@@ -29,8 +29,38 @@ describe('telegram text', () => {
     };
 
     const text = plainTextFor(payload);
-    expect(text.startsWith('JGE-2026-0004 · VB-100')).toBe(true);
-    expect(text.length).toBeLessThanOrEqual(300);
+    expect(text.startsWith('JGE-2026-0004 — Valve body')).toBe(true);
+    expect(text).toContain('Part / drawing VB-100');
+    expect(text).toContain('Purchase · Purchase');
+    expect(text).toContain('Assigned to Meena');
+    expect(text).toContain('x'.repeat(500));
+    expect(text.length).toBeLessThanOrEqual(4000);
+  });
+
+  it('offers date buttons on a missed commitment, and a file button on the task', () => {
+    const open = actionsFor({
+      kind: 'COMMITMENT_MISSED_MEMBER',
+      subtaskId: 'sub',
+      jobId: 'job',
+      subtaskTitle: 'Store',
+      departmentName: 'Store',
+      assigneeName: 'Meena',
+      deadlineIst: 'Not committed',
+      status: 'pending',
+      jobCode: 'JGE-2026-0004',
+      jobTitle: 'Valve body',
+      partNumber: 'VB-100',
+      drawingNumber: 'DWG-1',
+      commitmentDueIst: '7 Oct 2026, 6:00 PM',
+      delayMinutes: 30,
+    });
+    expect(open.flat().map((button) => button.label)).toEqual([
+      '+2 days',
+      '+5 days',
+      '+1 week',
+      'Other date',
+      'Attach a file',
+    ]);
   });
 });
 

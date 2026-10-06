@@ -99,11 +99,19 @@ export const SAMPLES: Record<TemplateKind, TemplatePayload> = {
     ...SUBTASK,
     readerName: 'Store keeper',
   },
+  PREDECESSOR_DATE_CHANGED: {
+    kind: 'PREDECESSOR_DATE_CHANGED',
+    ...SUBTASK,
+    readerName: 'Store keeper',
+    oldDeadlineIst: '6 Sep 2026, 6:00 PM',
+    reason: 'Material will be a week late.',
+  },
   READY_TO_START: {
     kind: 'READY_TO_START',
     ...SUBTASK,
     predecessorTitle: 'Raise PO for raw material and bought-out items',
     predecessorDepartment: 'Purchase',
+    predecessorDeadlineIst: '12 Sep 2026, 6:00 PM',
   },
   JOB_COMPLETED: {
     kind: 'JOB_COMPLETED',

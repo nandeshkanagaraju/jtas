@@ -116,11 +116,24 @@ export interface CommitmentMadePayload extends SubtaskContext {
   readerName: string;
 }
 
+/**
+ * The MD moved the previous step's date. The next department hears both dates,
+ * because that is the date they plan against.
+ */
+export interface PredecessorDateChangedPayload extends SubtaskContext {
+  kind: 'PREDECESSOR_DATE_CHANGED';
+  readerName: string;
+  oldDeadlineIst: string;
+  reason: string;
+}
+
 /** The predecessor finished; this assignee can start. */
 export interface ReadyToStartPayload extends SubtaskContext {
   kind: 'READY_TO_START';
   predecessorTitle: string;
   predecessorDepartment: string;
+  /** The date the previous step committed, when it had one. */
+  predecessorDeadlineIst: string | null;
 }
 
 export interface JobCompletedPayload extends JobContext {
@@ -164,6 +177,7 @@ export type TemplatePayload =
   | CommitmentMissedMemberPayload
   | CommitmentMissedMdPayload
   | CommitmentMadePayload
+  | PredecessorDateChangedPayload
   | ReadyToStartPayload
   | JobCompletedPayload
   | DailyDigestPayload;

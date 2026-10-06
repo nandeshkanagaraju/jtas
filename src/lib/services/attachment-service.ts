@@ -34,6 +34,7 @@ import {
   headObject,
   presignDownload,
   presignUpload,
+  putObject,
   readHead,
 } from '@/lib/storage/s3';
 import { moduleLogger } from '@/lib/utils/logger';
@@ -46,6 +47,8 @@ export interface AttachmentActor {
 
 export interface AttachmentContext {
   ipAddress: string | null;
+  /** WEB unless the file arrived from a linked Telegram chat. */
+  source?: 'WEB' | 'TELEGRAM';
 }
 
 export interface AttachmentRow {
@@ -259,12 +262,82 @@ export async function registerUpload(
         sizeBytes: created.sizeBytes,
       },
       ipAddress: ctx.ipAddress,
+      source: ctx.source ?? 'WEB',
     });
 
     return created;
   });
 
   return toRow(row, { id: actor.id, name: '' });
+}
+
+/**
+ * Stores bytes this process already has, then registers them.
+ *
+ * Used when the file did not come from a browser: Telegram hands the bot the
+ * object, and the same allow-list, size cap and magic-byte check still apply.
+ * The check runs on these bytes and again when the object is read back, which
+ * is the same second look a browser upload gets.
+ */
+export async function ingestAttachment(
+  input: {
+    jobId: string;
+    subtaskId: string;
+    fileName: string;
+    contentType: string;
+    bytes: Uint8Array;
+  },
+  actor: AttachmentActor,
+  ctx: AttachmentContext,
+): Promise<AttachmentRow> {
+  const declared = checkDeclaredFile({
+    fileName: input.fileName,
+    contentType: input.contentType,
+    sizeBytes: input.bytes.byteLength,
+  });
+  if (!declared.ok) {
+    throw validationError(declared.message ?? 'That file cannot be uploaded.', {
+      reason: declared.reason,
+    });
+  }
+
+  const contents = checkFileContents(input.fileName, input.bytes);
+  if (!contents.ok) {
+    log.warn(
+      { fileName: input.fileName, actorId: actor.id, reason: contents.reason },
+      'upload rejected: contents do not match the extension',
+    );
+    throw validationError(contents.message ?? 'That file is not what it claims to be.', {
+      reason: contents.reason,
+    });
+  }
+
+  const reserved = await presignAttachment({
+    jobId: input.jobId,
+    subtaskId: input.subtaskId,
+    fileName: input.fileName,
+    contentType: input.contentType,
+    sizeBytes: input.bytes.byteLength,
+  });
+
+  await putObject({
+    key: reserved.storageKey,
+    contentType: input.contentType,
+    body: input.bytes,
+  });
+
+  return registerUpload(
+    {
+      attachmentId: reserved.attachmentId,
+      jobId: input.jobId,
+      subtaskId: input.subtaskId,
+      fileName: input.fileName,
+      contentType: input.contentType,
+      storageKey: reserved.storageKey,
+    },
+    actor,
+    ctx,
+  );
 }
 
 /** Attachments on a job, on its subtasks, or on one subtask. */

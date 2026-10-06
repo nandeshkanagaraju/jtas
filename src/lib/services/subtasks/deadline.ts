@@ -9,8 +9,8 @@ import { notFound, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
 import { recomputeJobStatus } from '@/lib/services/jobs';
 import {
-  notifyCommitmentMade,
   notifyDeadlineChange,
+  notifyPredecessorDateChanged,
   notifyReassignment,
   rescheduleForSubtask,
 } from '@/lib/services/notification-service';
@@ -129,7 +129,7 @@ export async function changeDeadline(
     // be resurrected and a new one is created naturally (SDD 5.1).
     await rescheduleForSubtask(tx, subtaskId);
     await notifyDeadlineChange(tx, subtaskId);
-    await notifyCommitmentMade(tx, subtaskId);
+    await notifyPredecessorDateChanged(tx, subtaskId);
 
     // A moved deadline can take the job out of DELAYED, or put it there.
     await recomputeJobStatus(tx, subtask.jobId, { actor, ctx });

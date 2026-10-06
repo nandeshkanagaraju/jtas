@@ -149,6 +149,20 @@ export function commitmentMadeKey(subtaskId: string, deadline: Date, userId: str
 }
 
 /**
+ * One notice per moved date per next-department assignee.
+ *
+ * The new deadline is in the key, so a second move is a second message and a
+ * retried write of the same move is not.
+ */
+export function predecessorDateChangedKey(
+  subtaskId: string,
+  deadline: Date,
+  userId: string,
+): string {
+  return `subtask:${subtaskId}:PREDECESSOR_DATE:${deadline.getTime()}:${userId}`;
+}
+
+/**
  * One mention notification per comment per person (build spec M10.1).
  *
  * Keyed on the comment rather than the subtask, so two comments mentioning the

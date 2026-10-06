@@ -265,6 +265,17 @@ describe('sequential commitment', () => {
     );
     expect(moved.deadlineOrigin).toBe('MD');
     expect(moved.deadline!.getTime()).toBeGreaterThan(set.deadline!.getTime());
+
+    const told = await testDb.notification.findMany({
+      where: { entityId: planningSubtask.id, type: 'PREDECESSOR_DATE_CHANGED' },
+    });
+    expect(told).toHaveLength(2);
+    expect(told.every((row) => row.userId === purchaseMember.id)).toBe(true);
+    expect(
+      await testDb.notification.count({
+        where: { entityId: planningSubtask.id, type: 'COMMITMENT_MADE' },
+      }),
+    ).toBe(0);
   });
 
   it('leaves a subtask that already has a date committed, with no window', async () => {

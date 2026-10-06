@@ -32,7 +32,9 @@ const SUBTASK_CONTEXT = {
   department: { select: { name: true } },
   assignee: { select: { name: true } },
   job: { select: { jobCode: true, title: true, partNumber: true, drawingNumber: true } },
-  dependsOn: { select: { title: true, department: { select: { name: true } } } },
+  dependsOn: {
+    select: { title: true, deadline: true, department: { select: { name: true } } },
+  },
 } as const;
 
 async function subtaskContext(subtaskId: string) {
@@ -231,15 +233,38 @@ export async function buildPayload(
       };
     }
 
+    case 'PREDECESSOR_DATE_CHANGED': {
+      const context = await subtaskContext(notification.entityId);
+      if (!context || !context._raw.deadline) return null;
+      const reader = await prisma.user.findUnique({
+        where: { id: notification.userId },
+        select: { name: true },
+      });
+      const change = await prisma.deadlineChange.findFirst({
+        where: { subtaskId: notification.entityId },
+        orderBy: { createdAt: 'desc' },
+        select: { oldDeadline: true, reason: true },
+      });
+      return {
+        kind: 'PREDECESSOR_DATE_CHANGED',
+        ...context,
+        readerName: reader?.name ?? 'there',
+        oldDeadlineIst: change?.oldDeadline ? ist(change.oldDeadline) : 'Not set',
+        reason: change?.reason ?? '',
+      };
+    }
+
     case 'READY_TO_START': {
       const context = await subtaskContext(notification.entityId);
       if (!context) return null;
+      const predecessorDeadline = context._raw.dependsOn?.deadline ?? null;
 
       return {
         kind: 'READY_TO_START',
         ...context,
         predecessorTitle: context._raw.dependsOn?.title ?? 'The previous step',
         predecessorDepartment: context._raw.dependsOn?.department.name ?? 'the previous department',
+        predecessorDeadlineIst: predecessorDeadline ? ist(predecessorDeadline) : null,
       };
     }
 

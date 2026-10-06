@@ -41,6 +41,7 @@ const TYPE_LABELS: Record<string, string> = {
   COMMITMENT_MISSED_MEMBER: 'Commitment missed',
   COMMITMENT_MISSED_MD: 'Commitment missed',
   COMMITMENT_MADE: 'Date committed',
+  PREDECESSOR_DATE_CHANGED: 'Upstream date moved',
   JOB_COMPLETED: 'Job complete',
   DAILY_DIGEST_MD: 'Daily summary',
 };

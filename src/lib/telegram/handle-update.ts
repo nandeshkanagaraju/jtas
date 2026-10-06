@@ -9,10 +9,11 @@ import type { Role } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { AppError } from '@/lib/errors';
 import { PermanentChannelError } from '@/lib/notifications/channels/types';
+import { ingestAttachment } from '@/lib/services/attachment-service';
 import { changeStatus, commitDeadline } from '@/lib/services/subtasks';
 import { moduleLogger } from '@/lib/utils/logger';
 
-import { sendTelegramMessage, telegramApi } from './api';
+import { downloadTelegramFile, sendTelegramMessage, telegramApi } from './api';
 import { commitmentChoice, formatCommitment, parseDayMonth } from './dates';
 import { consumeLinkCode } from './link';
 
@@ -36,6 +37,8 @@ export interface TelegramUpdate {
   message?: {
     text?: string;
     chat: { id: number; type?: string };
+    photo?: { file_id: string; file_size?: number }[];
+    document?: { file_id: string; file_name?: string; mime_type?: string; file_size?: number };
   };
   callback_query?: {
     id: string;
@@ -84,6 +87,12 @@ export async function handleTelegramUpdate(
     if (callback) {
       await acknowledge(callback.id);
       if (callback.data) await handleCallback(chatId, user, callback.data, now);
+      return;
+    }
+
+    const file = incomingFile(message);
+    if (file) {
+      await receiveFile(chatId, user, file, now);
       return;
     }
 
@@ -188,6 +197,10 @@ async function handleCallback(
   if (action === 'no') {
     await prisma.telegramPending.deleteMany({ where: { chatId, subtaskId } });
     await reply(chatId, 'Cancelled. Nothing was saved.');
+    return;
+  }
+  if (action === 'file') {
+    await expectFile(chatId, user, subtaskId, now);
   }
 }
 
@@ -206,6 +219,11 @@ async function handleText(
 
   if (pending.kind === 'PROBLEM') {
     await raiseFromChat(chatId, user, pending.subtaskId, text);
+    return;
+  }
+
+  if (pending.kind === 'FILE') {
+    await reply(chatId, 'Send a photo or a PDF. Text on its own is not filed.');
     return;
   }
 
@@ -385,6 +403,163 @@ async function remember(
     create: { chatId, userId, subtaskId, kind, deadline, expiresAt },
     update: { userId, subtaskId, kind, deadline, expiresAt },
   });
+}
+
+/** Telegram's getFile stops at 20 MB. JTAS itself allows 25 MB from the website. */
+const TELEGRAM_FILE_LIMIT = 20 * 1024 * 1024;
+
+const TOO_LARGE = 'That file is too large. Upload it on the website.';
+
+const WINDOW_EXPIRED =
+  'That attachment window has expired. Tap Attach a file on the task message, then send the photo or PDF again.';
+
+interface IncomingFile {
+  fileId: string;
+  fileName: string;
+  contentType: string;
+  fileSize?: number;
+}
+
+function incomingFile(message: TelegramUpdate['message']): IncomingFile | null {
+  const photo = message?.photo?.at(-1);
+  if (photo) {
+    return {
+      fileId: photo.file_id,
+      fileName: 'photo.jpg',
+      contentType: 'image/jpeg',
+      fileSize: photo.file_size,
+    };
+  }
+
+  const document = message?.document;
+  if (!document) return null;
+
+  const fileName = document.file_name?.split(/[/\\]/).pop() || 'file';
+  return {
+    fileId: document.file_id,
+    fileName,
+    contentType: document.mime_type?.split(';')[0]?.trim() || 'application/octet-stream',
+    fileSize: document.file_size,
+  };
+}
+
+async function expectFile(
+  chatId: string,
+  user: LinkedUser,
+  subtaskId: string,
+  now: Date,
+): Promise<void> {
+  const subtask = await loadOwnedSubtask(user, subtaskId);
+  if (!subtask) {
+    await reply(chatId, 'Only the person who holds this task can attach a file to it.');
+    return;
+  }
+
+  await remember(chatId, user.id, subtaskId, 'FILE', null, now);
+  await reply(
+    chatId,
+    `Send a photo or a PDF for ${subtask.job.jobCode}. It will be filed on ${subtask.title}. A photo from the camera arrives as a JPEG, which is accepted.`,
+  );
+}
+
+async function receiveFile(
+  chatId: string,
+  user: LinkedUser,
+  file: IncomingFile,
+  now: Date,
+): Promise<void> {
+  const pending = await prisma.telegramPending.findUnique({ where: { chatId } });
+  if (
+    pending &&
+    pending.userId === user.id &&
+    pending.kind === 'FILE' &&
+    pending.expiresAt.getTime() <= now.getTime()
+  ) {
+    await prisma.telegramPending.delete({ where: { chatId } });
+    await reply(chatId, WINDOW_EXPIRED);
+    return;
+  }
+
+  if (!pending || pending.userId !== user.id || pending.kind !== 'FILE') {
+    await reply(chatId, 'Tap Attach a file on the task message, then send the photo or PDF.');
+    return;
+  }
+
+  const extension = file.fileName.split('.').pop()?.toLowerCase();
+  if (extension === 'heic' || extension === 'heif') {
+    await reply(
+      chatId,
+      'Send that as a photo, not as a file. Telegram delivers a camera photo as a JPEG, which this task can keep.',
+    );
+    return;
+  }
+
+  if (file.fileSize && file.fileSize > TELEGRAM_FILE_LIMIT) {
+    await reply(chatId, TOO_LARGE);
+    return;
+  }
+
+  const subtask = await loadOwnedSubtask(user, pending.subtaskId);
+  if (!subtask) {
+    await reply(chatId, 'Only the person who holds this task can attach a file to it.');
+    return;
+  }
+
+  try {
+    const bytes = await downloadTelegramFile(file.fileId);
+    if (bytes.byteLength > TELEGRAM_FILE_LIMIT) {
+      await reply(chatId, TOO_LARGE);
+      return;
+    }
+
+    const row = await ingestAttachment(
+      {
+        jobId: subtask.jobId,
+        subtaskId: subtask.id,
+        fileName: file.fileName,
+        contentType: file.contentType,
+        bytes,
+      },
+      { id: user.id },
+      telegramCtx,
+    );
+    await prisma.telegramPending.deleteMany({ where: { chatId } });
+    await reply(
+      chatId,
+      `Filed ${row.fileName} on ${subtask.job.jobCode}. It is on the task for the MD.`,
+    );
+  } catch (error) {
+    const told = fileFailure(error);
+    if (told) {
+      await reply(chatId, told);
+      return;
+    }
+    throw error;
+  }
+}
+
+async function loadOwnedSubtask(user: LinkedUser, subtaskId: string) {
+  const subtask = await prisma.subtask.findUnique({
+    where: { id: subtaskId },
+    select: {
+      id: true,
+      jobId: true,
+      assigneeId: true,
+      title: true,
+      job: { select: { jobCode: true } },
+    },
+  });
+  if (!subtask) return null;
+  const holdsIt = user.id === subtask.assigneeId || user.role === 'MD' || user.role === 'DEPUTY_MD';
+  return holdsIt ? subtask : null;
+}
+
+function fileFailure(error: unknown): string | null {
+  if (error instanceof AppError) return error.message;
+  if (error instanceof PermanentChannelError && /too big/i.test(error.message)) {
+    return TOO_LARGE;
+  }
+  return null;
 }
 
 function messageOf(error: unknown): string {

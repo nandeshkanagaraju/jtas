@@ -26,6 +26,54 @@ export function setTelegramTransport(next: Transport | null): void {
   transport = next;
 }
 
+type FileDownload = (fileId: string) => Promise<Uint8Array>;
+
+let fileDownload: FileDownload | null = null;
+
+/** Test seam for the bytes behind a Telegram file id. */
+export function setTelegramFileDownload(next: FileDownload | null): void {
+  fileDownload = next;
+}
+
+/**
+ * The bytes of a file Telegram is holding for this bot.
+ *
+ * `getFile` only works up to 20 MB. A larger file is refused by Telegram
+ * before any bytes move; the caller turns that into a reply.
+ */
+export async function downloadTelegramFile(fileId: string): Promise<Uint8Array> {
+  if (fileDownload) return fileDownload(fileId);
+
+  const info = (await telegramApi('getFile', { file_id: fileId })) as {
+    file_path?: string;
+  } | null;
+  const filePath = info?.file_path;
+  if (!filePath) {
+    throw new PermanentChannelError('Telegram did not return the file.');
+  }
+
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  if (!token) {
+    throw new PermanentChannelError('Telegram is not configured.');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);
+  } catch (error) {
+    throw new TransientChannelError('Telegram could not be reached.', { cause: error });
+  }
+
+  if (response.status >= 500 || response.status === 429) {
+    throw new TransientChannelError(`Telegram returned ${response.status}.`);
+  }
+  if (!response.ok) {
+    throw new PermanentChannelError(`Telegram rejected the file download (${response.status}).`);
+  }
+
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 export function telegramConfigured(): boolean {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN?.trim());
 }

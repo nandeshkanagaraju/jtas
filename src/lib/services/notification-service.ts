@@ -17,6 +17,7 @@ import {
   approvalRequiredKey,
   commitmentMadeKey,
   deadlineChangedKey,
+  predecessorDateChangedKey,
   extensionRequestedKey,
   jobCompletedKey,
   problemRaisedKey,
@@ -217,6 +218,39 @@ export async function notifyCommitmentMade(db: Db, subtaskId: string): Promise<v
     subject: 'The previous department committed a date',
     body: `${subtask.title} has a finish date. You are next.`,
     dedupeKeyFor: (userId) => commitmentMadeKey(subtaskId, deadline, userId),
+  });
+}
+
+/**
+ * Tells the next department that the MD moved the date they are planning against.
+ *
+ * A department committing its own date uses {@link notifyCommitmentMade}. This
+ * one is the override: both dates, because a silent move is the failure the
+ * tool exists to prevent. The next department is still not asked to commit.
+ */
+export async function notifyPredecessorDateChanged(db: Db, subtaskId: string): Promise<void> {
+  const subtask = await db.subtask.findUnique({
+    where: { id: subtaskId },
+    select: { deadline: true },
+  });
+  if (!subtask?.deadline) return;
+
+  const next = await db.subtask.findMany({
+    where: { dependsOnId: subtaskId },
+    select: { assigneeId: true },
+  });
+  if (next.length === 0) return;
+
+  const deadline = subtask.deadline;
+
+  await enqueue(db, {
+    type: 'PREDECESSOR_DATE_CHANGED',
+    userIds: next.map((row) => row.assigneeId),
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: "The previous department's date moved",
+    body: 'The date you are planning against has changed.',
+    dedupeKeyFor: (userId) => predecessorDateChangedKey(subtaskId, deadline, userId),
   });
 }
 

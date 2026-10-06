@@ -4,7 +4,7 @@ import { reminderKey } from '@/lib/notifications/dedupe';
 import { enqueue } from '@/lib/notifications/notification-service';
 import { dispatchDue } from '@/lib/notifications/sweeper';
 import { changeStatus } from '@/lib/services/subtasks';
-import { setTelegramTransport } from '@/lib/telegram/api';
+import { setTelegramFileDownload, setTelegramTransport } from '@/lib/telegram/api';
 import { handleTelegramUpdate } from '@/lib/telegram/handle-update';
 import { issueLinkCode } from '@/lib/telegram/link';
 
@@ -44,6 +44,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   setTelegramTransport(null);
+  setTelegramFileDownload(null);
   restoreMail();
 });
 
@@ -301,12 +302,144 @@ describe('telegram delivery', () => {
     await dispatchDue(new Date());
     const body = texts()[0] ?? '';
     const job = await testDb.job.findUnique({ where: { id: subtask.jobId } });
-    expect(body.startsWith(`${job?.jobCode} · VB-100`)).toBe(true);
-    expect(body.length).toBeLessThanOrEqual(300);
+    expect(body.startsWith(`${job?.jobCode} —`)).toBe(true);
+    expect(body).toContain('VB-100');
+    expect(body).toContain('Assigned to');
+    expect(body.length).toBeLessThanOrEqual(4000);
     const keyboard = sent.find((call) => call.method === 'sendMessage')?.body.reply_markup as {
       inline_keyboard: { text: string }[][];
     };
     const labels = keyboard.inline_keyboard.flat().map((button) => button.text);
-    expect(labels).toEqual(['Mark completed', 'Report problem']);
+    expect(labels).toEqual(['Mark completed', 'Report problem', 'Attach a file']);
+  });
+
+  it('files a camera JPEG on the task and records that it came from Telegram', async () => {
+    const { member, subtask } = await memberWithTask();
+    await link(member.id, '7001');
+    sent = [];
+
+    const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+    setTelegramFileDownload(async () => jpeg);
+
+    await handleTelegramUpdate({
+      callback_query: {
+        id: 'cb-file',
+        data: `file:${subtask.id}`,
+        message: { chat: { id: 7001, type: 'private' } },
+      },
+    });
+
+    await handleTelegramUpdate({
+      message: {
+        chat: { id: 7001, type: 'private' },
+        photo: [{ file_id: 'small' }, { file_id: 'large', file_size: jpeg.byteLength }],
+      },
+    });
+
+    const rows = await testDb.attachment.findMany({ where: { subtaskId: subtask.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.fileName).toBe('photo.jpg');
+    expect(rows[0]?.mimeType).toBe('image/jpeg');
+
+    const audit = await testDb.auditLog.findFirst({
+      where: { action: 'ATTACHMENT_UPLOADED', entityId: subtask.id },
+    });
+    expect(audit?.source).toBe('TELEGRAM');
+    expect(texts().at(-1)).toMatch(/Filed photo.jpg/);
+  });
+
+  it('refuses a renamed executable before it is stored', async () => {
+    const { member, subtask } = await memberWithTask();
+    await link(member.id, '7002');
+    sent = [];
+
+    setTelegramFileDownload(async () => Uint8Array.from([0x4d, 0x5a, 0x90, 0x00]));
+
+    await handleTelegramUpdate({
+      callback_query: {
+        id: 'cb-file-2',
+        data: `file:${subtask.id}`,
+        message: { chat: { id: 7002, type: 'private' } },
+      },
+    });
+    await handleTelegramUpdate({
+      message: {
+        chat: { id: 7002, type: 'private' },
+        document: {
+          file_id: 'exe',
+          file_name: 'drawing.pdf',
+          mime_type: 'application/pdf',
+          file_size: 4,
+        },
+      },
+    });
+
+    expect(await testDb.attachment.count({ where: { subtaskId: subtask.id } })).toBe(0);
+    expect(texts().at(-1)).toMatch(/not really a PDF/);
+  });
+
+  it('tells the member a file over 20 MB is too large for Telegram', async () => {
+    const { member, subtask } = await memberWithTask();
+    await link(member.id, '7003');
+    sent = [];
+    setTelegramFileDownload(async () => {
+      throw new Error('download should not run');
+    });
+
+    await handleTelegramUpdate({
+      callback_query: {
+        id: 'cb-file-3',
+        data: `file:${subtask.id}`,
+        message: { chat: { id: 7003, type: 'private' } },
+      },
+    });
+    await handleTelegramUpdate({
+      message: {
+        chat: { id: 7003, type: 'private' },
+        document: {
+          file_id: 'huge',
+          file_name: 'drawing.pdf',
+          mime_type: 'application/pdf',
+          file_size: 21 * 1024 * 1024,
+        },
+      },
+    });
+
+    expect(texts().at(-1)).toBe('That file is too large. Upload it on the website.');
+    expect(await testDb.attachment.count({ where: { subtaskId: subtask.id } })).toBe(0);
+  });
+
+  it('says the attachment window expired when the photo arrives late', async () => {
+    const { member, subtask } = await memberWithTask();
+    await link(member.id, '7004');
+    const opened = new Date('2026-10-06T12:00:00.000Z');
+    await handleTelegramUpdate(
+      {
+        callback_query: {
+          id: 'cb-file-4',
+          data: `file:${subtask.id}`,
+          message: { chat: { id: 7004, type: 'private' } },
+        },
+      },
+      opened,
+    );
+    sent = [];
+    const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]);
+    setTelegramFileDownload(async () => jpeg);
+
+    await handleTelegramUpdate(
+      {
+        message: {
+          chat: { id: 7004, type: 'private' },
+          photo: [{ file_id: 'late', file_size: jpeg.byteLength }],
+        },
+      },
+      new Date(opened.getTime() + 16 * 60 * 1000),
+    );
+
+    expect(texts()).toEqual([
+      'That attachment window has expired. Tap Attach a file on the task message, then send the photo or PDF again.',
+    ]);
+    expect(await testDb.attachment.count({ where: { subtaskId: subtask.id } })).toBe(0);
   });
 });

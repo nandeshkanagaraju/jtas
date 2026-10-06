@@ -201,6 +201,29 @@ export async function readHead(key: string, bytes: number): Promise<Uint8Array |
  * Used only to clean up an upload that failed its checks — a registered
  * attachment is soft-deleted and its object stays (architecture rule 6).
  */
+/**
+ * Writes an object the server already holds.
+ *
+ * The browser path presigns and lets the client PUT. A file that arrived from
+ * Telegram is already in this process, so it is written here and then
+ * registered through the same checks as a browser upload.
+ */
+export async function putObject(input: {
+  key: string;
+  contentType: string;
+  body: Uint8Array;
+}): Promise<void> {
+  await client().send(
+    new PutObjectCommand({
+      Bucket: bucket(),
+      Key: input.key,
+      ContentType: input.contentType,
+      Body: input.body,
+      ContentLength: input.body.byteLength,
+    }),
+  );
+}
+
 export async function deleteObject(key: string): Promise<void> {
   await client()
     .send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }))

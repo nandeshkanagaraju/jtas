@@ -96,6 +96,8 @@ enum NotifType {
   COMMITMENT_MISSED_MD
   /// A date was committed. Sent to the assignee of the next task.
   COMMITMENT_MADE
+  /// The MD moved a date. Sent to the assignee of the next task, with both dates.
+  PREDECESSOR_DATE_CHANGED
 }
 
 /// Who fixed a subtask's date. A null deadline has no origin.
@@ -462,7 +464,7 @@ model TelegramPending {
   chatId    String   @id
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// PROBLEM, OTHER, or CONFIRM.
+  /// PROBLEM, OTHER, CONFIRM, or FILE.
   kind      String
   subtaskId String
   /// IST wall-clock `YYYY-MM-DDTHH:mm`, set while a commitment waits for confirm.

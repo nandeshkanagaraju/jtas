@@ -144,7 +144,51 @@ export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
     );
   }
 
+  if (channel === 'EMAIL') {
+    await mirrorToTelegram(db, input, userIds);
+  }
+
   return inserted;
+}
+
+/**
+ * Events that also go to Telegram when the recipient has linked a chat.
+ *
+ * Email is written first and is never replaced. A person with no chat id gets
+ * no second row, and that absence is not an error.
+ */
+const TELEGRAM_MIRROR: ReadonlySet<NotifType> = new Set([
+  'READY_TO_START',
+  'DEADLINE_REMINDER',
+  'OVERDUE_MEMBER',
+  'OVERDUE_MD',
+  'PROBLEM_RAISED',
+  'PROBLEM_RESOLVED',
+  'COMMITMENT_OPEN',
+  'COMMITMENT_REMINDER',
+  'DEADLINE_CHANGED',
+]);
+
+async function mirrorToTelegram(
+  db: Db,
+  input: EnqueueInput,
+  userIds: readonly string[],
+): Promise<void> {
+  if (!TELEGRAM_MIRROR.has(input.type)) return;
+
+  const linked = await db.user.findMany({
+    where: { id: { in: [...userIds] }, telegramChatId: { not: null } },
+    select: { id: true },
+  });
+  if (linked.length === 0) return;
+
+  const ids = new Set(linked.map((row) => row.id));
+  await enqueue(db, {
+    ...input,
+    channel: 'TELEGRAM',
+    userIds: userIds.filter((id) => ids.has(id)),
+    dedupeKeyFor: (userId) => `${input.dedupeKeyFor(userId)}:TELEGRAM`,
+  });
 }
 
 /** The subtask fields the scheduler needs. */
@@ -388,6 +432,8 @@ export async function listNotifications(
 ): Promise<{ data: InboxItem[]; unreadCount: number }> {
   const where: Prisma.NotificationWhereInput = {
     userId,
+    // The email row is the inbox copy. The Telegram row is delivery only.
+    channel: { not: 'TELEGRAM' },
     OR: INBOX_STATUSES,
     ...(options.unreadOnly ? { readAt: null } : {}),
   };

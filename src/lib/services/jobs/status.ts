@@ -80,6 +80,7 @@ export async function recomputeJobStatus(
     before: { status: job.status },
     after: { status: next },
     ipAddress: options.ctx?.ipAddress ?? null,
+    source: options.ctx?.source ?? 'WEB',
   });
 
   // Told once, the first time a job closes: the dedupe key is the job id, so a

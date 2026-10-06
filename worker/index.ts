@@ -10,6 +10,7 @@
  * Run with: pnpm worker
  */
 import { prisma } from '@/lib/db/prisma';
+import { ensureTelegramWebhook } from '@/lib/telegram/webhook';
 import { queueDailyDigest } from '@/lib/notifications/digest';
 import { runSweep } from '@/lib/notifications/sweeper';
 import { assertConfiguration } from '@/lib/startup/validate';
@@ -78,6 +79,12 @@ async function main() {
    * heartbeat exists to catch and the one hardest to notice.
    */
   await assertConfiguration();
+
+  try {
+    await ensureTelegramWebhook();
+  } catch (error) {
+    log.error({ err: error }, 'telegram webhook was not registered; email is unaffected');
+  }
 
   const { SCHEDULER_INTERVAL_MINUTES } = env();
   const intervalMs = SCHEDULER_INTERVAL_MINUTES * 60_000;

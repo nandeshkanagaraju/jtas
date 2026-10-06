@@ -74,7 +74,12 @@ export type AuditAction =
   // so ATTACHMENT_DELETED records a hiding, never a removal.
   | 'COMMENT_ADDED'
   | 'ATTACHMENT_UPLOADED'
-  | 'ATTACHMENT_DELETED';
+  | 'ATTACHMENT_DELETED'
+  | 'TELEGRAM_LINKED'
+  | 'TELEGRAM_UNLINKED';
+
+/** Where an action was taken. A chat id is weaker than a signed-in session. */
+export type AuditSource = 'WEB' | 'TELEGRAM';
 
 export type AuditEntityType =
   'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION' | 'HOLIDAY' | 'TEMPLATE';
@@ -90,6 +95,8 @@ export interface AuditInput {
   ipAddress?: string | null;
   /** Set when a DEPUTY_MD acts for the MD, so the record says so. */
   onBehalfOf?: string | null;
+  /** Defaults to WEB. TELEGRAM when the actor used the linked chat. */
+  source?: AuditSource;
 }
 
 /**
@@ -109,6 +116,7 @@ export async function writeAudit(db: Db, input: AuditInput): Promise<void> {
       after: input.after,
       ipAddress: input.ipAddress ?? null,
       onBehalfOf: input.onBehalfOf ?? null,
+      source: input.source ?? 'WEB',
     },
   });
 }

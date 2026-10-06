@@ -38,6 +38,8 @@ export interface AuditEntry {
   /** Set when a deputy acted for the MD, so the record says on whose behalf. */
   onBehalfOf: string | null;
   ipAddress: string | null;
+  /** WEB or TELEGRAM. A chat id is weaker than a signed-in session. */
+  source: string;
   before: unknown;
   after: unknown;
   /** Field-level changes, computed for the viewer. */
@@ -90,6 +92,7 @@ const SELECT = {
   entityId: true,
   ipAddress: true,
   onBehalfOf: true,
+  source: true,
   before: true,
   after: true,
   actor: { select: { id: true, name: true, email: true } },
@@ -211,6 +214,7 @@ function toEntry(row: Row): AuditEntry {
     actor: row.actor,
     onBehalfOf: row.onBehalfOf,
     ipAddress: row.ipAddress,
+    source: row.source,
     before: row.before,
     after: row.after,
     diff: diffOf(row.before, row.after),
@@ -281,6 +285,7 @@ export async function auditCsv(filters: AuditFilters = {}): Promise<string> {
     'Entity id',
     'On behalf of',
     'IP address',
+    'Source',
     'Changes',
   ];
 
@@ -299,6 +304,7 @@ export async function auditCsv(filters: AuditFilters = {}): Promise<string> {
       row.entityId,
       row.onBehalfOf ?? '',
       row.ipAddress ?? '',
+      row.source,
       changes,
     ]
       .map(csvCell)

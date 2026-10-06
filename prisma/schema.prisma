@@ -111,6 +111,9 @@ enum NotifChannel {
   IN_APP
   WHATSAPP
   SMS
+  /// A second delivery of the same event. Email is still sent. WhatsApp later
+  /// is another value here, not a new pipeline.
+  TELEGRAM
 }
 
 enum NotifStatus {
@@ -160,14 +163,20 @@ model User {
   failedLoginCount   Int         @default(0)
   lockedUntil        DateTime?
   lastLoginAt        DateTime?
+  /// Telegram chat that this person linked themselves. Null means no Telegram
+  /// messages are attempted. A chat id is not a signed-in session: anyone
+  /// holding that phone can press the buttons. See docs/TELEGRAM.md.
+  telegramChatId     String?     @unique
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  createdJobs      Job[]          @relation("JobCreator")
-  assignedSubtasks Subtask[]      @relation("SubtaskAssignee")
-  notifications    Notification[]
-  auditLogs        AuditLog[]
-  refreshTokens    RefreshToken[]
+  createdJobs        Job[]               @relation("JobCreator")
+  assignedSubtasks   Subtask[]           @relation("SubtaskAssignee")
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  refreshTokens      RefreshToken[]
+  telegramLinkCodes  TelegramLinkCode[]
+  telegramPendings   TelegramPending[]
 
   @@index([role, isActive])
 }
@@ -421,11 +430,46 @@ model AuditLog {
   after      Json?
   ipAddress  String?
   onBehalfOf String? // set when DEPUTY_MD acts for MD
+  /// WEB for a signed-in session, TELEGRAM for a linked chat. A chat id is
+  /// weaker identification than a session. See docs/TELEGRAM.md.
+  source     String   @default("WEB")
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
   @@index([actorId, createdAt])
   @@index([createdAt])
+}
+
+/// A one-time code a person sends the bot to link their own chat.
+model TelegramLinkCode {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// What the bot is waiting for this chat to type or confirm.
+///
+/// A commitment is written only after the member confirms the resolved date.
+/// The proposed date lives here, not in the button, so the confirmation and
+/// the write cannot disagree.
+model TelegramPending {
+  chatId    String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// PROBLEM, OTHER, or CONFIRM.
+  kind      String
+  subtaskId String
+  /// IST wall-clock `YYYY-MM-DDTHH:mm`, set while a commitment waits for confirm.
+  deadline  String?
+  expiresAt DateTime
+
+  @@index([userId])
 }
 
 model Holiday {

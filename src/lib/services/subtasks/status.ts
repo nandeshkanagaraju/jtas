@@ -131,6 +131,7 @@ export async function changeStatus(
       after: { status: next, action: input.action, note: note || null },
       ipAddress: ctx.ipAddress,
       onBehalfOf: actor.role === 'DEPUTY_MD' ? 'MD' : null,
+      source: ctx.source ?? 'WEB',
     });
 
     let unblocked: string[] = [];
@@ -154,6 +155,7 @@ export async function changeStatus(
         description: note,
         severity: (input.severity ?? 'MEDIUM') as ProblemSeverity,
         ipAddress: ctx.ipAddress,
+        source: ctx.source ?? 'WEB',
       });
     }
 
@@ -223,6 +225,7 @@ async function unblockDependents(
       before: { status: 'BLOCKED' },
       after: { status: check.next, unblockedBy: completedId },
       ipAddress: ctx.ipAddress,
+      source: ctx.source ?? 'WEB',
     });
 
     unblocked.push(id);

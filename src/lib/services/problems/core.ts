@@ -50,7 +50,8 @@ export interface CreateProblemInput {
   raisedById: string;
   description: string;
   severity: ProblemSeverity;
-  ipAddress: string;
+  ipAddress: string | null;
+  source?: 'WEB' | 'TELEGRAM';
 }
 
 /**
@@ -83,6 +84,7 @@ export async function createProblem(db: Db, input: CreateProblemInput): Promise<
       description: input.description,
     },
     ipAddress: input.ipAddress,
+    source: input.source ?? 'WEB',
   });
 
   // FR-40: the MD and every deputy hear about it immediately.

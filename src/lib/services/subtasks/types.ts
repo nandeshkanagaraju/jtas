@@ -4,7 +4,9 @@
 import type { Prisma, SubtaskStatus } from '@prisma/client';
 
 export interface RequestContext {
-  ipAddress: string;
+  ipAddress: string | null;
+  /** WEB unless the call arrived from a linked Telegram chat. */
+  source?: 'WEB' | 'TELEGRAM';
 }
 
 export interface Actor {

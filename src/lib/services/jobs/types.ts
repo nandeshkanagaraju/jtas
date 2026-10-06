@@ -9,7 +9,9 @@ import type { JobStatus, Prisma, Priority } from '@prisma/client';
 import type { SubtaskSnapshot } from '@/lib/domain/job-status';
 
 export interface RequestContext {
-  ipAddress: string;
+  ipAddress: string | null;
+  /** WEB unless the call arrived from a linked Telegram chat. */
+  source?: 'WEB' | 'TELEGRAM';
 }
 
 export interface Actor {

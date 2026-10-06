@@ -299,6 +299,12 @@ function Row({
               <dt className="inline font-medium">IP: </dt>
               <dd className="tabular inline">{entry.ipAddress ?? '—'}</dd>
             </div>
+            <div>
+              <dt className="inline font-medium">Source: </dt>
+              <dd className="inline">
+                {entry.source === 'TELEGRAM' ? 'Telegram' : 'Signed-in session'}
+              </dd>
+            </div>
           </dl>
         </div>
       ) : null}

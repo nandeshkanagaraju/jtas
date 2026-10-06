@@ -169,6 +169,9 @@ describe('every API route is behind the gate', () => {
     'auth/change-password/route.ts': 'the way out',
     'health/route.ts': 'unauthenticated uptime check',
     'dev/preview-email/route.ts': 'development only, 404 in production',
+    // Telegram has no session. The route rejects any call that does not carry
+    // the webhook secret set when the bot was registered.
+    'telegram/webhook/route.ts': 'authenticated by the webhook secret, not a session',
   };
 
   function routeFiles(dir: string, prefix = ''): string[] {

@@ -18,6 +18,8 @@ export interface OutboundNotification {
   html?: string;
   entityType: string;
   entityId: string;
+  /** Present when the recipient can act from the message. */
+  actions?: OutboundAction[][];
 }
 
 export interface ChannelRecipient {
@@ -25,6 +27,14 @@ export interface ChannelRecipient {
   name: string;
   email: string;
   phone: string | null;
+  /** Set when the channel addresses a linked chat. Email ignores it. */
+  telegramChatId?: string | null;
+}
+
+/** A button on an outbound message. `data` is opaque to the channel. */
+export interface OutboundAction {
+  label: string;
+  data: string;
 }
 
 export interface SendResult {

@@ -34,6 +34,8 @@ export async function resetAuthTables(): Promise<void> {
    */
   invalidateSettings();
 
+  await testDb.telegramPending.deleteMany();
+  await testDb.telegramLinkCode.deleteMany();
   await testDb.auditLog.deleteMany();
   await testDb.notification.deleteMany();
   await testDb.refreshToken.deleteMany();

@@ -76,6 +76,13 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default('info'),
 
   SCHEDULER_INTERVAL_MINUTES: z.coerce.number().int().positive().default(5),
+
+  /** Bot API token. Absent means Telegram is off and email is unchanged. */
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  /** Sent back by Telegram on every webhook call. Required before the path accepts updates. */
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
+  /** Public username without @, shown on the account page next to the link code. */
+  TELEGRAM_BOT_USERNAME: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

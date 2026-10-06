@@ -22,6 +22,7 @@ import { formatElapsed } from '@/lib/utils/duration';
 import { hoursBetween } from '@/lib/utils/time';
 
 import { channelFor, isRetryable, ProviderQuotaError } from './channels';
+import { actionsFor, plainTextFor } from '@/lib/telegram/text';
 import { loadEscalationConfig, loadSuppressOutsideHours, loadWorkingHours } from './config';
 import { isAllowedRecipient, mailGuardConfig, quotaStatus, suppressionReason } from './mail-guard';
 import {
@@ -71,7 +72,7 @@ interface DueRow {
   id: string;
   userId: string;
   type: NotifType;
-  channel: 'EMAIL' | 'IN_APP' | 'WHATSAPP' | 'SMS';
+  channel: 'EMAIL' | 'IN_APP' | 'WHATSAPP' | 'SMS' | 'TELEGRAM';
   entityType: string;
   entityId: string;
   attemptCount: number;
@@ -221,7 +222,14 @@ async function deliver(
 
   const user = await prisma.user.findUnique({
     where: { id: row.userId },
-    select: { id: true, name: true, email: true, phone: true, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      isActive: true,
+      telegramChatId: true,
+    },
   });
 
   if (!user || !user.isActive) {
@@ -263,18 +271,29 @@ async function deliver(
     return 'suppressed';
   }
 
+  if (row.channel === 'TELEGRAM' && !user.telegramChatId) {
+    await prisma.notification.update({
+      where: { id: row.id },
+      data: { status: 'SUPPRESSED', lastError: 'No Telegram chat is linked.' },
+    });
+    return 'suppressed';
+  }
+
   try {
-    const rendered = await renderTemplate(payload);
+    const rendered = row.channel === 'TELEGRAM' ? null : await renderTemplate(payload);
+    const text = rendered?.text ?? plainTextFor(payload);
+    const subject = rendered?.subject ?? text.split('\n')[0] ?? text;
 
     const { providerId } = await channelFor(row.channel).send(
       {
         id: row.id,
         type: row.type,
-        subject: rendered.subject,
-        body: rendered.text,
-        html: rendered.html,
+        subject,
+        body: text,
+        html: rendered?.html,
         entityType: row.entityType,
         entityId: row.entityId,
+        actions: row.channel === 'TELEGRAM' ? actionsFor(payload) : undefined,
       },
       user,
     );
@@ -286,8 +305,8 @@ async function deliver(
         sentAt: new Date(),
         attemptCount: row.attemptCount + 1,
         // Stored so the in-app inbox shows exactly what was mailed.
-        subject: rendered.subject,
-        body: rendered.text,
+        subject,
+        body: text,
         lastError: providerId ? `providerId:${providerId}` : null,
       },
     });

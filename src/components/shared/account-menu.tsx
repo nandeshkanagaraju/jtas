@@ -1,6 +1,7 @@
 'use client';
 
 import { LogOut } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -100,6 +101,9 @@ export function AccountMenu({
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="min-h-11">
+          <Link href="/account">Your account</Link>
+        </DropdownMenuItem>
         <DropdownMenuItem className="min-h-11" disabled={busy} onSelect={signOut}>
           <LogOut />
           Sign out

@@ -23,6 +23,7 @@ import { hoursBetween } from '@/lib/utils/time';
 
 import { channelFor, isRetryable, ProviderQuotaError } from './channels';
 import { actionsFor, plainTextFor } from '@/lib/telegram/text';
+import { loadJobTimeline } from '@/lib/telegram/timeline';
 import { loadEscalationConfig, loadSuppressOutsideHours, loadWorkingHours } from './config';
 import { isAllowedRecipient, mailGuardConfig, quotaStatus, suppressionReason } from './mail-guard';
 import {
@@ -281,7 +282,11 @@ async function deliver(
 
   try {
     const rendered = row.channel === 'TELEGRAM' ? null : await renderTemplate(payload);
-    const text = rendered?.text ?? plainTextFor(payload);
+    const timeline =
+      row.channel === 'TELEGRAM' && 'jobId' in payload
+        ? await loadJobTimeline(payload.jobId)
+        : null;
+    const text = rendered?.text ?? plainTextFor(payload, timeline, user.id);
     const subject = rendered?.subject ?? text.split('\n')[0] ?? text;
 
     const { providerId } = await channelFor(row.channel).send(

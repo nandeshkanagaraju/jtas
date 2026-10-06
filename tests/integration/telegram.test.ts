@@ -303,9 +303,11 @@ describe('telegram delivery', () => {
     await dispatchDue(new Date());
     const body = texts()[0] ?? '';
     const job = await testDb.job.findUnique({ where: { id: subtask.jobId } });
-    expect(body.startsWith(`${job?.jobCode} —`)).toBe(true);
+    expect(body.startsWith(`${job?.jobCode}`)).toBe(true);
     expect(body).toContain('VB-100');
     expect(body).toContain('Assigned to');
+    expect(body).toContain('Job timeline');
+    expect(body).toContain('Your task');
     expect(body.length).toBeLessThanOrEqual(4000);
     const keyboard = sent.find((call) => call.method === 'sendMessage')?.body.reply_markup as {
       inline_keyboard: { text: string }[][];

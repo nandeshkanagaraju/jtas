@@ -33,6 +33,6 @@ The site is already on HTTPS. Telegram posts an update as soon as a button is pr
 
 ## What a person does
 
-On **Your account**, Get a link code. In Telegram, open the bot and send `/start` followed by the code. The code works once, for 15 minutes. A used code is refused. A code that does not exist gets no reply. Unlink is on the same page.
+On **Your account**, Get a link code. The page shows `t.me/<bot>` with the code attached, so opening it sends `/start` and the code. The code works once, for 15 minutes. A used code is refused. A code that does not exist gets no reply. Unlink is on the same page.
 
 Messages that can be acted on carry buttons: Mark completed, Report problem, and on a commitment message +2 days, +5 days, +1 week, Other date. Other date is typed as DD/MM. The bot shows the date it understood and waits for Confirm before it writes anything. Those buttons call the same completion, problem, and commit services as the website.

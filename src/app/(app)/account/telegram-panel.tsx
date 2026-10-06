@@ -19,6 +19,7 @@ export function TelegramPanel({
 }) {
   const [isLinked, setLinked] = useState(linked);
   const [code, setCode] = useState<string | null>(null);
+  const [username, setUsername] = useState(botUsername);
   const [busy, setBusy] = useState(false);
 
   async function issue() {
@@ -29,6 +30,7 @@ export function TelegramPanel({
         {},
       );
       setCode(issued.code);
+      if (issued.botUsername) setUsername(issued.botUsername);
     } catch {
       toast.error('Could not create a link code. Try again.');
     } finally {
@@ -50,7 +52,9 @@ export function TelegramPanel({
     }
   }
 
-  const bot = botUsername ? `@${botUsername}` : 'the JTAS bot';
+  const botName = username || 'JaraaAutomationBot';
+  const inviteUrl = `https://t.me/${botName}`;
+  const openUrl = code ? `${inviteUrl}?start=${encodeURIComponent(code)}` : inviteUrl;
 
   return (
     <div className="space-y-4">
@@ -61,14 +65,30 @@ export function TelegramPanel({
       </p>
 
       {code ? (
-        <div className="bg-muted rounded-md px-3 py-3">
-          <p className="text-sm">In Telegram, open {bot} and send:</p>
-          <p className="mt-2 font-mono text-base font-medium">/start {code}</p>
-          <p className="text-muted-foreground mt-2 text-xs">
+        <div className="bg-muted space-y-3 rounded-md px-3 py-3">
+          <p className="text-sm">Open the bot. The link sends this code for you:</p>
+          <a
+            href={openUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center text-base font-medium underline"
+          >
+            t.me/{botName}
+          </a>
+          <p className="font-mono text-base font-medium">/start {code}</p>
+          <p className="text-muted-foreground text-xs">
             The code works once, for 15 minutes. Come back here if it expires.
           </p>
         </div>
-      ) : null}
+      ) : (
+        <p className="text-sm">
+          The bot is{' '}
+          <a href={inviteUrl} target="_blank" rel="noreferrer" className="font-medium underline">
+            t.me/{botName}
+          </a>
+          . Get a code, then open that link.
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" className="min-h-11" disabled={busy} onClick={issue}>

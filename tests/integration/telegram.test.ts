@@ -4,6 +4,7 @@ import { reminderKey } from '@/lib/notifications/dedupe';
 import { enqueue } from '@/lib/notifications/notification-service';
 import { dispatchDue } from '@/lib/notifications/sweeper';
 import { changeStatus } from '@/lib/services/subtasks';
+import { storageConfigured } from '@/lib/storage/s3';
 import { setTelegramFileDownload, setTelegramTransport } from '@/lib/telegram/api';
 import { handleTelegramUpdate } from '@/lib/telegram/handle-update';
 import { issueLinkCode } from '@/lib/telegram/link';
@@ -313,40 +314,43 @@ describe('telegram delivery', () => {
     expect(labels).toEqual(['Mark completed', 'Report problem', 'Attach a file']);
   });
 
-  it('files a camera JPEG on the task and records that it came from Telegram', async () => {
-    const { member, subtask } = await memberWithTask();
-    await link(member.id, '7001');
-    sent = [];
+  it.skipIf(!storageConfigured())(
+    'files a camera JPEG on the task and records that it came from Telegram',
+    async () => {
+      const { member, subtask } = await memberWithTask();
+      await link(member.id, '7001');
+      sent = [];
 
-    const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
-    setTelegramFileDownload(async () => jpeg);
+      const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+      setTelegramFileDownload(async () => jpeg);
 
-    await handleTelegramUpdate({
-      callback_query: {
-        id: 'cb-file',
-        data: `file:${subtask.id}`,
-        message: { chat: { id: 7001, type: 'private' } },
-      },
-    });
+      await handleTelegramUpdate({
+        callback_query: {
+          id: 'cb-file',
+          data: `file:${subtask.id}`,
+          message: { chat: { id: 7001, type: 'private' } },
+        },
+      });
 
-    await handleTelegramUpdate({
-      message: {
-        chat: { id: 7001, type: 'private' },
-        photo: [{ file_id: 'small' }, { file_id: 'large', file_size: jpeg.byteLength }],
-      },
-    });
+      await handleTelegramUpdate({
+        message: {
+          chat: { id: 7001, type: 'private' },
+          photo: [{ file_id: 'small' }, { file_id: 'large', file_size: jpeg.byteLength }],
+        },
+      });
 
-    const rows = await testDb.attachment.findMany({ where: { subtaskId: subtask.id } });
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.fileName).toBe('photo.jpg');
-    expect(rows[0]?.mimeType).toBe('image/jpeg');
+      const rows = await testDb.attachment.findMany({ where: { subtaskId: subtask.id } });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.fileName).toBe('photo.jpg');
+      expect(rows[0]?.mimeType).toBe('image/jpeg');
 
-    const audit = await testDb.auditLog.findFirst({
-      where: { action: 'ATTACHMENT_UPLOADED', entityId: subtask.id },
-    });
-    expect(audit?.source).toBe('TELEGRAM');
-    expect(texts().at(-1)).toMatch(/Filed photo.jpg/);
-  });
+      const audit = await testDb.auditLog.findFirst({
+        where: { action: 'ATTACHMENT_UPLOADED', entityId: subtask.id },
+      });
+      expect(audit?.source).toBe('TELEGRAM');
+      expect(texts().at(-1)).toMatch(/Filed photo.jpg/);
+    },
+  );
 
   it('refuses a renamed executable before it is stored', async () => {
     const { member, subtask } = await memberWithTask();

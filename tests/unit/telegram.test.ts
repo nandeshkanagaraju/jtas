@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { PermanentChannelError, TransientChannelError } from '@/lib/notifications/channels/types';
+import type { ProblemRaisedPayload } from '@/lib/notifications/templates/types';
 import { parseDayMonth } from '@/lib/telegram/dates';
+import { telegramReplyShouldRetry } from '@/lib/telegram/handle-update';
 import { webhookAuthorized } from '@/lib/telegram/secret';
 import { plainTextFor } from '@/lib/telegram/text';
-import type { ProblemRaisedPayload } from '@/lib/notifications/templates/types';
 
 describe('telegram text', () => {
   it('leads with the job code and part number and stays under 300 characters', () => {
@@ -64,5 +66,19 @@ describe('telegram webhook secret', () => {
   it('rejects every call when no secret is configured', () => {
     delete process.env.TELEGRAM_WEBHOOK_SECRET;
     expect(webhookAuthorized('anything')).toBe(false);
+  });
+});
+
+describe('telegram reply failures', () => {
+  it('does not ask Telegram to retry a missing token', () => {
+    expect(telegramReplyShouldRetry(new PermanentChannelError('Telegram is not configured.'))).toBe(
+      false,
+    );
+  });
+
+  it('asks Telegram to retry a transient send failure', () => {
+    expect(telegramReplyShouldRetry(new TransientChannelError('Telegram is unavailable.'))).toBe(
+      true,
+    );
   });
 });

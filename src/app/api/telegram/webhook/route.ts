@@ -19,7 +19,12 @@ export async function POST(request: Request) {
 
   const update = (await request.json().catch(() => null)) as TelegramUpdate | null;
   if (update && typeof update === 'object') {
-    await handleTelegramUpdate(update);
+    try {
+      await handleTelegramUpdate(update);
+    } catch {
+      // Logged in the handler. 503 asks Telegram to deliver this update again.
+      return NextResponse.json({ ok: false }, { status: 503 });
+    }
   }
 
   return NextResponse.json({ ok: true });

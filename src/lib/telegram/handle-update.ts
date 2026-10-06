@@ -8,6 +8,7 @@ import type { Role } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
 import { AppError } from '@/lib/errors';
+import { PermanentChannelError } from '@/lib/notifications/channels/types';
 import { changeStatus, commitDeadline } from '@/lib/services/subtasks';
 import { moduleLogger } from '@/lib/utils/logger';
 
@@ -22,7 +23,16 @@ const PENDING_TTL_MS = 15 * 60 * 1000;
 const ALREADY_COMMITTED =
   'This date is already committed. You cannot move it. Ask the MD for more time.';
 
+/**
+ * A missing token fails the same way on every retry, so Telegram must not
+ * keep the update. A network or Telegram outage is worth another attempt.
+ */
+export function telegramReplyShouldRetry(error: unknown): boolean {
+  return !(error instanceof PermanentChannelError);
+}
+
 export interface TelegramUpdate {
+  update_id?: number;
   message?: {
     text?: string;
     chat: { id: number; type?: string };
@@ -79,7 +89,14 @@ export async function handleTelegramUpdate(
 
     if (text) await handleText(chatId, user, text, now);
   } catch (error) {
-    log.error({ err: error }, 'telegram update failed');
+    const retry = telegramReplyShouldRetry(error);
+    log.error(
+      { err: error, updateId: update.update_id ?? null, retry },
+      retry
+        ? 'telegram reply failed; Telegram will retry'
+        : 'telegram reply was not sent; a configuration error is not retried',
+    );
+    if (retry) throw error;
   }
 }
 

@@ -4,16 +4,20 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * JTAS design system — "modern industrial operations".
+ * JTAS design system — "shop paper".
  *
- * A warm-neutral paper canvas, deep ink text, hairline rules instead of
- * shadows, and one muted green accent that means "go" or "on time". Red is
- * late, amber is at risk, slate-blue is in progress. Colour is never
- * decoration here: a red row on the shop floor always means the same thing,
- * so colour is spent only where it carries state.
+ * The screens a CNC shop reads all day are paper: travellers, drawings, route
+ * cards. So the canvas is warm paper, the text is ink, depth comes from a
+ * hairline rule rather than a shadow, and colour is never decoration — a tone
+ * on this screen always means a state, and the same state is always the same
+ * tone. Red is late. Amber is at risk. Slate-blue is moving. Green is done.
  *
- * Surfaces run sidebar (deepest) -> canvas -> card (white). Depth comes from
- * that ordering and a 1px rule, not from shadows, glass or gradients.
+ * Surfaces run sidebar (deepest) -> canvas -> card (lightest). Only things
+ * that float above the page — a dialog, a drawer, a menu — get a shadow, and
+ * they get the one named here rather than inventing their own.
+ *
+ * A second shift works in a dim workshop, so every token has a night value and
+ * `.dark` is a real, switchable theme rather than an unused branch.
  */
 
 @theme inline {
@@ -82,10 +86,16 @@
   --font-display: var(--font-archivo), var(--font-instrument), sans-serif;
   /* Job codes, part numbers, dates. */
   --font-mono: var(--font-plex), ui-monospace, monospace;
+
+  /* The one shadow in the system, for things that float above the page. */
+  --shadow-pop: var(--pop);
 }
 
 :root {
   --radius: 0.5rem;
+
+  /* Native controls — a date picker, a <select> — follow the theme too. */
+  color-scheme: light;
 
   /* Warm paper, deep ink, one muted green. */
   --background: #f5f4ef;
@@ -133,52 +143,62 @@
   --state-problem: var(--risk);
   --state-complete: var(--ok);
   --state-overdue: var(--late);
+
+  /* Overlays only: a dialog, a drawer, a menu, a toast. Nothing on the page. */
+  --pop: 0 1px 2px rgb(27 28 24 / 0.06), 0 12px 32px -8px rgb(27 28 24 / 0.18);
 }
 
 /*
- * Dark counterpart. Nothing in the app toggles it today, but every token has
- * a dark value so that adding a switch is a one-line change rather than an
- * audit of every screen.
+ * Night shift.
+ *
+ * The same system after dark rather than a second one: identical surface
+ * ordering, identical meaning per tone, warmth kept in the neutrals so the
+ * canvas reads as unlit paper instead of a black screen. Every ink/soft pair
+ * here clears 4.5:1 against its own fill, as the light pairs do.
  */
 .dark {
-  --background: #161714;
+  --background: #16170f;
   --foreground: #f1f0e9;
-  --card: #1e1f1b;
+  --card: #1e2018;
   --card-foreground: #f1f0e9;
-  --popover: #1e1f1b;
+  --popover: #232519;
   --popover-foreground: #f1f0e9;
-  --primary: #6ebfa5;
-  --primary-foreground: #10211c;
-  --secondary: #272822;
+  --primary: #7cc6ac;
+  --primary-foreground: #0d1f1a;
+  --secondary: #2a2c22;
   --secondary-foreground: #f1f0e9;
-  --muted: #272822;
-  --muted-foreground: #a3a397;
-  --accent: #2d2e27;
+  --muted: #2a2c22;
+  --muted-foreground: #a7a89a;
+  --accent: #303226;
   --accent-foreground: #f1f0e9;
-  --destructive: #e8806f;
+  --destructive: #ef8a77;
   --destructive-foreground: #2a0f0a;
-  --border: #32332c;
-  --input: #3d3e36;
-  --ring: #6ebfa5;
+  --border: #343629;
+  --input: #42442f;
+  --ring: #7cc6ac;
 
-  --sidebar: #121310;
-  --sidebar-border: #2a2b24;
-  --sidebar-hover: #202119;
-  --sidebar-active: #272822;
-  --rule: #3a3b33;
+  --sidebar: #111208;
+  --sidebar-border: #2b2d1f;
+  --sidebar-hover: #212318;
+  --sidebar-active: #2a2c22;
+  --rule: #3c3e2e;
 
-  --late: #e8806f;
-  --late-soft: #3a211c;
-  --late-edge: #53302a;
-  --risk: #d9a85c;
-  --risk-soft: #352c1a;
-  --risk-edge: #4c3f25;
-  --ok: #6ebfa5;
-  --ok-soft: #1b2f29;
-  --ok-edge: #2b4740;
-  --info: #7fb2cf;
-  --info-soft: #1c2a33;
-  --info-edge: #2c414e;
+  --late: #f09180;
+  --late-soft: #3c201a;
+  --late-edge: #58322a;
+  --risk: #e0b169;
+  --risk-soft: #372c17;
+  --risk-edge: #513f22;
+  --ok: #7cc6ac;
+  --ok-soft: #1a3029;
+  --ok-edge: #2d4b41;
+  --info: #8bbcd8;
+  --info-soft: #1b2b34;
+  --info-edge: #2e4450;
+
+  --pop: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 32px -8px rgb(0 0 0 / 0.6);
+
+  color-scheme: dark;
 }
 
 @layer base {
@@ -230,14 +250,65 @@
       min-height: 44px;
     }
   }
+
+  /*
+   * Honour the system setting rather than animating anyway.
+   *
+   * Declared once, here, so that a component added later cannot forget it. The
+   * durations are near-zero rather than zero: a `transitionend` that never
+   * fires would leave a drawer that never finishes closing.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
   /*
-   * The eyebrow above a page title or beside a section heading: small, wide
-   * letterspacing, mono. Used often enough to be worth a name.
+   * The typographic scale, as four names rather than four ad-hoc stacks of
+   * utilities. Every screen takes its heading from here, which is what keeps
+   * Jobs and Problems looking like the same product.
    */
+
+  /* Above a page title: what this screen is, or the date it is showing. */
   .eyebrow {
     @apply text-muted-foreground font-mono text-[10px] tracking-[0.16em] uppercase;
+  }
+
+  /* The one h1 on a screen. */
+  .page-title {
+    @apply font-display text-2xl leading-tight font-semibold tracking-[-0.02em];
+  }
+
+  /* The sentence under it: the state of this screen, in words. */
+  .page-lead {
+    @apply text-muted-foreground max-w-prose text-sm;
+  }
+
+  /* A panel's heading. Sentence case, never shouted. */
+  .section-title {
+    @apply font-display text-sm font-semibold;
+  }
+
+  /* A field's label, and the header of a table column. */
+  .field-label {
+    @apply text-muted-foreground text-xs font-medium;
+  }
+
+  /* A number meant to be read across a row of other numbers. */
+  .metric {
+    @apply font-display text-[1.75rem] leading-none font-semibold tabular-nums;
+  }
+
+  /* A job code, a part number, a timestamp. */
+  .code {
+    @apply font-mono tabular-nums;
   }
 }

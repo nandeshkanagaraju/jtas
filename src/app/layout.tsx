@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { Archivo, IBM_Plex_Mono, Instrument_Sans } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
+import { ThemeProvider } from '@/components/shared/theme';
 
 import './globals.css';
 
@@ -57,17 +59,31 @@ export const viewport: Viewport = {
   initialScale: 1,
   // The shop-floor UI must remain zoomable for readability.
   maximumScale: 5,
-  themeColor: '#f5f4ef',
+  // Day and night values, so the phone's own chrome follows the theme.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f4ef' },
+    { media: '(prefers-color-scheme: dark)', color: '#16170f' },
+  ],
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  /*
+   * next-themes writes the chosen class before paint with an inline script, and
+   * the CSP this app sends has no `unsafe-inline` — so it needs the same nonce
+   * the middleware minted for this request, or the theme flashes to light on
+   * every navigation and the console fills with CSP violations.
+   */
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${instrument.variable} ${archivo.variable} ${plex.variable} font-sans antialiased`}
       >
-        {children}
-        <ServiceWorkerRegistration />
+        <ThemeProvider nonce={nonce}>
+          {children}
+          <ServiceWorkerRegistration />
+        </ThemeProvider>
       </body>
     </html>
   );

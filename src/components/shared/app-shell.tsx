@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { AccountMenu } from '@/components/shared/account-menu';
 import { ADMIN_HREFS, NAV_ICONS, sortPrimary, type NavItem } from '@/components/shared/main-nav';
 import { NotificationBell } from '@/components/shared/notification-bell';
+import { ThemeToggle } from '@/components/shared/theme';
 import { Sheet, SheetClose, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,8 @@ const CRUMB: Record<string, string> = {
   audit: 'Audit',
   settings: 'Settings',
   notifications: 'Notifications',
+  tasks: 'My tasks',
+  account: 'Your account',
 };
 
 const COLLAPSED_KEY = 'jtas-sidebar';
@@ -70,6 +73,16 @@ export function AppShell({
 
   return (
     <div className="bg-background text-foreground flex min-h-dvh">
+      {/*
+        The first thing a keyboard reaches. Without it, tabbing into any screen
+        means walking the whole sidebar before the work.
+      */}
+      <a
+        href="#content"
+        className="bg-card text-foreground border-border focus-visible:ring-ring sr-only rounded-md border px-4 py-2 text-sm font-medium focus-visible:not-sr-only focus-visible:absolute focus-visible:top-3 focus-visible:left-3 focus-visible:z-50"
+      >
+        Skip to content
+      </a>
       <aside
         className={cn(
           'border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r lg:flex',
@@ -109,11 +122,16 @@ export function AppShell({
             <Menu className="size-5" />
           </button>
           <Crumb />
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle className="hidden sm:inline-flex" />
             <NotificationBell initialUnread={unreadNotifications} />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <main
+          id="content"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-6 pb-10 sm:px-6 sm:py-8"
+        >
           {children}
         </main>
       </div>
@@ -134,7 +152,8 @@ export function AppShell({
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 py-2">
             <NavList items={primary} admin={admin} onNavigate={() => setDrawer(false)} />
           </div>
-          <div className="border-sidebar-border border-t p-2.5">
+          <div className="border-sidebar-border space-y-2 border-t p-2.5">
+            <ThemeToggle className="w-full justify-center sm:hidden" />
             <AccountMenu name={name} email={email} role={role} />
           </div>
         </SheetContent>

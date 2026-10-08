@@ -1,18 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Download,
-  FileText,
-  Image as ImageIcon,
-  Loader2,
-  Paperclip,
-  Trash2,
-  Upload,
-} from 'lucide-react';
+import { Download, FileText, Image as ImageIcon, Paperclip, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import {
   ACCEPT_ATTRIBUTE,
@@ -49,6 +42,8 @@ export function AttachmentPanel({
   /** Job-level only — the customer drawing and the PO. */
   jobLevelOnly = false,
   title = 'Attachments',
+  /** The surrounding panel already carries a heading, so omit this one. */
+  headless = false,
 }: {
   jobId: string;
   subtaskId?: string | null;
@@ -56,6 +51,7 @@ export function AttachmentPanel({
   canDelete: boolean;
   jobLevelOnly?: boolean;
   title?: string;
+  headless?: boolean;
 }) {
   const [items, setItems] = useState<AttachmentRow[] | null>(null);
   const [uploading, setUploading] = useState<Uploading | null>(null);
@@ -204,28 +200,40 @@ export function AttachmentPanel({
 
   return (
     <section className="space-y-3" aria-labelledby={`attachments-${subtaskId ?? jobId}`}>
-      <h3
-        id={`attachments-${subtaskId ?? jobId}`}
-        className="flex items-center gap-2 text-sm font-semibold"
-      >
-        <Paperclip className="size-4" />
-        {title}
-        {items ? ` (${items.length})` : ''}
-      </h3>
+      {headless ? null : (
+        <h3
+          id={`attachments-${subtaskId ?? jobId}`}
+          className="section-title flex items-center gap-2"
+        >
+          <Paperclip className="size-4" aria-hidden />
+          {title}
+          {items ? <span className="text-muted-foreground font-mono">({items.length})</span> : null}
+        </h3>
+      )}
 
       {items === null ? (
-        <p className="text-muted-foreground flex items-center gap-2 text-sm">
-          <Loader2 className="size-3.5 animate-spin" />
-          Loading…
-        </p>
+        <div aria-hidden className="grid gap-2 sm:grid-cols-2">
+          {[0, 1].map((row) => (
+            <div key={row} className="border-border flex items-center gap-3 rounded-lg border p-2">
+              <Skeleton className="size-11 shrink-0 rounded" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Nothing attached yet.</p>
+        <p className="text-muted-foreground text-sm">
+          Nothing attached yet.
+          {canUpload ? ' Drop the drawing or the purchase order below.' : ''}
+        </p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
           {items.map((item) => (
             <li
               key={item.id}
-              className="hover:bg-accent/30 flex items-center gap-3 rounded-lg border p-2 transition-colors"
+              className="border-border hover:bg-accent/40 bg-card flex items-center gap-3 rounded-lg border p-2 transition-colors"
             >
               {item.previewable && previews[item.id] ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -250,7 +258,7 @@ export function AttachmentPanel({
                   {item.label} · {formatBytes(item.sizeBytes)}
                   {item.uploadedBy ? ` · ${item.uploadedBy.name}` : ''}
                 </p>
-                <p className="text-muted-foreground tabular text-[11px]">
+                <p className="code text-muted-foreground text-[11px]">
                   {formatIST(new Date(item.createdAt))}
                 </p>
               </div>
@@ -269,7 +277,7 @@ export function AttachmentPanel({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-muted-foreground hover:text-state-overdue"
+                    className="text-muted-foreground hover:text-late"
                     onClick={() => remove(item)}
                     aria-label={`Remove ${item.fileName}`}
                   >
@@ -297,7 +305,7 @@ export function AttachmentPanel({
           }}
           className={cn(
             'rounded-lg border border-dashed p-4 text-center transition-colors',
-            dragging ? 'border-state-progress bg-state-progress/5' : 'border-muted-foreground/25',
+            dragging ? 'border-info bg-info-soft' : 'border-input',
           )}
         >
           {uploading ? (
@@ -307,7 +315,7 @@ export function AttachmentPanel({
               </p>
               <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
                 <div
-                  className="bg-state-progress h-full transition-[width] duration-200"
+                  className="bg-info h-full transition-[width] duration-200 motion-reduce:transition-none"
                   style={{ width: `${uploading.percent}%` }}
                   role="progressbar"
                   aria-valuenow={uploading.percent}

@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { PageHeader } from '@/components/shared/page-header';
+import { Panel } from '@/components/shared/panel';
+import { EmptyState } from '@/components/shared/states';
 import { Button } from '@/components/ui/button';
 import { apiFetch, apiPost } from '@/lib/api/client';
 import { inboxLinkFor } from '@/lib/notifications/inbox-links';
@@ -94,70 +97,90 @@ export function NotificationsScreen({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
-          <p className="text-muted-foreground text-sm">
-            {withheld > 0
-              ? `${withheld} ${withheld === 1 ? 'email was' : 'emails were'} withheld. The reason is on the row.`
-              : inbox.unreadCount === 0
-                ? 'Nothing unread.'
-                : `${inbox.unreadCount} unread.`}
-          </p>
-        </div>
-
-        {inbox.unreadCount > 0 ? (
-          <Button variant="outline" size="sm" onClick={markAll} disabled={busy}>
-            <CheckCheck className="size-4" />
-            Mark all read
-          </Button>
-        ) : null}
-      </div>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <PageHeader
+        eyebrow="Your inbox"
+        title="Notifications"
+        lead={lead(inbox.unreadCount, withheld)}
+        actions={
+          inbox.unreadCount > 0 ? (
+            <Button variant="outline" size="sm" onClick={markAll} disabled={busy}>
+              <CheckCheck className="size-4" />
+              Mark all read
+            </Button>
+          ) : null
+        }
+      />
 
       {inbox.data.length === 0 ? (
-        <div className="bg-card flex flex-col items-center gap-2 rounded-lg border py-16 text-center">
-          <BellOff className="text-muted-foreground size-8" />
-          <p className="font-medium">No notifications yet</p>
-          <p className="text-muted-foreground max-w-sm text-sm">
-            Assignments, reminders and decisions will appear here as well as in your email.
-          </p>
-        </div>
+        <Panel flush>
+          <EmptyState
+            icon={BellOff}
+            title="No notifications yet"
+            description="Assignments, reminders and decisions will appear here as well as in your email."
+          />
+        </Panel>
       ) : (
-        <ul className="space-y-2">
-          {inbox.data.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={inboxLinkFor(item)}
-                onClick={() => !item.readAt && markOne(item.id)}
-                className={cn(
-                  'hover:bg-accent/40 block rounded-lg border p-4 transition-colors',
-                  !item.readAt && 'border-state-progress/40 bg-state-progress/5',
-                )}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-muted-foreground text-xs">
-                    {TYPE_LABELS[item.type] ?? item.type}
-                  </span>
-                  <span className="text-muted-foreground tabular text-xs">
-                    · {formatIST(new Date(item.sentAt ?? item.createdAt))}
-                  </span>
-                  {!item.readAt ? (
-                    <span className="bg-state-progress size-1.5 rounded-full" aria-label="Unread" />
+        <Panel flush>
+          <ul className="divide-border divide-y">
+            {inbox.data.map((item) => (
+              <li key={item.id}>
+                <Link
+                  href={inboxLinkFor(item)}
+                  onClick={() => !item.readAt && markOne(item.id)}
+                  className={cn(
+                    'hover:bg-accent/40 block px-4 py-3.5 transition-colors',
+                    // Unread carries a rule on the leading edge rather than a
+                    // tinted row: a page of tinted rows stops reading as "these
+                    // are the new ones" the moment most of them are.
+                    !item.readAt && 'border-l-info border-l-[3px] pl-[13px]',
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span
+                      className={cn(
+                        'text-xs',
+                        item.readAt ? 'text-muted-foreground' : 'text-info font-medium',
+                      )}
+                    >
+                      {TYPE_LABELS[item.type] ?? item.type}
+                    </span>
+                    <span className="code text-muted-foreground text-xs">
+                      · {formatIST(new Date(item.sentAt ?? item.createdAt))}
+                    </span>
+                    {!item.readAt ? (
+                      <span className="text-info text-xs font-medium">· Unread</span>
+                    ) : null}
+                  </div>
+                  <p className={cn('mt-1', item.readAt ? 'font-medium' : 'font-semibold')}>
+                    {item.subject}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5 line-clamp-2 text-sm whitespace-pre-wrap">
+                    {item.body}
+                  </p>
+                  {item.suppressedReason ? (
+                    <p className="text-late border-late-edge bg-late-soft mt-2 rounded-md border px-2.5 py-1.5 text-xs">
+                      Not emailed — {item.suppressedReason}
+                    </p>
                   ) : null}
-                </div>
-                <p className="mt-1 font-medium">{item.subject}</p>
-                <p className="text-muted-foreground mt-0.5 line-clamp-2 text-sm whitespace-pre-wrap">
-                  {item.body}
-                </p>
-                {item.suppressedReason ? (
-                  <p className="text-state-overdue mt-2 text-sm">{item.suppressedReason}</p>
-                ) : null}
-              </Link>
-            </li>
-          ))}
-        </ul>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
       )}
     </div>
   );
+}
+
+/** One sentence of state: unread first, withheld mail if any. */
+function lead(unread: number, withheld: number): string {
+  const parts: string[] = [];
+  parts.push(unread === 0 ? 'Nothing unread' : `${unread} unread`);
+  if (withheld > 0) {
+    parts.push(
+      `${withheld} ${withheld === 1 ? 'email was' : 'emails were'} withheld — the reason is on the row`,
+    );
+  }
+  return `${parts.join(', ')}. Email is still the delivery; this is the record.`;
 }

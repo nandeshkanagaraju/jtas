@@ -87,7 +87,7 @@ export function ReminderLeadField({
           aria-label="Reminder amount"
           aria-invalid={invalid || problem !== null}
           aria-describedby={resolved || problem ? `${id}-hint` : undefined}
-          className={cn('tabular w-20', (invalid || problem) && 'border-destructive')}
+          className={cn('code w-20', (invalid || problem) && 'border-destructive')}
           value={amount}
           onChange={(event) => {
             setAmount(event.target.value);
@@ -102,7 +102,7 @@ export function ReminderLeadField({
             setUnit(next);
             publish(amount, next);
           }}
-          className="border-input bg-card h-9 rounded-md border px-2 text-sm"
+          className="border-input bg-card hover:bg-muted h-9 rounded-md border px-2 text-sm transition-colors"
         >
           <option value="minutes">Minutes</option>
           <option value="hours">Hours</option>

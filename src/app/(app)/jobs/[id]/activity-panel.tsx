@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { History } from 'lucide-react';
 
 import { ActivityFeed } from '@/components/collaboration/activity-feed';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Panel } from '@/components/shared/panel';
 
 /**
  * The job's activity (build spec M10.3).
@@ -27,33 +27,27 @@ export function ActivityPanel({
   canViewAudit: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <History className="size-4" />
-              Activity
-            </CardTitle>
-            <CardDescription>
-              Comments, status changes, deadlines, problems and files — newest first.
-            </CardDescription>
-          </div>
-
-          {canViewAudit ? (
-            <Link
-              href={`/audit?job=${jobId}`}
-              className="text-muted-foreground hover:text-foreground shrink-0 text-xs underline-offset-4 hover:underline"
-            >
-              Forensic view
-            </Link>
-          ) : null}
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        <ActivityFeed jobId={jobId} currentUserId={currentUserId} />
-      </CardContent>
-    </Card>
+    <Panel
+      id="job-activity"
+      title={
+        <span className="flex items-center gap-2">
+          <History className="size-4" aria-hidden />
+          Activity
+        </span>
+      }
+      description="Comments, status changes, deadlines, problems and files — newest first."
+      action={
+        canViewAudit ? (
+          <Link
+            href={`/audit?job=${jobId}`}
+            className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline-offset-4 hover:underline"
+          >
+            Forensic view
+          </Link>
+        ) : null
+      }
+    >
+      <ActivityFeed jobId={jobId} currentUserId={currentUserId} />
+    </Panel>
   );
 }

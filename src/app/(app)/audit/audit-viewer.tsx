@@ -2,8 +2,10 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { ChevronDown, Download, Loader2, X } from 'lucide-react';
+import { ChevronDown, Download, Loader2, ScrollText, X } from 'lucide-react';
 
+import { Panel } from '@/components/shared/panel';
+import { EmptyState, Spinner } from '@/components/shared/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,10 +92,10 @@ export function AuditViewer({
   return (
     <div className="space-y-4">
       {traceMode ? null : (
-        <section className="bg-card rounded-lg border">
-          <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-            <h2 className="text-sm font-semibold">Filters{active > 0 ? ` (${active})` : ''}</h2>
-
+        <Panel
+          title={`Filters${active > 0 ? ` (${active})` : ''}`}
+          flush
+          action={
             <div className="flex items-center gap-2">
               {active > 0 ? (
                 <Button variant="ghost" size="sm" onClick={() => apply(EMPTY)}>
@@ -109,8 +111,8 @@ export function AuditViewer({
                 </a>
               </Button>
             </div>
-          </header>
-
+          }
+        >
           <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
             <Select
               label="Who"
@@ -159,30 +161,51 @@ export function AuditViewer({
               onCommit={(to) => apply({ ...filters, to })}
             />
           </div>
-        </section>
+        </Panel>
       )}
 
-      <div className="flex items-center gap-2">
-        <p className="text-muted-foreground text-sm">
+      <div className="flex items-center gap-3">
+        <p className="text-muted-foreground tabular text-xs">
           {initial.total === 0
-            ? 'Nothing matches.'
+            ? 'Nothing matches'
             : traceMode
-              ? `${initial.total} actions.`
-              : `Showing ${entries.length} of ${initial.total}.`}
+              ? `${initial.total} recorded actions`
+              : `${entries.length} of ${initial.total}`}
         </p>
-        {pending ? <Loader2 className="text-muted-foreground size-3.5 animate-spin" /> : null}
+        {pending ? <Spinner label="Filtering" /> : null}
       </div>
 
-      <ol className="border-border bg-card divide-border divide-y overflow-hidden rounded-lg border">
-        {entries.map((entry) => (
-          <Row
-            key={entry.id}
-            entry={entry}
-            expanded={open === entry.id}
-            onToggle={() => setOpen(open === entry.id ? null : entry.id)}
+      <Panel flush>
+        {entries.length === 0 ? (
+          <EmptyState
+            icon={ScrollText}
+            title={active > 0 ? 'Nothing matches these filters' : 'Nothing recorded yet'}
+            description={
+              active > 0
+                ? 'Widen the date range, or clear a filter above.'
+                : 'Every state-changing action lands here the moment it happens.'
+            }
+            action={
+              active > 0 ? (
+                <Button variant="outline" size="sm" onClick={() => apply(EMPTY)}>
+                  Clear filters
+                </Button>
+              ) : null
+            }
           />
-        ))}
-      </ol>
+        ) : (
+          <ol className="divide-border divide-y">
+            {entries.map((entry) => (
+              <Row
+                key={entry.id}
+                entry={entry}
+                expanded={open === entry.id}
+                onToggle={() => setOpen(open === entry.id ? null : entry.id)}
+              />
+            ))}
+          </ol>
+        )}
+      </Panel>
 
       {cursor ? (
         <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="w-full">
@@ -213,7 +236,7 @@ function Row({
         aria-expanded={expanded}
         className="hover:bg-accent/40 flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors"
       >
-        <span className="text-muted-foreground tabular w-36 shrink-0 text-xs">
+        <span className="code text-muted-foreground w-36 shrink-0 text-xs">
           {formatIST(new Date(entry.createdAt))}
         </span>
 
@@ -223,13 +246,13 @@ function Row({
               variant="outline"
               className={cn(
                 'text-xs',
-                ALARMING.test(entry.action) && 'border-state-overdue/30 text-state-overdue',
+                ALARMING.test(entry.action) && 'border-late-edge bg-late-soft text-late',
               )}
             >
               {entry.action.replaceAll('_', ' ')}
             </Badge>
             <span className="text-muted-foreground text-xs">
-              {entry.entityType} · <span className="tabular">{entry.entityId}</span>
+              {entry.entityType} · <span className="code">{entry.entityId}</span>
             </span>
           </span>
 
@@ -297,7 +320,7 @@ function Row({
             </div>
             <div>
               <dt className="inline font-medium">IP: </dt>
-              <dd className="tabular inline">{entry.ipAddress ?? '—'}</dd>
+              <dd className="code inline">{entry.ipAddress ?? '—'}</dd>
             </div>
             <div>
               <dt className="inline font-medium">Source: </dt>
@@ -327,14 +350,14 @@ function Select({
 
   return (
     <div>
-      <Label htmlFor={id} className="text-xs">
+      <Label htmlFor={id} className="field-label">
         {label}
       </Label>
       <select
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="border-input bg-card mt-1 h-9 w-full rounded-md border px-2 text-sm"
+        className="border-input bg-card hover:bg-muted mt-1 h-9 w-full rounded-md border px-2 text-sm transition-colors"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -364,7 +387,7 @@ function Field({
 
   return (
     <div>
-      <Label htmlFor={id} className="text-xs">
+      <Label htmlFor={id} className="field-label">
         {label}
       </Label>
       <Input

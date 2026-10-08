@@ -80,8 +80,8 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
   return (
     <dl className="grid grid-cols-2 gap-3 text-sm">
       <div>
-        <dt className="text-muted-foreground text-xs">Deadline</dt>
-        <dd className="tabular font-medium">
+        <dt className="field-label">Deadline</dt>
+        <dd className="code font-medium">
           {subtask.deadline
             ? new Intl.DateTimeFormat('en-IN', {
                 dateStyle: 'medium',
@@ -92,19 +92,19 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
               ? 'Awaiting commitment'
               : 'Not their turn'}
           {subtask.isOverdue ? (
-            <span className="text-state-overdue block text-xs font-medium">Overdue</span>
+            <span className="text-late block text-xs font-medium">Overdue</span>
           ) : null}
         </dd>
       </div>
 
       <div>
-        <dt className="text-muted-foreground text-xs">Reminder</dt>
+        <dt className="field-label">Reminder</dt>
         <dd className="font-medium">{formatDuration(subtask.reminderLeadMinutes)} before</dd>
       </div>
 
       {subtask.dependsOn ? (
         <div className="col-span-2">
-          <dt className="text-muted-foreground text-xs">Waits for</dt>
+          <dt className="field-label">Waits for</dt>
           <dd className="font-medium">
             {subtask.dependsOn.title}{' '}
             <span className="text-muted-foreground text-xs">
@@ -116,7 +116,7 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
 
       {subtask.completionNote ? (
         <div className="col-span-2">
-          <dt className="text-muted-foreground text-xs">Completion note</dt>
+          <dt className="field-label">Completion note</dt>
           <dd>{subtask.completionNote}</dd>
         </div>
       ) : null}

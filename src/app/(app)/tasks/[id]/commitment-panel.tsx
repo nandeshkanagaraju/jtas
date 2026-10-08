@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Panel } from '@/components/shared/panel';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api/client';
 import { commitSubtaskDeadlineRequest } from '@/lib/api/subtasks-client';
@@ -57,32 +57,52 @@ export function CommitmentPanel({
     }
   }
 
+  /*
+   * The loudest thing on the member's screen, because it is the only one with
+   * a window that closes: the border takes the late tone once the 24 hours are
+   * gone, and the deadline carries the word as well as the colour.
+   */
   return (
-    <Card className="border-primary/40">
-      <CardHeader>
-        <CardDescription className="text-xs">
-          <span className="tabular">{jobCode}</span>
-          <span> · {departmentName}</span>
-        </CardDescription>
-        <CardTitle className="text-xl">Commit a finish date</CardTitle>
-        <CardDescription>
-          {jobTitle}. Commit a finish date by {formatIST(due)}. {windowText}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="commit-deadline">This becomes the deadline</Label>
-          <IstDateTimePicker id="commit-deadline" value={deadline} onChange={setDeadline} />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button disabled={busy || deadline === ''} onClick={() => void commit()}>
-            Commit this date
-          </Button>
-          <Button variant="outline" disabled={busy} onClick={onReportProblem}>
-            Report problem
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <Panel
+      id="commitment-panel"
+      className={label.overdue ? 'border-late' : 'border-primary'}
+      title="Commit a finish date"
+      description={
+        <>
+          <span className="code">{jobCode}</span> · {departmentName} · {jobTitle}
+        </>
+      }
+      bodyClassName="p-4 space-y-4"
+    >
+      <p className={label.overdue ? 'text-late text-base font-medium' : 'text-base'}>
+        Commit by <span className="code font-medium">{formatIST(due)}</span>. {windowText}
+      </p>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="commit-deadline">This becomes the deadline</Label>
+        <IstDateTimePicker id="commit-deadline" value={deadline} onChange={setDeadline} />
+        <p className="text-muted-foreground text-xs">
+          Once committed you cannot move it yourself — you can ask the MD for more time.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          className="min-h-11 text-base"
+          disabled={busy || deadline === ''}
+          onClick={() => void commit()}
+        >
+          Commit this date
+        </Button>
+        <Button
+          variant="outline"
+          className="min-h-11 text-base"
+          disabled={busy}
+          onClick={onReportProblem}
+        >
+          Report problem
+        </Button>
+      </div>
+    </Panel>
   );
 }

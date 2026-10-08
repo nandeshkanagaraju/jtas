@@ -116,9 +116,12 @@ export function RangePicker({
             disabled={pending}
             className={cn(
               'rounded-[5px] px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
+              // The selected preset is a raised tile in the same neutral the
+              // theme toggle uses, not an inverted block: inverted reads as a
+              // primary action, and choosing a range is not one.
               active
-                ? 'bg-foreground text-background'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                ? 'bg-secondary text-foreground border-border border'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent',
             )}
           >
             <span className="hidden sm:inline">{preset.label}</span>
@@ -135,7 +138,9 @@ export function RangePicker({
     <div className="flex flex-col items-start gap-1.5">
       {control}
       <p className="text-muted-foreground flex items-center gap-1.5 font-mono text-[11px] tabular-nums">
-        {pending ? <Loader2 className="size-3 animate-spin" /> : null}
+        {pending ? (
+          <Loader2 className="size-3 animate-spin motion-reduce:animate-none" aria-hidden />
+        ) : null}
         {from} → {to}
         {pending ? <span className="sr-only">, updating</span> : null}
       </p>

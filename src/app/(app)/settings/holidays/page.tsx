@@ -5,6 +5,8 @@ import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
 import { listHolidays } from '@/lib/services/holiday-service';
 
+import { PageHeader } from '@/components/shared/page-header';
+
 import { SettingsNav } from '../settings-nav';
 import { HolidayCalendar } from './holiday-calendar';
 
@@ -23,15 +25,13 @@ export default async function HolidaysPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Holiday calendar</h1>
-        <p className="text-muted-foreground mt-0.5 text-sm">
-          Days the shop is shut. A reminder that would land on one moves to the next working
-          morning; overdue mail is not held.
-        </p>
-      </div>
-
-      <SettingsNav current="holidays" />
+      <PageHeader
+        eyebrow="How the system chases work"
+        title="Holiday calendar"
+        lead="Days the shop is shut. A reminder that would land on one moves to the next working morning; overdue mail is not held."
+      >
+        <SettingsNav current="holidays" />
+      </PageHeader>
 
       <HolidayCalendar
         initial={await listHolidays()}

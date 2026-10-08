@@ -137,7 +137,7 @@ export function TemplateEditor({
   return (
     <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
       <aside className="space-y-2">
-        <ul className="bg-card divide-y rounded-lg border">
+        <ul className="border-border divide-border bg-card divide-y rounded-lg border">
           {templates.map((template) => (
             <li key={template.id}>
               <button
@@ -188,8 +188,8 @@ export function TemplateEditor({
       </aside>
 
       <div className="space-y-4">
-        <div className="border-state-problem/30 bg-state-problem/5 flex items-start gap-2 rounded-lg border p-3">
-          <AlertTriangle className="text-state-problem mt-px size-4 shrink-0" />
+        <div className="border-risk-edge bg-risk-soft text-risk flex items-start gap-2 rounded-lg border p-3">
+          <AlertTriangle className="mt-px size-4 shrink-0" />
           <p className="text-sm">
             A template is a recipe. Editing it changes how <em>future</em> jobs are laid out and
             never touches a job that already exists — those chains stay exactly as they were
@@ -215,15 +215,15 @@ export function TemplateEditor({
                 onChange={(event) => setName(event.target.value)}
               />
               {errors.name?.map((problem) => (
-                <p key={problem} className="text-state-overdue mt-1 text-xs">
+                <p key={problem} className="text-late mt-1 text-xs">
                   {problem}
                 </p>
               ))}
             </div>
 
-            <section className="bg-card rounded-lg border">
+            <section className="border-border bg-card rounded-lg border">
               <header className="flex items-center justify-between border-b px-4 py-3">
-                <h2 className="text-sm font-semibold">Chain ({steps.length})</h2>
+                <h2 className="section-title">Chain ({steps.length})</h2>
                 <p className="text-muted-foreground text-xs">
                   Offsets run backwards from the job’s overall deadline.
                 </p>
@@ -317,10 +317,7 @@ export function TemplateEditor({
                       .filter(([field]) => field.startsWith(`items.${index}.`))
                       .flatMap(([field, problems]) =>
                         problems.map((problem) => (
-                          <p
-                            key={`${field}-${problem}`}
-                            className="text-state-overdue pl-8 text-xs"
-                          >
+                          <p key={`${field}-${problem}`} className="text-late pl-8 text-xs">
                             {problem}
                           </p>
                         )),
@@ -386,9 +383,9 @@ function DependencyPreview({ steps, departments }: { steps: Step[]; departments:
   const nameOf = (id: string) => departments.find((d) => d.id === id)?.name ?? 'Unassigned';
 
   return (
-    <section className="bg-card rounded-lg border">
+    <section className="border-border bg-card rounded-lg border">
       <header className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">What a job from this template looks like</h2>
+        <h2 className="section-title">What a job from this template looks like</h2>
         <p className="text-muted-foreground mt-0.5 text-xs">
           A step that waits for another starts BLOCKED until that one is complete.
         </p>
@@ -409,7 +406,7 @@ function DependencyPreview({ steps, departments }: { steps: Step[]; departments:
             <div
               className={cn(
                 'flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm',
-                step.dependsOnItemOrder !== null && 'border-state-blocked/40 bg-muted/40',
+                step.dependsOnItemOrder !== null && 'border-border bg-muted/40',
               )}
             >
               <span className="tabular text-muted-foreground text-xs">{index + 1}</span>

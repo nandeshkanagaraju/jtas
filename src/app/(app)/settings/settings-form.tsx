@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, Save, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { Panel } from '@/components/shared/panel';
 import { ReminderLeadField } from '@/components/shared/reminder-lead-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,11 +118,14 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-muted/40 rounded-lg border p-4">
-        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-          With these values
-        </p>
-        <p className="mt-1 text-sm">{preview.sentence}</p>
+      {/*
+        The consequence of the unsaved values, in a sentence. Sticks under the
+        header so it stays in view while the fields below it are being changed —
+        it is the only feedback on this screen that is live.
+      */}
+      <div className="border-info-edge bg-info-soft rounded-lg border p-4">
+        <p className="eyebrow text-info">With these values</p>
+        <p className="text-foreground mt-1.5 text-sm">{preview.sentence}</p>
       </div>
 
       {SETTING_GROUPS.map((group) => (
@@ -135,7 +139,12 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
         />
       ))}
 
-      <div className="bg-background/95 sticky bottom-0 flex flex-wrap items-center gap-3 border-t py-3 backdrop-blur">
+      {/*
+        The save bar floats over the last field, so the page carries padding
+        below it — a sticky bar that hides the control somebody is about to
+        change is worse than one that scrolls away.
+      */}
+      <div className="bg-background/95 border-border sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <Button
           onClick={save}
           disabled={
@@ -187,28 +196,25 @@ function Section({
   if (rows.length === 0) return null;
 
   return (
-    <section className="bg-card rounded-lg border" aria-labelledby={`group-${group.id}`}>
-      <header className="border-b px-4 py-3">
-        <h2 id={`group-${group.id}`} className="text-sm font-semibold">
-          {group.title}
-        </h2>
-        <p className="text-muted-foreground mt-0.5 text-xs">{group.blurb}</p>
-      </header>
-
-      <div className="divide-y">
-        {rows.map((row) => (
-          <Field
-            key={row.key}
-            row={row}
-            value={valueOf(row.key)}
-            onChange={(value) => set(row.key, value)}
-            problems={errors[row.key]}
-          />
-        ))}
-      </div>
+    <Panel
+      id={`group-${group.id}`}
+      title={group.title}
+      description={group.blurb}
+      flush
+      bodyClassName="divide-border divide-y"
+    >
+      {rows.map((row) => (
+        <Field
+          key={row.key}
+          row={row}
+          value={valueOf(row.key)}
+          onChange={(value) => set(row.key, value)}
+          problems={errors[row.key]}
+        />
+      ))}
 
       {group.id === 'notifications' ? <TestEmail /> : null}
-    </section>
+    </Panel>
   );
 }
 
@@ -235,7 +241,7 @@ function Field({
         </Label>
         <p className="text-muted-foreground text-xs">{row.help}</p>
         {row.caution ? (
-          <p className="text-state-problem flex items-start gap-1.5 text-xs">
+          <p className="text-risk flex items-start gap-1.5 text-xs">
             <AlertTriangle className="mt-px size-3.5 shrink-0" />
             {row.caution}
           </p>
@@ -250,7 +256,7 @@ function Field({
           onMinutes={onChange}
         />
         {problems?.map((problem) => (
-          <p key={problem} className="text-state-overdue text-xs font-medium">
+          <p key={problem} className="text-late text-xs font-medium">
             {problem}
           </p>
         ))}
@@ -267,14 +273,14 @@ function Field({
         <p className="text-muted-foreground mt-0.5 text-xs">{row.help}</p>
 
         {row.caution ? (
-          <p className="text-state-problem mt-1 flex items-start gap-1.5 text-xs">
+          <p className="text-risk mt-1 flex items-start gap-1.5 text-xs">
             <AlertTriangle className="mt-px size-3.5 shrink-0" />
             {row.caution}
           </p>
         ) : null}
 
         {problems?.map((problem) => (
-          <p key={problem} className="text-state-overdue mt-1 text-xs font-medium">
+          <p key={problem} className="text-late mt-1 text-xs font-medium">
             {problem}
           </p>
         ))}
@@ -298,7 +304,7 @@ function Control({
   onChange: (value: unknown) => void;
   invalid: boolean;
 }) {
-  const ring = invalid ? 'border-state-overdue' : undefined;
+  const ring = invalid ? 'border-late' : undefined;
 
   if (row.key === 'working_days') {
     const selected = new Set(Array.isArray(value) ? (value as number[]) : []);
@@ -389,7 +395,7 @@ function Control({
       <Input
         id={id}
         type="number"
-        className={cn('tabular', ring)}
+        className={cn('code', ring)}
         value={String(value ?? '')}
         onChange={(event) => onChange(event.target.value === '' ? '' : Number(event.target.value))}
       />
@@ -402,7 +408,7 @@ function Control({
     <Input
       id={id}
       type={isTime ? 'time' : 'text'}
-      className={cn(isTime && 'tabular', ring)}
+      className={cn(isTime && 'code', ring)}
       value={String(value ?? '')}
       onChange={(event) => onChange(event.target.value)}
     />
@@ -435,7 +441,7 @@ function TestEmail() {
   }
 
   return (
-    <div className="bg-muted/30 flex flex-wrap items-end gap-2 border-t px-4 py-3">
+    <div className="bg-muted/40 border-border flex flex-wrap items-end gap-2 border-t px-4 py-3">
       <div className="min-w-56 flex-1">
         <Label htmlFor="test-email" className="text-sm font-medium">
           Send a test email

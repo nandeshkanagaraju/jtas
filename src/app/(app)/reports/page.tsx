@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { forbidden } from 'next/navigation';
 
 import { RangePicker } from '@/components/dashboard/range-picker';
+import { PageHeader } from '@/components/shared/page-header';
+import { Panel } from '@/components/shared/panel';
+import { EmptyState } from '@/components/shared/states';
+import { TabNav } from '@/components/shared/tab-nav';
 import { ListExports, JobReportExports } from '@/components/reports/export-menu';
 import { JobReportView } from '@/components/reports/job-report-view';
 import { ScorecardChart } from '@/components/reports/scorecard-chart';
@@ -12,7 +15,8 @@ import { requireActiveSession } from '@/lib/auth/session';
 import { departmentScorecards, parseRange } from '@/lib/services/analytics';
 import { jobReport } from '@/lib/services/reports';
 import { prisma } from '@/lib/db/prisma';
-import { cn } from '@/lib/utils';
+
+import { FileText } from 'lucide-react';
 
 import { JobPicker, type PickableJob } from './job-picker';
 
@@ -49,24 +53,29 @@ export default async function ReportsPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
-            Department performance and the full record of any job.
-          </p>
-        </div>
-        <RangePicker from={range.fromKey} to={range.toKey} />
-      </div>
-
-      <nav className="flex gap-1 border-b" aria-label="Report views">
-        <TabLink current={tab} tab="scorecards" range={range}>
-          Department scorecards
-        </TabLink>
-        <TabLink current={tab} tab="jobs" range={range}>
-          Job report
-        </TabLink>
-      </nav>
+      <PageHeader
+        eyebrow="The record"
+        title="Reports"
+        lead="How each department is holding its dates, and the full history of any one job."
+        actions={<RangePicker from={range.fromKey} to={range.toKey} />}
+      >
+        <TabNav
+          label="Report views"
+          current={tab}
+          tabs={[
+            {
+              id: 'scorecards',
+              label: 'Department scorecards',
+              href: `/reports?tab=scorecards&from=${range.fromKey}&to=${range.toKey}`,
+            },
+            {
+              id: 'jobs',
+              label: 'Job report',
+              href: `/reports?tab=jobs&from=${range.fromKey}&to=${range.toKey}`,
+            },
+          ]}
+        />
+      </PageHeader>
 
       {tab === 'scorecards' ? (
         <Scorecards range={range} exportParams={exportParams} />
@@ -74,35 +83,6 @@ export default async function ReportsPage({
         <JobReports exportParams={exportParams} selected={params.job ?? null} />
       )}
     </div>
-  );
-}
-
-function TabLink({
-  current,
-  tab,
-  range,
-  children,
-}: {
-  current: Tab;
-  tab: Tab;
-  range: { fromKey: string; toKey: string };
-  children: React.ReactNode;
-}) {
-  const active = current === tab;
-
-  return (
-    <Link
-      href={`/reports?tab=${tab}&from=${range.fromKey}&to=${range.toKey}`}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        '-mb-px border-b-2 px-3 py-2 text-sm transition-colors',
-        active
-          ? 'border-foreground font-semibold'
-          : 'text-muted-foreground hover:text-foreground border-transparent',
-      )}
-    >
-      {children}
-    </Link>
   );
 }
 
@@ -165,11 +145,17 @@ async function JobReports({
           <JobReportView report={report} />
         </div>
       ) : (
-        <div className="text-muted-foreground flex items-center justify-center rounded-lg border py-20 text-sm">
-          {jobs.length === 0
-            ? 'No jobs have been published yet.'
-            : 'Choose a job to see its record.'}
-        </div>
+        <Panel flush>
+          <EmptyState
+            icon={FileText}
+            title={jobs.length === 0 ? 'No jobs published yet' : 'Choose a job'}
+            description={
+              jobs.length === 0
+                ? 'A job appears here once it has been published — a draft has no record to report on.'
+                : 'Pick one from the list to see its full record: every department, every date, every problem.'
+            }
+          />
+        </Panel>
       )}
     </div>
   );

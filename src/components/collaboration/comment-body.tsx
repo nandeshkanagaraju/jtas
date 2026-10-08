@@ -31,8 +31,8 @@ export function CommentBody({
             key={index}
             className={
               segment.userId === currentUserId
-                ? 'bg-state-progress/15 text-state-progress rounded px-1 font-medium'
-                : 'text-state-progress font-medium'
+                ? 'bg-info-soft text-info border-info-edge rounded border px-1 font-medium'
+                : 'text-info font-medium'
             }
           >
             {segment.text}

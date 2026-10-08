@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils';
 import { deadlineLabel } from '@/lib/utils/relative-time';
 
 const TONE_CLASS = {
-  overdue: 'text-state-overdue font-medium',
-  urgent: 'text-state-problem font-medium',
-  soon: 'text-state-progress',
+  overdue: 'text-late font-medium',
+  urgent: 'text-risk font-medium',
+  soon: 'text-info',
   normal: 'text-muted-foreground',
 } as const;
 

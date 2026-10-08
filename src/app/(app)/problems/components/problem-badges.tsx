@@ -46,13 +46,9 @@ export function ProblemAge({ ageHours, isStale }: { ageHours: number; isStale: b
   const label = formatElapsed(ageHours * 60);
 
   return (
-    <span
-      className={cn(
-        'tabular text-sm',
-        isStale ? 'text-late font-semibold' : 'text-muted-foreground',
-      )}
-    >
-      {label}
+    <span className={cn('text-sm', isStale ? 'text-late font-semibold' : 'text-muted-foreground')}>
+      <span className="code block">{label}</span>
+      {isStale ? <span className="mt-0.5 block text-[11px] font-medium">over a day</span> : null}
     </span>
   );
 }

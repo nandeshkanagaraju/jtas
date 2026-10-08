@@ -46,16 +46,16 @@ export function ActionPanel({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="bg-muted/40 space-y-3 rounded-lg border p-3">
+    <div className="border-border bg-muted/40 space-y-3 rounded-lg border p-3">
       <div className="space-y-0.5">
-        <p className="text-sm font-medium">{title}</p>
+        <p className="section-title">{title}</p>
         <p className="text-muted-foreground text-xs">{note}</p>
       </div>
 
       {children}
 
       <div className="space-y-1.5">
-        <Label className="text-xs">Reason</Label>
+        <Label className="field-label">Reason</Label>
         <Textarea
           value={reason}
           onChange={(event) => onReason(event.target.value)}
@@ -67,7 +67,7 @@ export function ActionPanel({
 
       {onOverride ? (
         <div className="space-y-1.5">
-          <Label className="text-xs">
+          <Label className="field-label">
             Confirmation <span className="text-muted-foreground">(only if asked)</span>
           </Label>
           <Textarea

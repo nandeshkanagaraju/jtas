@@ -1,7 +1,6 @@
 'use client';
 
-import { ArrowLeft, Loader2, Send, TriangleAlert } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, Send, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -12,7 +11,8 @@ import {
 } from '@/app/(app)/jobs/components/subtask-builder';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/page-header';
+import { Panel } from '@/components/shared/panel';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api/client';
@@ -172,23 +172,12 @@ export function PlanWizard({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="space-y-3">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link href={`/jobs/${job.id}`}>
-            <ArrowLeft className="size-4" />
-            Back to the job
-          </Link>
-        </Button>
-
-        <div className="space-y-1">
-          <p className="tabular text-muted-foreground text-sm">{job.jobCode}</p>
-          <h1 className="text-2xl font-semibold tracking-tight">{job.title}</h1>
-          <p className="text-muted-foreground text-sm">
-            Step {step} of 3 ·{' '}
-            {step === 2 ? 'Break the job into department subtasks' : 'Review and publish'}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: `/jobs/${job.id}`, label: 'Back to the job' }}
+        eyebrow={`${job.jobCode} · Step ${step} of 3`}
+        title={job.title}
+        lead={step === 2 ? 'Break the job into department subtasks' : 'Review and publish'}
+      />
 
       {error ? (
         <Alert variant="destructive" role="alert">
@@ -214,19 +203,20 @@ export function PlanWizard({
 
       {step === 2 ? (
         <>
-          <Card>
-            <CardContent className="pt-6">
-              <SubtaskBuilder
-                rows={rows}
-                onChange={setRows}
-                departments={departments}
-                users={users}
-                jobDeadline={job.overallDeadline}
-                onApplyTemplate={applyTemplate}
-                templateName={template?.name ?? null}
-              />
-            </CardContent>
-          </Card>
+          <Panel
+            title="Department subtasks"
+            description="One step per department, in shop-flow order. Each deadline is measured backwards from the job’s."
+          >
+            <SubtaskBuilder
+              rows={rows}
+              onChange={setRows}
+              departments={departments}
+              users={users}
+              jobDeadline={job.overallDeadline}
+              onApplyTemplate={applyTemplate}
+              templateName={template?.name ?? null}
+            />
+          </Panel>
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => router.push(`/jobs/${job.id}`)}>
@@ -247,17 +237,12 @@ export function PlanWizard({
         </>
       ) : (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Review the chain</CardTitle>
-              <CardDescription>
-                This is what publishing will start. Everything with a predecessor waits for it.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PlanReview rows={rows} departments={departments} users={users} />
-            </CardContent>
-          </Card>
+          <Panel
+            title="Review the chain"
+            description="This is what publishing will start. Everything with a predecessor waits for it."
+          >
+            <PlanReview rows={rows} departments={departments} users={users} />
+          </Panel>
 
           {late.length > 0 ? (
             <Alert variant="destructive">

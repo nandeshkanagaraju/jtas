@@ -6,6 +6,8 @@ import { requireActiveSession } from '@/lib/auth/session';
 import { listDepartments } from '@/lib/services/department-service';
 import { listJobTemplates } from '@/lib/services/templates';
 
+import { PageHeader } from '@/components/shared/page-header';
+
 import { SettingsNav } from '../settings-nav';
 import { TemplateEditor } from './template-editor';
 
@@ -21,15 +23,13 @@ export default async function TemplatesPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Job templates</h1>
-        <p className="text-muted-foreground mt-0.5 text-sm">
-          The standard chain, with each step’s deadline measured backwards from the job’s. One
-          template serves a rush job and a long one — the whole chain compresses with the due date.
-        </p>
-      </div>
-
-      <SettingsNav current="templates" />
+      <PageHeader
+        eyebrow="How the system chases work"
+        title="Job templates"
+        lead="The standard chain, with each step’s deadline measured backwards from the job’s. One template serves a rush job and a long one — the whole chain compresses with the due date."
+      >
+        <SettingsNav current="templates" />
+      </PageHeader>
 
       <TemplateEditor
         templates={templates}

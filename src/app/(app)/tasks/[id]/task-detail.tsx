@@ -1,16 +1,17 @@
 'use client';
 
-import { ArrowLeft, Check, Lock, Play, TriangleAlert } from 'lucide-react';
-import Link from 'next/link';
+import { Check, Lock, Play, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ProblemForm, type Severity } from '@/app/(app)/my-tasks/components/problem-form';
 import { Countdown } from '@/components/shared/countdown';
+import { SubtaskStatusBadge } from '@/app/(app)/jobs/[id]/subtask-timeline';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/page-header';
+import { Panel } from '@/components/shared/panel';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api/client';
@@ -119,12 +120,28 @@ export function TaskDetail({
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/my-tasks">
-          <ArrowLeft className="size-4" />
-          My tasks
-        </Link>
-      </Button>
+      <PageHeader
+        back={{ href: '/my-tasks', label: 'My tasks' }}
+        eyebrow={
+          <>
+            {subtask.jobCode}
+            {subtask.partNumber ? ` · ${subtask.partNumber}` : ''} · {subtask.department.name}
+          </>
+        }
+        title={subtask.title}
+        lead={subtask.jobTitle}
+        density="comfortable"
+        actions={
+          <div className="flex flex-col items-end gap-1">
+            <SubtaskStatusBadge status={subtask.status} />
+            {/*
+              Overdue sits beside the state rather than replacing it: a task can
+              be in progress and late at once, and the member needs both.
+            */}
+            {subtask.isOverdue ? <Badge variant="late">Overdue</Badge> : null}
+          </div>
+        }
+      />
 
       {owesCommitment && subtask.commitmentDueAt ? (
         <CommitmentPanel
@@ -139,25 +156,13 @@ export function TaskDetail({
       ) : null}
 
       {/* Everything needed to decide, above the buttons (SDD 7.2). */}
-      <Card>
-        <CardHeader>
-          <CardDescription className="flex flex-wrap items-center gap-x-2 text-xs">
-            <span className="tabular">{subtask.jobCode}</span>
-            {subtask.partNumber ? <span>· {subtask.partNumber}</span> : null}
-            <span>· {subtask.department.name}</span>
-          </CardDescription>
-          <CardTitle className="text-xl leading-snug">{subtask.title}</CardTitle>
-          <CardDescription>{subtask.jobTitle}</CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span
-              className={cn(
-                'tabular text-lg font-semibold',
-                subtask.isOverdue && 'text-state-overdue',
-              )}
-            >
+      <Panel bodyClassName="p-4 space-y-4">
+        <div>
+          <p className="field-label">
+            {subtask.deadline ? 'Your deadline' : owesCommitment ? 'Commit a date' : 'Deadline'}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className={cn('code text-lg font-semibold', subtask.isOverdue && 'text-late')}>
               {subtask.deadline
                 ? formatIST(new Date(subtask.deadline))
                 : owesCommitment
@@ -169,124 +174,120 @@ export function TaskDetail({
             ) : null}
             {subtask.requiresApproval ? (
               <Badge variant="outline" className="gap-1">
-                <Lock className="size-3" />
+                <Lock className="size-3" aria-hidden />
                 MD approves
               </Badge>
             ) : null}
           </div>
+        </div>
 
-          {subtask.description ? (
-            <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-              {subtask.description}
-            </p>
-          ) : null}
+        {subtask.description ? (
+          <p className="text-foreground text-base whitespace-pre-wrap">{subtask.description}</p>
+        ) : null}
 
-          <TaskStatusAlerts subtask={subtask} readOnly={!permissions.updateStatus} />
+        <TaskStatusAlerts subtask={subtask} readOnly={!permissions.updateStatus} />
 
-          {canAct ? (
-            <>
-              <Separator />
+        {canAct ? (
+          <>
+            <Separator />
 
-              {reporting ? (
-                <ProblemForm
-                  busy={busy}
-                  autoFocus
-                  onCancel={() => setReporting(false)}
-                  onSubmit={(payload) => act('PROBLEM', payload)}
-                />
-              ) : completing ? (
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium">
-                      Anything worth recording?{' '}
-                      <span className="text-muted-foreground font-normal">(optional)</span>
-                    </p>
-                    <Textarea
-                      ref={completeRef}
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                      rows={2}
-                      maxLength={5000}
-                      disabled={busy}
-                      placeholder="Batch cleared, report filed…"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      className="min-h-12 flex-1 text-base"
-                      disabled={busy}
-                      onClick={() => act('COMPLETE')}
-                    >
-                      <Check className="size-5" />
-                      {subtask.requiresApproval ? 'Send for approval' : 'Mark completed'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="min-h-12"
-                      onClick={() => setCompleting(false)}
-                      disabled={busy}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
+            {reporting ? (
+              <ProblemForm
+                busy={busy}
+                autoFocus
+                onCancel={() => setReporting(false)}
+                onSubmit={(payload) => act('PROBLEM', payload)}
+              />
+            ) : completing ? (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium">
+                    Anything worth recording?{' '}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </p>
+                  <Textarea
+                    ref={completeRef}
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    rows={2}
+                    maxLength={5000}
+                    disabled={busy}
+                    placeholder="Batch cleared, report filed…"
+                  />
                 </div>
-              ) : (
-                /* The three large primary buttons of SDD 7.2, 48px tall. */
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="flex gap-2">
                   <Button
-                    variant="outline"
-                    className="min-h-12 text-base"
-                    disabled={busy || blocked || subtask.status !== 'PENDING'}
-                    title={
-                      blocked
-                        ? `Waiting for ${subtask.dependsOn?.title ?? 'another task'} to be finished.`
-                        : undefined
-                    }
-                    onClick={() => act('START')}
-                  >
-                    <Play className="size-5" />
-                    Start work
-                  </Button>
-
-                  <Button
-                    className="min-h-12 text-base"
-                    disabled={busy || blocked}
-                    title={blocked ? 'You can finish this once the task above is done.' : undefined}
-                    onClick={() => setCompleting(true)}
+                    className="min-h-12 flex-1 text-base"
+                    disabled={busy}
+                    onClick={() => act('COMPLETE')}
                   >
                     <Check className="size-5" />
-                    Mark completed
+                    {subtask.requiresApproval ? 'Send for approval' : 'Mark completed'}
                   </Button>
-
                   <Button
-                    variant="outline"
-                    className="min-h-12 text-base"
-                    disabled={
-                      busy || blocked || !permissions.raiseProblem || subtask.status === 'PROBLEM'
-                    }
-                    title={
-                      blocked
-                        ? 'Report a problem once the work is actually yours to do.'
-                        : undefined
-                    }
-                    onClick={() => setReporting(true)}
+                    variant="ghost"
+                    className="min-h-12"
+                    onClick={() => setCompleting(false)}
+                    disabled={busy}
                   >
-                    <TriangleAlert className="size-5" />
-                    Report problem
+                    Cancel
                   </Button>
                 </div>
-              )}
-            </>
-          ) : null}
+              </div>
+            ) : (
+              /* The three large primary buttons of SDD 7.2, 48px tall. */
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Button
+                  variant="outline"
+                  className="min-h-12 text-base"
+                  disabled={busy || blocked || subtask.status !== 'PENDING'}
+                  title={
+                    blocked
+                      ? `Waiting for ${subtask.dependsOn?.title ?? 'another task'} to be finished.`
+                      : undefined
+                  }
+                  onClick={() => act('START')}
+                >
+                  <Play className="size-5" />
+                  Start work
+                </Button>
 
-          {blocked && permissions.updateStatus ? (
-            <p className="text-muted-foreground text-xs">
-              These stay unavailable until{' '}
-              {subtask.dependsOn ? `“${subtask.dependsOn.title}”` : 'the task above'} is finished.
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+                <Button
+                  className="min-h-12 text-base"
+                  disabled={busy || blocked}
+                  title={blocked ? 'You can finish this once the task above is done.' : undefined}
+                  onClick={() => setCompleting(true)}
+                >
+                  <Check className="size-5" />
+                  Mark completed
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="min-h-12 text-base"
+                  disabled={
+                    busy || blocked || !permissions.raiseProblem || subtask.status === 'PROBLEM'
+                  }
+                  title={
+                    blocked ? 'Report a problem once the work is actually yours to do.' : undefined
+                  }
+                  onClick={() => setReporting(true)}
+                >
+                  <TriangleAlert className="size-5" />
+                  Report problem
+                </Button>
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {blocked && permissions.updateStatus ? (
+          <p className="text-muted-foreground text-xs">
+            These stay unavailable until{' '}
+            {subtask.dependsOn ? `“${subtask.dependsOn.title}”` : 'the task above'} is finished.
+          </p>
+        ) : null}
+      </Panel>
 
       {permissions.requestExtension && subtask.deadline && !done && !cancelled ? (
         <ExtensionPanel
@@ -297,28 +298,24 @@ export function TaskDetail({
         />
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Comments and files</CardTitle>
-          <CardDescription>
-            Drawings, inspection reports and the back-and-forth on this task.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <AttachmentPanel
-            jobId={subtask.jobId}
-            subtaskId={subtask.id}
-            canUpload={permissions.attach}
-            canDelete={permissions.attach}
-          />
+      <Panel
+        title="Comments and files"
+        description="Drawings, inspection reports and the back-and-forth on this task."
+        bodyClassName="p-4 space-y-6"
+      >
+        <AttachmentPanel
+          jobId={subtask.jobId}
+          subtaskId={subtask.id}
+          canUpload={permissions.attach}
+          canDelete={permissions.attach}
+        />
 
-          <CommentThread
-            subtaskId={subtask.id}
-            currentUserId={currentUserId}
-            canComment={permissions.comment}
-          />
-        </CardContent>
-      </Card>
+        <CommentThread
+          subtaskId={subtask.id}
+          currentUserId={currentUserId}
+          canComment={permissions.comment}
+        />
+      </Panel>
     </div>
   );
 }

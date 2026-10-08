@@ -8,6 +8,7 @@ import { CommentThread } from '@/components/collaboration/comment-thread';
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
 import { ReminderLeadField } from '@/components/shared/reminder-lead-field';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -125,6 +126,8 @@ export function SubtaskDrawer({
           <SheetTitle className="pr-8">{subtask.title}</SheetTitle>
           <SheetDescription className="flex flex-wrap items-center gap-2">
             <SubtaskStatusBadge status={subtask.status} />
+            {/* Overdue rides beside the state rather than replacing it. */}
+            {subtask.isOverdue ? <Badge variant="late">Overdue</Badge> : null}
             <span>{subtask.department.name}</span>
             <span>· {subtask.assignee.name}</span>
           </SheetDescription>
@@ -219,7 +222,7 @@ export function SubtaskDrawer({
               }
             >
               <div className="space-y-1.5">
-                <Label htmlFor="subtask-new-deadline" className="text-xs">
+                <Label htmlFor="subtask-new-deadline" className="field-label">
                   New deadline (IST)
                 </Label>
                 <IstDateTimePicker
@@ -267,7 +270,7 @@ export function SubtaskDrawer({
               }
             >
               <div className="space-y-1.5">
-                <Label className="text-xs">New owner</Label>
+                <Label className="field-label">New owner</Label>
                 <Select value={newAssignee} onValueChange={setNewAssignee}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose somebody" />

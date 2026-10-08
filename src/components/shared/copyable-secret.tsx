@@ -39,7 +39,7 @@ export function CopyableSecret({ value }: { value: string }) {
         onClick={copy}
         aria-label={copied ? 'Copied' : 'Copy to clipboard'}
       >
-        {copied ? <Check className="text-state-complete size-4" /> : <Copy className="size-4" />}
+        {copied ? <Check className="text-ok size-4" /> : <Copy className="size-4" />}
       </Button>
     </div>
   );

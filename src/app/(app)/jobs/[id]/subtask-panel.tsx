@@ -3,7 +3,8 @@
 import { ListTodo } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Panel } from '@/components/shared/panel';
+import { EmptyState, ErrorState, ListSkeleton } from '@/components/shared/states';
 import { ApiError } from '@/lib/api/client';
 import { fetchJobSubtasks, type SubtaskDto } from '@/lib/api/subtasks-client';
 import { fetchUsers, type UserRow } from '@/lib/api/users-client';
@@ -30,7 +31,7 @@ export function SubtaskPanel({
   currentUserId: string;
   onJobChanged: () => void;
 }) {
-  const [subtasks, setSubtasks] = useState<SubtaskDto[]>([]);
+  const [subtasks, setSubtasks] = useState<SubtaskDto[] | null>(null);
   const [candidates, setCandidates] = useState<UserRow[]>([]);
   const [selected, setSelected] = useState<SubtaskDto | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -38,6 +39,7 @@ export function SubtaskPanel({
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setError(null);
     try {
       const { data } = await fetchJobSubtasks(jobId);
       setSubtasks(data);
@@ -60,25 +62,34 @@ export function SubtaskPanel({
   }, [canManage]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <ListTodo className="size-4" />
-          Subtask timeline
-        </CardTitle>
-        <CardDescription>
-          One band per department in shop-flow order. Click a band for its history and actions.
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        {notice ? <p className="text-state-complete text-sm">{notice}</p> : null}
-        {error ? (
-          <p className="text-destructive text-sm" role="alert">
-            {error}
-          </p>
-        ) : null}
-
+    <Panel
+      title={
+        <span className="flex items-center gap-2">
+          <ListTodo className="size-4" aria-hidden />
+          Department timeline
+        </span>
+      }
+      id="subtask-timeline"
+      description="One step per department, in shop-flow order. Open a step for its history and actions."
+      action={
+        notice ? (
+          <span className="text-ok text-xs font-medium" role="status">
+            {notice}
+          </span>
+        ) : null
+      }
+    >
+      {error ? (
+        <ErrorState message={error} onRetry={() => void load()} />
+      ) : subtasks === null ? (
+        <ListSkeleton rows={4} />
+      ) : subtasks.length === 0 ? (
+        <EmptyState
+          icon={ListTodo}
+          title="No steps planned yet"
+          description="A job needs at least one department subtask before it can be published — plan them from the job wizard."
+        />
+      ) : (
         <SubtaskTimeline
           subtasks={subtasks}
           selectedId={selected?.id}
@@ -87,7 +98,7 @@ export function SubtaskPanel({
             setDrawerOpen(true);
           }}
         />
-      </CardContent>
+      )}
 
       {canManage ? (
         <SubtaskDrawer
@@ -105,6 +116,6 @@ export function SubtaskPanel({
           }}
         />
       ) : null}
-    </Card>
+    </Panel>
   );
 }

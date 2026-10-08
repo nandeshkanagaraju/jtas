@@ -152,9 +152,9 @@ export function HolidayCalendar({
 
   return (
     <div className="space-y-4">
-      <section className="bg-card rounded-lg border">
+      <section className="border-border bg-card rounded-lg border">
         <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">
+          <h2 className="section-title">
             {MONTHS[month]} {year}
           </h2>
           <div className="flex gap-1">
@@ -191,7 +191,7 @@ export function HolidayCalendar({
                   className={cn(
                     'aspect-square rounded-md border p-1 text-left text-xs transition-colors',
                     holiday
-                      ? 'border-state-problem/40 bg-state-problem/10'
+                      ? 'border-risk-edge bg-risk-soft'
                       : 'hover:bg-accent/50 border-transparent',
                     selected && 'ring-ring ring-2',
                     !canManage && 'cursor-default',
@@ -200,7 +200,7 @@ export function HolidayCalendar({
                 >
                   <span className="tabular font-medium">{day}</span>
                   {holiday ? (
-                    <span className="text-state-problem mt-0.5 line-clamp-2 block text-[10px] leading-tight">
+                    <span className="text-risk mt-0.5 line-clamp-2 block text-[10px] leading-tight">
                       {holiday.name}
                     </span>
                   ) : null}
@@ -244,9 +244,9 @@ export function HolidayCalendar({
         ) : null}
       </section>
 
-      <section className="rounded-lg border">
-        <header className="border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">
+      <section className="border-border bg-card rounded-lg border">
+        <header className="border-border border-b px-4 py-3">
+          <h2 className="section-title">
             {MONTHS[month]} holidays ({inMonth.length})
           </h2>
         </header>
@@ -257,16 +257,16 @@ export function HolidayCalendar({
             {canManage ? ' Click a day above to add one.' : ''}
           </p>
         ) : (
-          <ul className="divide-y">
+          <ul className="divide-border divide-y">
             {inMonth.map((row) => (
               <li key={row.id} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="tabular text-sm font-medium">{row.date}</span>
+                <span className="code text-sm font-medium">{row.date}</span>
                 <span className="text-sm">{row.name}</span>
                 {canManage ? (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-muted-foreground hover:text-state-overdue ml-auto"
+                    className="text-muted-foreground hover:text-late ml-auto"
                     onClick={() => remove(row)}
                     disabled={busy}
                     aria-label={`Remove ${row.name}`}
@@ -281,12 +281,12 @@ export function HolidayCalendar({
       </section>
 
       {canManage ? (
-        <section className="rounded-lg border">
-          <header className="border-b px-4 py-3">
-            <h2 className="text-sm font-semibold">Import the annual list</h2>
+        <section className="border-border bg-card rounded-lg border">
+          <header className="border-border border-b px-4 py-3">
+            <h2 className="section-title">Import the annual list</h2>
             <p className="text-muted-foreground mt-0.5 text-xs">
-              One holiday per line, <code className="tabular">2027-01-26,Republic Day</code>. A
-              header row and anything after a <code>#</code> are ignored, and a date already in the
+              One holiday per line, <code className="code">2027-01-26,Republic Day</code>. A header
+              row and anything after a <code>#</code> are ignored, and a date already in the
               calendar is skipped rather than duplicated.
             </p>
           </header>
@@ -295,7 +295,7 @@ export function HolidayCalendar({
             <Textarea
               value={csv}
               rows={6}
-              className="tabular text-sm"
+              className="code text-sm"
               placeholder={
                 '2027-01-26,Republic Day\n2027-08-15,Independence Day\n2027-11-05,Diwali'
               }

@@ -74,7 +74,7 @@ export function SummaryStrip({ kpis }: { kpis: KpiCounts }) {
           <p className="mt-2 flex items-baseline gap-2">
             <span
               className={cn(
-                'font-display text-[1.75rem] leading-none font-semibold tabular-nums',
+                'metric',
                 cell.tone && cell.value > 0 ? textClass(cell.tone) : 'text-foreground',
               )}
             >

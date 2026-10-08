@@ -80,9 +80,9 @@ export function LoginForm({ next }: { next?: string }) {
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <div className="bg-card rounded-lg border p-6 shadow-sm">
+    <div className="bg-card border-border rounded-lg border p-6">
       <div className="mb-6 space-y-1">
-        <h1 className="text-lg font-semibold">Sign in</h1>
+        <h1 className="font-display text-lg font-semibold tracking-[-0.01em]">Sign in</h1>
         <p className="text-muted-foreground text-sm">
           Use the work email address your account was created with.
         </p>
@@ -174,10 +174,9 @@ export function LoginForm({ next }: { next?: string }) {
         </form>
       </Form>
 
-      <p className="text-muted-foreground mt-6 text-center text-xs">
-        Accounts are created by the Managing Director or the administrator.
-        <br />
-        If you cannot sign in, ask them to reset your password.
+      <p className="text-muted-foreground border-border mt-6 border-t pt-4 text-center text-xs">
+        Accounts are created by the Managing Director or the administrator. If you cannot sign in,
+        ask them to reset your password.
       </p>
     </div>
   );

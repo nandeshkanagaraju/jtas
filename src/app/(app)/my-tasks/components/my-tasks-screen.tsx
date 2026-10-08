@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { PageHeader } from '@/components/shared/page-header';
 import { ApiError } from '@/lib/api/client';
 import { changeSubtaskStatusRequest } from '@/lib/api/subtasks-client';
 import { fetchMyTasks, type MyTaskDto, type MyTasksDto } from '@/lib/api/my-tasks-client';
@@ -130,11 +131,12 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <header>
-        <p className="eyebrow">{today}</p>
-        <h1 className="font-display mt-1.5 text-2xl font-semibold tracking-[-0.02em]">My tasks</h1>
-        <p className="text-muted-foreground mt-1 text-base">{standing(data.summary)}</p>
-      </header>
+      <PageHeader
+        eyebrow={today}
+        title="My tasks"
+        lead={standing(data.summary)}
+        density="comfortable"
+      />
 
       {/*
         Overdue and due today are open; everything else is a count until it is

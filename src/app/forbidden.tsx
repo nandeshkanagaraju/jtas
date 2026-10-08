@@ -9,12 +9,10 @@ import { Button } from '@/components/ui/button';
  */
 export default function Forbidden() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
+    <main className="bg-background flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
       <div className="space-y-2">
-        <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-          Error 403
-        </p>
-        <h1 className="text-2xl font-semibold">You do not have access to this page</h1>
+        <p className="eyebrow">Error 403</p>
+        <h1 className="page-title">You do not have access to this page</h1>
         <p className="text-muted-foreground mx-auto max-w-md text-sm">
           Your account does not have permission for this area. If you think that is wrong, ask the
           Managing Director or the system administrator.

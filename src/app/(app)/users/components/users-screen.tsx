@@ -4,6 +4,9 @@ import type { Role } from '@prisma/client';
 import { UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { PageHeader } from '@/components/shared/page-header';
+import { ErrorState } from '@/components/shared/states';
+import { Toolbar } from '@/components/shared/toolbar';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api/client';
 import {
@@ -140,38 +143,33 @@ export function UsersScreen({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-          <p className="text-muted-foreground text-sm">
-            {total} {total === 1 ? 'account' : 'accounts'}. Accounts are never deleted — a departed
-            colleague stays visible on the jobs they worked on.
-          </p>
-        </div>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Accounts and access"
+        title="Users"
+        lead={`${total} ${total === 1 ? 'account' : 'accounts'}. Accounts are never deleted — a departed colleague stays visible on the jobs they worked on.`}
+        actions={
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <UserPlus className="size-4" />
+            Add user
+          </Button>
+        }
+      >
+        <Toolbar label="Filter users">
+          <UsersFilters
+            filters={filters}
+            departments={departments}
+            onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+          />
+        </Toolbar>
+      </PageHeader>
 
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          <UserPlus className="size-4" />
-          Add user
-        </Button>
-      </div>
-
-      <UsersFilters
-        filters={filters}
-        departments={departments}
-        onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-      />
-
-      {loadError ? (
-        <p className="text-destructive text-sm" role="alert">
-          {loadError}
-        </p>
-      ) : null}
+      {loadError ? <ErrorState message={loadError} onRetry={() => void load()} /> : null}
 
       <UsersTable
         rows={rows}

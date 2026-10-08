@@ -13,9 +13,9 @@ import { formatIST } from '@/lib/utils/time';
  * rather than a status that has already moved on.
  */
 const SEVERITY_TONE: Record<string, string> = {
-  BLOCKER: 'bg-state-overdue/10 text-state-overdue border-state-overdue/30',
-  HIGH: 'bg-state-overdue/10 text-state-overdue border-state-overdue/30',
-  MEDIUM: 'bg-state-problem/10 text-state-problem border-state-problem/30',
+  BLOCKER: 'bg-late-soft text-late border-late-edge',
+  HIGH: 'bg-late-soft text-late border-late-edge',
+  MEDIUM: 'bg-risk-soft text-risk border-risk-edge',
   LOW: 'bg-muted text-muted-foreground',
 };
 
@@ -112,7 +112,7 @@ export function JobReportView({ report }: { report: JobReport }) {
                   <td
                     className={cn(
                       'tabular px-4 py-2.5 text-right',
-                      subtask.delayHours > 0 && 'text-state-overdue font-semibold',
+                      subtask.delayHours > 0 && 'text-late font-semibold',
                     )}
                   >
                     {subtask.actualCompletion ? formatElapsed(subtask.delayHours * 60) : '—'}
@@ -163,7 +163,7 @@ export function JobReportView({ report }: { report: JobReport }) {
                     {problem.resolution}
                   </p>
                 ) : (
-                  <p className="text-state-problem mt-1 text-xs">Still open.</p>
+                  <p className="text-risk mt-1 text-xs">Still open.</p>
                 )}
               </li>
             ))}

@@ -12,6 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 
+import { Panel } from '@/components/shared/panel';
 import type { DepartmentScorecard } from '@/lib/services/analytics';
 
 /**
@@ -21,9 +22,9 @@ import type { DepartmentScorecard } from '@/lib/services/analytics';
  * zero bar — an empty bar next to a genuinely failing one reads as the same
  * verdict, and it is not.
  */
-const GOOD = 'var(--state-complete)';
-const FAIR = 'var(--state-progress)';
-const POOR = 'var(--state-overdue)';
+const GOOD = 'var(--ok)';
+const FAIR = 'var(--info)';
+const POOR = 'var(--late)';
 
 function tone(percent: number): string {
   if (percent >= 90) return GOOD;
@@ -44,18 +45,16 @@ export function ScorecardChart({ rows }: { rows: DepartmentScorecard[] }) {
   const silent = rows.filter((row) => row.onTimePercent === null);
 
   return (
-    <section className="bg-card rounded-lg border" aria-labelledby="scorecard-chart">
-      <header className="border-b px-4 py-3">
-        <h2 id="scorecard-chart" className="text-sm font-semibold">
-          On-time completion by department
-        </h2>
-        {silent.length > 0 ? (
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            {silent.map((row) => row.name).join(', ')} completed nothing in this range.
-          </p>
-        ) : null}
-      </header>
-
+    <Panel
+      id="scorecard-chart"
+      title="On-time completion by department"
+      description={
+        silent.length > 0
+          ? `${silent.map((row) => row.name).join(', ')} completed nothing in this range.`
+          : undefined
+      }
+      flush
+    >
       <div className="p-2 sm:p-4">
         {data.length === 0 ? (
           <p className="text-muted-foreground py-10 text-center text-sm">
@@ -123,6 +122,6 @@ export function ScorecardChart({ rows }: { rows: DepartmentScorecard[] }) {
           </div>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }

@@ -6,11 +6,12 @@ import {
   CalendarClock,
   CheckCircle2,
   History,
-  Loader2,
   MessageSquare,
   Paperclip,
   UserCog,
 } from 'lucide-react';
+
+import { EmptyState, ErrorState, ListSkeleton } from '@/components/shared/states';
 
 import { openAttachment } from '@/components/collaboration/attachment-panel';
 import { CommentBody } from '@/components/collaboration/comment-body';
@@ -33,10 +34,10 @@ const ICONS: Record<ActivityItem['kind'], typeof History> = {
 };
 
 const TONES: Record<ActivityItem['kind'], string> = {
-  comment: 'text-state-progress',
-  status: 'text-state-complete',
-  deadline: 'text-state-problem',
-  problem: 'text-state-overdue',
+  comment: 'text-info',
+  status: 'text-ok',
+  deadline: 'text-risk',
+  problem: 'text-late',
   attachment: 'text-muted-foreground',
   assignment: 'text-muted-foreground',
   job: 'text-muted-foreground',
@@ -88,9 +89,11 @@ export function ActivityFeed({
 }) {
   const [items, setItems] = useState<ActivityItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let live = true;
+    setFailed(false);
 
     apiFetch<{ data: ActivityItem[] }>(`/api/jobs/${jobId}/activity?limit=60`)
       .then((result) => live && setItems(result.data))
@@ -99,23 +102,30 @@ export function ActivityFeed({
     return () => {
       live = false;
     };
-  }, [jobId]);
+  }, [jobId, attempt]);
 
   if (failed) {
-    return <p className="text-muted-foreground text-sm">Could not load the activity.</p>;
-  }
-
-  if (items === null) {
     return (
-      <p className="text-muted-foreground flex items-center gap-2 text-sm">
-        <Loader2 className="size-3.5 animate-spin" />
-        Loading…
-      </p>
+      <ErrorState
+        title="Could not load the activity"
+        message="The job itself is fine — only its history failed to arrive."
+        onRetry={() => setAttempt((value) => value + 1)}
+      />
     );
   }
 
+  if (items === null) {
+    return <ListSkeleton rows={3} />;
+  }
+
   if (items.length === 0) {
-    return <p className="text-muted-foreground text-sm">Nothing has happened on this job yet.</p>;
+    return (
+      <EmptyState
+        icon={History}
+        title="Nothing has happened yet"
+        description="Comments, status changes, deadline changes and files will appear here as the job moves."
+      />
+    );
   }
 
   return (
@@ -131,7 +141,7 @@ export function ActivityFeed({
             <div className="flex flex-col items-center">
               <span
                 className={cn(
-                  'bg-background flex size-7 shrink-0 items-center justify-center rounded-full border',
+                  'bg-card flex size-7 shrink-0 items-center justify-center rounded-full border',
                   TONES[item.kind],
                 )}
               >
@@ -144,7 +154,7 @@ export function ActivityFeed({
               <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                 <span className="text-sm font-medium">{item.actor?.name ?? 'System'}</span>
                 <span className="text-muted-foreground text-sm">{phrase(item.action)}</span>
-                <span className="text-muted-foreground tabular text-xs">
+                <span className="code text-muted-foreground text-xs">
                   {formatIST(new Date(item.at))}
                 </span>
               </p>
@@ -174,9 +184,7 @@ export function ActivityFeed({
               ) : null}
 
               {item.kind === 'problem' && item.body ? (
-                <p className="border-state-overdue/40 mt-1 border-l-2 pl-2.5 text-sm">
-                  {item.body}
-                </p>
+                <p className="border-late-edge mt-1 border-l-2 pl-2.5 text-sm">{item.body}</p>
               ) : null}
 
               {item.kind === 'attachment' && item.body ? (

@@ -302,7 +302,7 @@ export function SubtaskBuilder({
               ) : null}
 
               {late ? (
-                <p className="text-state-problem flex items-center gap-1 text-xs">
+                <p className="text-risk flex items-center gap-1 text-xs">
                   <TriangleAlert className="size-3" />
                   This is after the job deadline. You will be asked to confirm why.
                 </p>

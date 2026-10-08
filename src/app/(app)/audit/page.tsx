@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { forbidden } from 'next/navigation';
 
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
 import { auditFacets, jobAuditTrail, listAudit } from '@/lib/services/audit-query';
 import { prisma } from '@/lib/db/prisma';
+
+import { PageHeader } from '@/components/shared/page-header';
 
 import { AuditViewer } from './audit-viewer';
 
@@ -70,13 +71,11 @@ export default async function AuditPage({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
-        <p className="text-muted-foreground mt-0.5 text-sm">
-          Every state-changing action, with who did it and what changed. Append-only — nothing here
-          can be edited or removed, which is what makes it evidence.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Append-only record"
+        title="Audit log"
+        lead="Every state-changing action, with who did it and what changed. Nothing here can be edited or removed, which is what makes it evidence."
+      />
 
       <AuditViewer initial={page} facets={facets} filters={filters} />
     </div>
@@ -94,25 +93,16 @@ function JobTrace({
 }) {
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {job ? `${job.jobCode} — full trace` : 'Job trace'}
-          </h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
-            {job
-              ? `${job.title} · ${job.status} · ${trail.length} recorded actions, oldest first.`
-              : 'That job does not exist.'}
-          </p>
-        </div>
-
-        <Link
-          href="/audit"
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
-        >
-          Back to the whole log
-        </Link>
-      </div>
+      <PageHeader
+        back={{ href: '/audit', label: 'The whole log' }}
+        eyebrow={job ? job.jobCode : 'Job trace'}
+        title={job ? `${job.title} — full trace` : 'Job trace'}
+        lead={
+          job
+            ? `${trail.length} recorded actions on this job and everything under it, oldest first.`
+            : 'That job does not exist.'
+        }
+      />
 
       <AuditViewer
         initial={{ data: trail, nextCursor: null, total: trail.length }}

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ListTodo } from 'lucide-react';
+import { ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { JobForm } from '@/app/(app)/jobs/components/job-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Panel } from '@/components/shared/panel';
 import { ApiError } from '@/lib/api/client';
 import {
   cancelJobRequest,
@@ -79,13 +79,6 @@ export function JobDetail({
 
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/jobs">
-          <ArrowLeft className="size-4" />
-          All jobs
-        </Link>
-      </Button>
-
       {error ? (
         <Alert variant="destructive" role="alert">
           <AlertTitle>That did not work</AlertTitle>
@@ -125,36 +118,33 @@ export function JobDetail({
       ) : null}
 
       {editing ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Edit job</CardTitle>
-            <CardDescription>
-              {isDraft
-                ? 'Everything can still be changed while the job is a draft.'
-                : 'The job is published, so the part number, drawing, quantity and overall deadline are fixed.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <JobForm
-              submitLabel="Save changes"
-              onSubmit={handleEdit}
-              onCancel={() => setEditing(false)}
-              // Mirrors the server rule so the restriction is visible before the
-              // MD types, not after they submit.
-              frozenFields={isDraft ? [] : FROZEN_AFTER_PUBLISH}
-              defaultValues={{
-                title: job.title,
-                customerName: job.customerName ?? undefined,
-                partNumber: job.partNumber ?? undefined,
-                drawingNumber: job.drawingNumber ?? undefined,
-                quantity: job.quantity ?? undefined,
-                priority: job.priority,
-                description: job.description ?? undefined,
-                overallDeadline: toIstFormValue(job.overallDeadline),
-              }}
-            />
-          </CardContent>
-        </Card>
+        <Panel
+          title="Edit job"
+          description={
+            isDraft
+              ? 'Everything can still be changed while the job is a draft.'
+              : 'The job is published, so the part number, drawing, quantity and overall deadline are fixed.'
+          }
+        >
+          <JobForm
+            submitLabel="Save changes"
+            onSubmit={handleEdit}
+            onCancel={() => setEditing(false)}
+            // Mirrors the server rule so the restriction is visible before the
+            // MD types, not after they submit.
+            frozenFields={isDraft ? [] : FROZEN_AFTER_PUBLISH}
+            defaultValues={{
+              title: job.title,
+              customerName: job.customerName ?? undefined,
+              partNumber: job.partNumber ?? undefined,
+              drawingNumber: job.drawingNumber ?? undefined,
+              quantity: job.quantity ?? undefined,
+              priority: job.priority,
+              description: job.description ?? undefined,
+              overallDeadline: toIstFormValue(job.overallDeadline),
+            }}
+          />
+        </Panel>
       ) : null}
 
       <SubtaskPanel
@@ -164,19 +154,20 @@ export function JobDetail({
         onJobChanged={() => router.refresh()}
       />
 
-      <Card>
-        <CardContent className="pt-6">
-          {/* The customer drawing and the PO belong to the job, not to any one
-              department's step (build spec M10.4). */}
-          <AttachmentPanel
-            jobId={job.id}
-            jobLevelOnly
-            title="Job files"
-            canUpload={permissions.edit}
-            canDelete={permissions.edit}
-          />
-        </CardContent>
-      </Card>
+      {/* The customer drawing and the PO belong to the job, not to any one
+          department's step (build spec M10.4). */}
+      <Panel
+        title="Job files"
+        description="The drawing, the purchase order, anything the whole job needs."
+      >
+        <AttachmentPanel
+          jobId={job.id}
+          jobLevelOnly
+          headless
+          canUpload={permissions.edit}
+          canDelete={permissions.edit}
+        />
+      </Panel>
 
       {/* Everyone on the job sees the story; only MD and ADMIN get the link
           to the forensic view (SDD 6.3). */}

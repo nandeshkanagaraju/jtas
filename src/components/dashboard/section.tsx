@@ -1,15 +1,13 @@
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-
-import { cn } from '@/lib/utils';
-import { textClass, type Tone } from '@/lib/ui/tone';
+import { Panel } from '@/components/shared/panel';
+import type { Tone } from '@/lib/ui/tone';
 
 /**
- * The one panel shape the dashboard uses.
+ * The dashboard's panel, which is now the app's panel.
  *
- * A heading bar with a count, a body, and an optional footer link to the full
- * list. Every block on the page is this, which is why the page reads as one
- * surface rather than as a pile of unrelated cards.
+ * This shape was invented here and then needed on Jobs, Problems, Settings and
+ * every other screen, so it moved to `components/shared/panel`. The two names
+ * stay because the dashboard reads better with them: a `Section` with a count,
+ * and the one line a list shows when it is `Empty`.
  */
 export function Section({
   id,
@@ -30,38 +28,17 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section
-      aria-labelledby={id}
-      className={cn('border-border bg-card flex flex-col rounded-lg border', className)}
+    <Panel
+      id={id}
+      title={title}
+      count={count}
+      countTone={countTone}
+      footer={footer}
+      className={className}
+      flush
     >
-      <div className="border-border flex h-11 shrink-0 items-center justify-between gap-3 border-b px-4">
-        <h2 id={id} className="font-display text-sm font-semibold">
-          {title}
-        </h2>
-        {count === undefined ? null : (
-          <span
-            className={cn(
-              'font-mono text-sm leading-none font-medium tabular-nums',
-              count > 0 ? textClass(countTone) : 'text-muted-foreground',
-            )}
-          >
-            {count}
-          </span>
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1">{children}</div>
-
-      {footer ? (
-        <Link
-          href={footer.href}
-          className="border-border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center gap-1.5 border-t px-4 py-2.5 text-xs font-medium transition-colors"
-        >
-          {footer.label}
-          <ArrowRight className="size-3.5" />
-        </Link>
-      ) : null}
-    </section>
+      {children}
+    </Panel>
   );
 }
 

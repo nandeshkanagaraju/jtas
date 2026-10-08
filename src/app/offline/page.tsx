@@ -14,11 +14,11 @@ export const metadata: Metadata = { title: 'Offline' };
  */
 export default function OfflinePage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
+    <main className="bg-background flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
       <Brand />
 
       <div className="space-y-2">
-        <h1 className="text-xl font-semibold">No connection</h1>
+        <h1 className="font-display text-xl font-semibold tracking-[-0.01em]">No connection</h1>
         <p className="text-muted-foreground mx-auto max-w-sm text-sm">
           JTAS needs a network to load your tasks, and it does not record updates offline — so
           nothing you tap while disconnected is lost or silently accepted.

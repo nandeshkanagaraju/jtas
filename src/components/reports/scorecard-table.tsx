@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 
+import { Panel } from '@/components/shared/panel';
 import { cn } from '@/lib/utils';
 import { formatElapsed } from '@/lib/utils/duration';
 import type { DepartmentScorecard } from '@/lib/services/analytics';
@@ -67,9 +68,9 @@ const COLUMNS: ColumnDef[] = [
 /** Colours the on-time figure. Null is not a failing grade. */
 function rateTone(percent: number | null): string {
   if (percent === null) return 'text-muted-foreground';
-  if (percent >= 90) return 'text-state-complete';
+  if (percent >= 90) return 'text-ok';
   if (percent >= 75) return 'text-foreground';
-  return 'text-state-overdue';
+  return 'text-late';
 }
 
 export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
@@ -105,95 +106,103 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
   }
 
   return (
-    <div className="bg-card overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[46rem] text-sm">
-        <thead>
-          <tr className="text-muted-foreground border-b text-xs">
-            {COLUMNS.map((column) => {
-              const active = sort.key === column.key;
-              const Icon = !active ? ChevronsUpDown : sort.desc ? ArrowDown : ArrowUp;
+    <Panel
+      title="Department scorecards"
+      description="On-time rate first. A department that completed nothing in the range shows a dash rather than a zero."
+      flush
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[46rem] text-sm">
+          <thead>
+            <tr className="text-muted-foreground border-rule border-b text-xs">
+              {COLUMNS.map((column) => {
+                const active = sort.key === column.key;
+                const Icon = !active ? ChevronsUpDown : sort.desc ? ArrowDown : ArrowUp;
 
-              return (
-                <th
-                  key={column.key}
-                  scope="col"
-                  className={cn(
-                    'px-3 py-2 font-medium',
-                    column.numeric ? 'text-right' : 'text-left',
-                  )}
-                  title={column.help}
-                  aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : 'none'}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggle(column.key)}
+                return (
+                  <th
+                    key={column.key}
+                    scope="col"
                     className={cn(
-                      'hover:text-foreground inline-flex items-center gap-1 transition-colors',
-                      column.numeric && 'flex-row-reverse',
-                      active && 'text-foreground font-semibold',
+                      'px-3 py-2 font-medium',
+                      column.numeric ? 'text-right' : 'text-left',
                     )}
+                    title={column.help}
+                    aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : 'none'}
                   >
-                    <Icon className="size-3" />
-                    <span className="hidden sm:inline">{column.label}</span>
-                    <span className="sm:hidden">{column.short ?? column.label}</span>
-                  </button>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
+                    <button
+                      type="button"
+                      onClick={() => toggle(column.key)}
+                      className={cn(
+                        'hover:text-foreground inline-flex items-center gap-1 transition-colors',
+                        column.numeric && 'flex-row-reverse',
+                        active && 'text-foreground font-semibold',
+                      )}
+                    >
+                      <Icon className="size-3" />
+                      <span className="hidden sm:inline">{column.label}</span>
+                      <span className="sm:hidden">{column.short ?? column.label}</span>
+                    </button>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
 
-        <tbody className="divide-y">
-          {sorted.map((row) => (
-            <tr key={row.departmentId} className="hover:bg-accent/40 transition-colors">
-              <td className="px-3 py-2.5">
-                <Link href={`/reports?department=${row.departmentId}`} className="hover:underline">
-                  <span className="font-medium">{row.name}</span>
-                </Link>
-              </td>
-              <td
-                className={cn(
-                  'tabular px-3 py-2.5 text-right font-semibold',
-                  rateTone(row.onTimePercent),
-                )}
-              >
-                {row.onTimePercent === null ? '—' : `${row.onTimePercent}%`}
-              </td>
-              <td className="tabular px-3 py-2.5 text-right">
-                {row.subtasksCompleted === 0 ? '—' : formatElapsed(row.averageDelayHours * 60)}
-              </td>
-              <td className="tabular px-3 py-2.5 text-right">{row.subtasksCompleted}</td>
-              <td className="tabular px-3 py-2.5 text-right">{row.currentOpen}</td>
-              <td className="tabular px-3 py-2.5 text-right">{row.problemsRaised}</td>
-              <td
-                className={cn(
-                  'tabular px-3 py-2.5 text-right',
-                  row.problemsWhereThisDepartmentWasTheRootCause > 0 &&
-                    'text-state-problem font-medium',
-                )}
-              >
-                {row.problemsWhereThisDepartmentWasTheRootCause}
-                {/* The denominator, so the two columns read as a subset rather
+          <tbody className="divide-y">
+            {sorted.map((row) => (
+              <tr key={row.departmentId} className="hover:bg-accent/40 transition-colors">
+                <td className="py-2.5 pr-3 pl-4">
+                  <Link
+                    href={`/reports?department=${row.departmentId}`}
+                    className="hover:underline"
+                  >
+                    <span className="font-medium">{row.name}</span>
+                  </Link>
+                </td>
+                <td
+                  className={cn(
+                    'code px-3 py-2.5 text-right font-semibold',
+                    rateTone(row.onTimePercent),
+                  )}
+                >
+                  {row.onTimePercent === null ? '—' : `${row.onTimePercent}%`}
+                </td>
+                <td className="code px-3 py-2.5 text-right">
+                  {row.subtasksCompleted === 0 ? '—' : formatElapsed(row.averageDelayHours * 60)}
+                </td>
+                <td className="code px-3 py-2.5 text-right">{row.subtasksCompleted}</td>
+                <td className="code px-3 py-2.5 text-right">{row.currentOpen}</td>
+                <td className="code px-3 py-2.5 text-right">{row.problemsRaised}</td>
+                <td
+                  className={cn(
+                    'code px-3 py-2.5 text-right',
+                    row.problemsWhereThisDepartmentWasTheRootCause > 0 && 'text-risk font-medium',
+                  )}
+                >
+                  {row.problemsWhereThisDepartmentWasTheRootCause}
+                  {/* The denominator, so the two columns read as a subset rather
                     than two unrelated counts. Raising problems is not a fault;
                     blocking the next bench is the number that matters. */}
-                {row.problemsRaised > 0 ? (
-                  <span className="text-muted-foreground ml-1 text-xs font-normal">
-                    /{row.problemsRaised}
-                  </span>
-                ) : null}
-              </td>
-              <td
-                className={cn(
-                  'tabular px-3 py-2.5 text-right',
-                  row.extensionCount > 0 && 'text-muted-foreground',
-                )}
-              >
-                {row.extensionCount}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  {row.problemsRaised > 0 ? (
+                    <span className="text-muted-foreground ml-1 text-xs font-normal">
+                      /{row.problemsRaised}
+                    </span>
+                  ) : null}
+                </td>
+                <td
+                  className={cn(
+                    'code px-3 py-2.5 text-right',
+                    row.extensionCount > 0 && 'text-muted-foreground',
+                  )}
+                >
+                  {row.extensionCount}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
   );
 }

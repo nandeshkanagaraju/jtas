@@ -72,13 +72,16 @@ export function ResolutionForm({
   return (
     <div className="space-y-4">
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-sm font-medium">What are you doing about it?</legend>
+        <legend className="section-title mb-2">What are you doing about it?</legend>
         {ACTIONS.map((option) => (
           <label
             key={option.value}
             className={cn(
-              'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors',
-              draft.action === option.value ? 'border-primary bg-accent/40' : 'hover:bg-accent/30',
+              'border-border flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors',
+              'has-[:focus-visible]:outline-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2',
+              draft.action === option.value
+                ? 'border-primary bg-accent/40'
+                : 'bg-card hover:bg-accent/30',
             )}
           >
             <input
@@ -99,7 +102,7 @@ export function ResolutionForm({
 
       {draft.action === 'EXTEND' ? (
         <div className="space-y-1.5">
-          <Label htmlFor="resolution-new-deadline" className="text-xs">
+          <Label htmlFor="resolution-new-deadline" className="field-label">
             New deadline (currently {currentDeadline})
           </Label>
           <IstDateTimePicker
@@ -113,7 +116,7 @@ export function ResolutionForm({
 
       {draft.action === 'REASSIGN' ? (
         <div className="space-y-1.5">
-          <Label className="text-xs">Who takes it over</Label>
+          <Label className="field-label">Who takes it over</Label>
           <Select
             value={draft.assigneeId}
             onValueChange={(value) => set({ assigneeId: value })}
@@ -135,12 +138,12 @@ export function ResolutionForm({
       ) : null}
 
       {draft.action === 'ESCALATE_TO_DEPARTMENT' ? (
-        <div className="space-y-3 rounded-lg border p-3">
-          <p className="text-sm font-medium">The task for the other department</p>
+        <div className="border-border bg-muted/40 space-y-3 rounded-lg border p-3">
+          <p className="section-title">The task for the other department</p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Department</Label>
+              <Label className="field-label">Department</Label>
               <Select
                 value={escalationDept || undefined}
                 onValueChange={(value) => {
@@ -175,7 +178,7 @@ export function ResolutionForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Who does it</Label>
+              <Label className="field-label">Who does it</Label>
               <Select
                 value={draft.escalation?.assigneeId || undefined}
                 onValueChange={(value) =>
@@ -200,7 +203,7 @@ export function ResolutionForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">What they have to do</Label>
+            <Label className="field-label">What they have to do</Label>
             <Input
               value={draft.escalation?.title ?? ''}
               onChange={(event) =>
@@ -241,7 +244,7 @@ export function ResolutionForm({
       ) : null}
 
       <div className="space-y-1.5">
-        <Label className="text-xs">
+        <Label className="field-label">
           What you decided <span className="text-destructive">*</span>
         </Label>
         <Textarea

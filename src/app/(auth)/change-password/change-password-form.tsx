@@ -32,13 +32,7 @@ function landingPath(role: Role): string {
 
 const STRENGTH_LABELS = ['Too weak', 'Weak', 'Fair', 'Good', 'Strong'] as const;
 
-const STRENGTH_BAR_COLOURS = [
-  'bg-state-overdue',
-  'bg-state-overdue',
-  'bg-state-problem',
-  'bg-state-progress',
-  'bg-state-complete',
-] as const;
+const STRENGTH_BAR_COLOURS = ['bg-late', 'bg-late', 'bg-risk', 'bg-info', 'bg-ok'] as const;
 
 /** Live strength hint. Presentational only — the server is the gate. */
 function StrengthHint({ value }: { value: string }) {
@@ -68,7 +62,7 @@ function StrengthHint({ value }: { value: string }) {
           ))}
         </ul>
       ) : (
-        <p className="text-state-complete flex items-center gap-1 text-xs">
+        <p className="text-ok flex items-center gap-1 text-xs">
           <Check className="size-3" />
           Meets the password policy.
         </p>
@@ -122,9 +116,9 @@ export function ChangePasswordForm({
   }
 
   return (
-    <div className="bg-card rounded-lg border p-6 shadow-sm">
+    <div className="bg-card border-border rounded-lg border p-6">
       <div className="mb-6 space-y-1">
-        <h1 className="text-lg font-semibold">
+        <h1 className="font-display text-lg font-semibold tracking-[-0.01em]">
           {forced ? 'Set your password' : 'Change password'}
         </h1>
         <p className="text-muted-foreground text-sm">

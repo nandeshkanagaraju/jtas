@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import { CommentBody } from '@/components/collaboration/comment-body';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import type { MentionCandidate } from '@/lib/domain/mentions';
@@ -121,16 +122,26 @@ export function CommentThread({
 
   return (
     <section className="space-y-3" aria-labelledby="comments">
-      <h3 id="comments" className="flex items-center gap-2 text-sm font-semibold">
-        <MessageSquare className="size-4" />
-        Comments{comments ? ` (${comments.length})` : ''}
+      <h3 id="comments" className="section-title flex items-center gap-2">
+        <MessageSquare className="size-4" aria-hidden />
+        Comments
+        {comments ? (
+          <span className="text-muted-foreground font-mono">({comments.length})</span>
+        ) : null}
       </h3>
 
       {comments === null ? (
-        <p className="text-muted-foreground flex items-center gap-2 text-sm">
-          <Loader2 className="size-3.5 animate-spin" />
-          Loading…
-        </p>
+        <div aria-hidden className="space-y-3">
+          {[0, 1].map((row) => (
+            <div key={row} className="flex gap-2.5" style={{ opacity: 1 - row * 0.3 }}>
+              <Skeleton className="size-7 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-28" />
+                <Skeleton className="h-3.5 w-full max-w-sm" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : comments.length === 0 ? (
         <p className="text-muted-foreground text-sm">
           Nothing here yet. Ask a question, or record what you found.
@@ -149,7 +160,7 @@ export function CommentThread({
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-baseline gap-2">
                   <span className="text-sm font-medium">{comment.author?.name ?? 'Unknown'}</span>
-                  <span className="text-muted-foreground tabular text-xs">
+                  <span className="code text-muted-foreground text-xs">
                     {formatIST(new Date(comment.createdAt))}
                   </span>
                 </p>
@@ -189,7 +200,7 @@ export function CommentThread({
           />
 
           {suggestions.length > 0 ? (
-            <ul className="bg-popover absolute bottom-full z-10 mb-1 w-64 overflow-hidden rounded-md border shadow-md">
+            <ul className="bg-popover border-border shadow-pop absolute bottom-full z-10 mb-1 w-64 overflow-hidden rounded-md border">
               {suggestions.map((person) => (
                 <li key={person.id}>
                   <button
@@ -211,12 +222,7 @@ export function CommentThread({
               Post
             </Button>
 
-            <span
-              className={cn(
-                'text-muted-foreground text-xs',
-                remaining < 100 && 'text-state-problem',
-              )}
-            >
+            <span className={cn('text-muted-foreground text-xs', remaining < 100 && 'text-risk')}>
               {remaining < 200 ? `${remaining} characters left` : 'Ctrl+Enter to post'}
             </span>
           </div>

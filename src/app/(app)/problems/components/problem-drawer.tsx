@@ -25,6 +25,7 @@ import {
 } from '@/lib/api/problems-client';
 import type { UserRow } from '@/lib/api/users-client';
 import type { DepartmentSummary } from '@/lib/services/department-service';
+import { cn } from '@/lib/utils';
 import { formatIST } from '@/lib/utils/time';
 
 import { ProblemAge, SeverityBadge } from './problem-badges';
@@ -128,11 +129,11 @@ export function ProblemDrawer({
         <SheetHeader>
           <SheetTitle className="flex flex-wrap items-center gap-2 pr-8">
             <SeverityBadge severity={problem.severity} />
-            <span className="tabular text-sm">{problem.subtask.job.jobCode}</span>
+            <span className="code text-sm">{problem.subtask.job.jobCode}</span>
           </SheetTitle>
           <SheetDescription>
             {problem.subtask.department.name} · {problem.subtask.assignee.name} · raised{' '}
-            {formatIST(new Date(problem.createdAt))}
+            <span className="code">{formatIST(new Date(problem.createdAt))}</span>
           </SheetDescription>
         </SheetHeader>
 
@@ -155,29 +156,28 @@ export function ProblemDrawer({
 
           {/* The member's words, verbatim (SDD section 5.4). */}
           <div className="space-y-1.5">
-            <p className="text-muted-foreground text-xs">
-              What {problem.raisedBy?.name ?? 'the member'} reported
-            </p>
-            <p className="bg-muted/50 rounded-md border p-3 text-sm whitespace-pre-wrap">
+            <p className="field-label">What {problem.raisedBy?.name ?? 'the member'} reported</p>
+            {/* The member's words, verbatim and unedited (SDD section 5.4). */}
+            <blockquote className="border-border bg-muted/50 rounded-md border px-3 py-2.5 text-sm whitespace-pre-wrap">
               {problem.description}
-            </p>
+            </blockquote>
           </div>
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <dt className="text-muted-foreground text-xs">Task</dt>
+              <dt className="field-label">Task</dt>
               <dd className="font-medium">{problem.subtask.title}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">Current deadline</dt>
-              <dd className="tabular font-medium">
+              <dt className="field-label">Current deadline</dt>
+              <dd className="code font-medium">
                 {problem.subtask.deadline
                   ? formatIST(new Date(problem.subtask.deadline))
                   : 'No date yet'}
               </dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-muted-foreground text-xs">Job</dt>
+              <dt className="field-label">Job</dt>
               <dd>
                 <Link
                   href={`/jobs/${problem.subtask.job.id}`}
@@ -214,23 +214,33 @@ export function ProblemDrawer({
 
           <Separator />
 
-          <div className="flex gap-2">
-            <Button
-              variant={mode === 'resolve' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setMode('resolve')}
-              disabled={busy}
-            >
-              Resolve it
-            </Button>
-            <Button
-              variant={mode === 'reject' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setMode('reject')}
-              disabled={busy}
-            >
-              Not a problem
-            </Button>
+          {/*
+            Two toggle buttons rather than a radio group: they stay buttons for
+            anyone reading the page by role, and `aria-pressed` carries which
+            one is chosen.
+          */}
+          <div
+            role="group"
+            aria-label="What to do with this report"
+            className="border-border bg-muted inline-flex rounded-md border p-0.5"
+          >
+            {(['resolve', 'reject'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={mode === value}
+                disabled={busy}
+                onClick={() => setMode(value)}
+                className={cn(
+                  'rounded-[5px] px-3 py-1.5 text-sm font-medium transition-colors',
+                  mode === value
+                    ? 'bg-card text-foreground border-border border'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {value === 'resolve' ? 'Resolve it' : 'Not a problem'}
+              </button>
+            ))}
           </div>
 
           {mode === 'resolve' ? (
@@ -249,9 +259,10 @@ export function ProblemDrawer({
               />
 
               {overrideField ? (
-                <div className="border-destructive/40 space-y-1.5 rounded-lg border p-3">
-                  <Label className="text-xs">
-                    Confirm the exception <span className="text-destructive">*</span>
+                <div className="border-risk-edge bg-risk-soft space-y-1.5 rounded-lg border p-3">
+                  <Label className="text-risk text-xs font-medium">
+                    Confirm the exception <span aria-hidden>*</span>
+                    <span className="sr-only">(required)</span>
                   </Label>
                   <Textarea
                     value={overrideReason}

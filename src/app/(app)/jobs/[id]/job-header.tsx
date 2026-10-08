@@ -4,9 +4,9 @@ import Link from 'next/link';
 
 import { Ban, ChevronDown, Pause, Pencil, Play, ScrollText, Send } from 'lucide-react';
 
-import { JobProgress } from '@/app/(app)/jobs/components/job-badges';
+import { JobProgress, JobStatusBadge, PriorityBadge } from '@/app/(app)/jobs/components/job-badges';
+import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,25 +15,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { JobRowDto } from '@/lib/api/jobs-client';
+import { cn } from '@/lib/utils';
 import { completionLabel, deadlineLabel } from '@/lib/utils/relative-time';
 import { formatIST } from '@/lib/utils/time';
-
-const STATUS_WORD: Record<string, { label: string; className: string }> = {
-  DRAFT: { label: 'Draft', className: 'text-foreground' },
-  IN_PROGRESS: { label: 'In progress', className: 'text-foreground' },
-  AT_RISK: { label: 'At risk', className: 'text-risk' },
-  DELAYED: { label: 'Delayed', className: 'text-late' },
-  ON_HOLD: { label: 'On hold', className: 'text-foreground' },
-  COMPLETED: { label: 'Completed', className: 'text-ok' },
-  CANCELLED: { label: 'Cancelled', className: 'text-foreground' },
-};
-
-const PRIORITY_WORD: Record<string, string> = {
-  LOW: 'Low',
-  NORMAL: 'Normal',
-  HIGH: 'High',
-  URGENT: 'Urgent',
-};
 
 export interface JobPermissions {
   edit: boolean;
@@ -45,10 +29,12 @@ export interface JobPermissions {
 }
 
 /**
- * One line of a traveller: a small label, a dotted rule, the value at the right.
+ * One fact from the job card: a quiet label with the value under it.
  *
- * `machine` is for a code, a number, or a timestamp. A name or a sentence stays
- * in Outfit.
+ * This used to be a dotted rule with a shouted label on the left and the value
+ * pushed to the far right — a layout that made eight ordinary facts look like a
+ * specification, and left the eye travelling the width of the screen to pair a
+ * label with its value. Label above value, in a grid, reads in one glance.
  */
 function Fact({
   label,
@@ -57,20 +43,14 @@ function Fact({
 }: {
   label: string;
   value: React.ReactNode;
+  /** A code, a number or a timestamp, which gets the mono face. */
   machine?: boolean;
 }) {
   return (
-    <div className="border-border flex items-baseline border-b border-dotted py-2.5">
-      <dt className="bg-background text-muted-foreground w-28 shrink-0 pr-3 text-[11px] font-medium tracking-[0.16em] uppercase sm:w-36">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          'bg-background text-foreground ml-auto min-w-0 pl-3 text-right text-base',
-          machine && 'font-mono',
-        )}
-      >
-        {value ?? '—'}
+    <div className="min-w-0">
+      <dt className="field-label">{label}</dt>
+      <dd className={cn('text-foreground mt-0.5 truncate text-sm', machine && 'code')}>
+        {value ?? <span className="text-muted-foreground">—</span>}
       </dd>
     </div>
   );
@@ -110,109 +90,124 @@ export function JobHeader({
   const when = job.completedAt
     ? completionLabel(deadline, new Date(job.completedAt))
     : deadlineLabel(deadline);
-  const status = STATUS_WORD[job.status] ?? { label: job.status, className: 'text-foreground' };
   const whenClass =
     when.tone === 'overdue'
-      ? 'text-late'
+      ? 'text-late font-medium'
       : when.tone === 'urgent' || when.tone === 'soon'
-        ? 'text-risk'
-        : 'text-foreground';
+        ? 'text-risk font-medium'
+        : 'text-muted-foreground';
 
   return (
-    <header>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-foreground font-mono text-xl font-medium tracking-tight">
-            {job.jobCode}
-          </p>
-          <h1 className="text-foreground text-xl font-semibold">{job.title}</h1>
+    <PageHeader
+      back={{ href: '/jobs', label: 'All jobs' }}
+      eyebrow={job.jobCode}
+      title={job.title}
+      lead={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <JobStatusBadge status={job.status} />
+          <PriorityBadge priority={job.priority} />
+          {job.customerName ? <span>· {job.customerName}</span> : null}
+        </span>
+      }
+      actions={
+        <>
           {permissions.viewAudit ? (
-            <Link
-              href={`/audit?job=${job.id}`}
-              className="text-foreground decoration-border focus-visible:outline-ring inline-flex min-h-11 items-center gap-1 text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
-            >
-              <ScrollText className="size-3.5" />
-              Full history
-            </Link>
+            <Button asChild variant="outline">
+              <Link href={`/audit?job=${job.id}`}>
+                <ScrollText className="size-4" />
+                <span className="hidden sm:inline">Full history</span>
+              </Link>
+            </Button>
           ) : null}
+
+          {permissions.edit && !isClosed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={busy}>
+                  Actions
+                  <ChevronDown className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onSelect={onToggleEdit}>
+                  <Pencil className="size-4" />
+                  {editing ? 'Stop editing' : 'Edit details'}
+                </DropdownMenuItem>
+
+                {isDraft && permissions.publish ? (
+                  <DropdownMenuItem onSelect={onPublish}>
+                    <Send className="size-4" />
+                    Publish job
+                  </DropdownMenuItem>
+                ) : null}
+
+                {!isDraft && permissions.hold ? (
+                  <DropdownMenuItem onSelect={onToggleHold}>
+                    {isOnHold ? <Play className="size-4" /> : <Pause className="size-4" />}
+                    {isOnHold ? 'Resume job' : 'Put on hold'}
+                  </DropdownMenuItem>
+                ) : null}
+
+                {permissions.cancel ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={onCancel}>
+                      <Ban className="size-4" />
+                      Cancel job
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+        </>
+      }
+    >
+      {/*
+        The job card: deadline first and largest, because it is the only fact on
+        this screen that anybody is ever chased about. The part details sit
+        beside it as a grid rather than a stacked specification.
+      */}
+      <div className="border-border bg-card grid gap-4 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="sm:col-span-2 lg:col-span-1">
+          <p className="field-label">Overall deadline</p>
+          <p className="code text-foreground mt-0.5 text-base font-medium">{formatIST(deadline)}</p>
+          <p className={cn('mt-0.5 text-sm', whenClass)}>{when.text}</p>
         </div>
 
-        {permissions.edit && !isClosed ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={busy}>
-                Actions
-                <ChevronDown className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem onSelect={onToggleEdit}>
-                <Pencil className="size-4" />
-                {editing ? 'Stop editing' : 'Edit details'}
-              </DropdownMenuItem>
+        <div className="sm:col-span-2 lg:col-span-1">
+          <p className="field-label">Progress</p>
+          <div className="mt-1.5">
+            <JobProgress progress={job.progress} />
+          </div>
+        </div>
 
-              {isDraft && permissions.publish ? (
-                <DropdownMenuItem onSelect={onPublish}>
-                  <Send className="size-4" />
-                  Publish job
-                </DropdownMenuItem>
-              ) : null}
-
-              {!isDraft && permissions.hold ? (
-                <DropdownMenuItem onSelect={onToggleHold}>
-                  {isOnHold ? <Play className="size-4" /> : <Pause className="size-4" />}
-                  {isOnHold ? 'Resume job' : 'Put on hold'}
-                </DropdownMenuItem>
-              ) : null}
-
-              {permissions.cancel ? (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onSelect={onCancel}>
-                    <Ban className="size-4" />
-                    Cancel job
-                  </DropdownMenuItem>
-                </>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:col-span-2 lg:grid-cols-2">
+          <Fact label="Part number" value={job.partNumber} machine />
+          <Fact label="Drawing" value={job.drawingNumber} machine />
+          <Fact label="Quantity" value={job.quantity} machine />
+          <Fact
+            label="Published"
+            machine={job.publishedAt != null}
+            value={
+              job.publishedAt ? (
+                formatIST(new Date(job.publishedAt), 'dd MMM yyyy')
+              ) : (
+                <span className="text-muted-foreground">Not yet</span>
+              )
+            }
+          />
+        </dl>
       </div>
-
-      <dl className="mt-6">
-        <Fact label="Status" value={<span className={status.className}>{status.label}</span>} />
-        <Fact label="Priority" value={PRIORITY_WORD[job.priority] ?? job.priority} />
-        <Fact label="Customer" value={job.customerName} />
-        <Fact label="Part number" value={job.partNumber} machine />
-        <Fact label="Drawing" value={job.drawingNumber} machine />
-        <Fact label="Quantity" value={job.quantity} machine />
-        <Fact
-          label="Deadline"
-          value={
-            <>
-              <span className="font-mono">{formatIST(deadline)}</span>
-              <span className={cn('ml-2', whenClass)}>{when.text}</span>
-            </>
-          }
-        />
-        <Fact
-          label="Published"
-          machine={job.publishedAt != null}
-          value={job.publishedAt ? formatIST(new Date(job.publishedAt)) : 'Not published yet'}
-        />
-      </dl>
 
       {job.description ? (
-        <p className="text-foreground mt-4 text-base whitespace-pre-wrap">{job.description}</p>
+        <p className="text-foreground max-w-prose text-sm whitespace-pre-wrap">{job.description}</p>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap items-center gap-6">
-        <JobProgress progress={job.progress} />
-        <p className="text-foreground text-sm">
-          Created by {job.createdBy.name}{' '}
-          <span className="font-mono">{formatIST(new Date(job.createdAt))}</span>
-        </p>
-      </div>
-    </header>
+      <p className="text-muted-foreground text-xs">
+        Raised by {job.createdBy.name} on{' '}
+        <span className="code">{formatIST(new Date(job.createdAt), 'dd MMM yyyy, hh:mm a')}</span>
+      </p>
+    </PageHeader>
   );
 }

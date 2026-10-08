@@ -9,6 +9,7 @@ import {
 } from '@/lib/services/extension-service';
 import { createJob, publishJob } from '@/lib/services/jobs';
 import { getMyTasks } from '@/lib/services/my-tasks-service';
+import { updateSettings } from '@/lib/services/settings-service';
 import { bulkCreateSubtasks, changeStatus, loadSubtaskForWrite } from '@/lib/services/subtasks';
 import { formatIST, fromISTInput } from '@/lib/utils/time';
 
@@ -321,6 +322,7 @@ describe('acceptance: a short problem description is rejected server-side', () =
       purchase: '2027-06-20T18:00',
     });
     const member = { id: planningMember.id, role: 'MEMBER' as const };
+    await updateSettings({ 'problem.min_description_length': 20 }, mdActor, ctx);
 
     const fifteen = 'x'.repeat(15);
     expect(fifteen).toHaveLength(15);

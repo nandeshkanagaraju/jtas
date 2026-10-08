@@ -20,6 +20,11 @@ export interface OutboundNotification {
   entityId: string;
   /** Present when the recipient can act from the message. */
   actions?: OutboundAction[][];
+  /**
+   * A message sent first, with no buttons. Telegram uses it for the job
+   * timeline; the body that follows is the task.
+   */
+  preface?: string;
 }
 
 export interface ChannelRecipient {

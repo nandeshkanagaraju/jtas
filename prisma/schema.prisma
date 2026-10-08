@@ -464,7 +464,7 @@ model TelegramPending {
   chatId    String   @id
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// PROBLEM, OTHER, CONFIRM, or FILE.
+  /// FOCUS, SEVERITY, PROBLEM_LOW, PROBLEM_MEDIUM, PROBLEM_HIGH, OTHER, CONFIRM, FILE, or REJECT.
   kind      String
   subtaskId String
   /// IST wall-clock `YYYY-MM-DDTHH:mm`, set while a commitment waits for confirm.

@@ -69,15 +69,15 @@ function jobHeader(
   );
 }
 
-function yourTask(step: TimelineStep | null): string | null {
+function yourWork(step: TimelineStep | null): string | null {
   if (!step) return null;
   return lines(
-    'Your task',
+    'Your work',
     `${step.departmentName} — ${step.title}`,
     step.description,
     `Assigned to: ${step.assigneeName}`,
     `Status: ${step.statusLine}`,
-    step.finishDate ? `Finish date: ${step.finishDate}` : null,
+    step.finishDate ? `Finish date: ${step.finishDate}` : 'Finish date: not set yet',
   );
 }
 
@@ -127,14 +127,41 @@ function frame(
 ): string {
   const aboutId = 'subtaskId' in payload ? payload.subtaskId : null;
   const step = timeline && readerUserId ? readerStep(timeline, readerUserId, aboutId) : null;
-  return clip(
-    blocks(
-      jobHeader(payload, timeline),
-      step ? yourTask(step) : subjectTask(payload),
-      lines('What to do', action),
-      timeline ? timelineBlock(timeline, readerUserId) : null,
-    ),
-  );
+  const work = step
+    ? blocks(yourWork(step), action)
+    : blocks(subjectTask(payload), lines('What to do', action));
+  return clip(blocks(jobHeader(payload, timeline), work));
+}
+
+/**
+ * The job timeline on its own. Sent before the task message, which carries
+ * the buttons.
+ */
+export function timelineNotice(
+  header: {
+    jobCode: string;
+    jobTitle: string;
+    partNumber: string | null;
+    drawingNumber: string | null;
+  },
+  timeline: JobTimeline,
+  readerUserId: string | null,
+): string {
+  return clip(blocks(jobHeader(header, timeline), timelineBlock(timeline, readerUserId)));
+}
+
+/** `/job` answers with the timeline only. The task message is the one with buttons. */
+export function jobTimelineMessage(
+  header: {
+    jobCode: string;
+    jobTitle: string;
+    partNumber: string | null;
+    drawingNumber: string | null;
+  },
+  timeline: JobTimeline,
+  readerUserId: string | null,
+): string {
+  return timelineNotice(header, timeline, readerUserId);
 }
 
 /**
@@ -337,7 +364,6 @@ export function plainTextFor(
             `${payload.subtaskCount} tasks.`,
             payload.onTime ? 'Finished on time.' : 'Finished after the job deadline.',
           ),
-          timeline ? timelineBlock(timeline, readerUserId) : null,
         ),
       );
     case 'DAILY_DIGEST_MD':
@@ -367,6 +393,27 @@ function attach(id: string): OutboundAction[] {
   return [{ label: 'Attach a file', data: `file:${id}` }];
 }
 
+/** Pending and in-progress work the assignee can still move. */
+function workButtons(id: string, status: string): OutboundAction[][] {
+  if (status !== 'pending' && status !== 'in progress') return [];
+  const rows: OutboundAction[][] = [];
+  if (status === 'pending') {
+    rows.push([{ label: 'Start work', data: `start:${id}` }]);
+  }
+  rows.push([
+    { label: 'Mark completed', data: `done:${id}` },
+    { label: 'Report problem', data: `prob:${id}` },
+  ]);
+  rows.push([
+    { label: '+2 days', data: `d2:${id}` },
+    { label: '+5 days', data: `d5:${id}` },
+    { label: '+1 week', data: `d7:${id}` },
+  ]);
+  rows.push([{ label: 'Set deadline', data: `d0:${id}` }]);
+  rows.push(attach(id));
+  return rows;
+}
+
 function commitmentButtons(id: string): OutboundAction[][] {
   return [
     [
@@ -380,11 +427,12 @@ function commitmentButtons(id: string): OutboundAction[][] {
 }
 
 /**
- * Buttons for the messages a member can act on.
+ * Buttons for the messages a person can act on.
  *
- * Overdue and the work reminder can be finished, blocked, or have a file
- * added. A commitment message — including one sent after the window — offers
- * the common dates, then asks for a confirmation before anything is written.
+ * Assignment, the reminder, overdue, and ready-to-start offer the same work
+ * the website does, when the step is still pending or in progress. A
+ * commitment message offers the common dates, then asks for a confirmation
+ * before anything is written. An approval notice is for the MD.
  */
 export function actionsFor(payload: TemplatePayload): OutboundAction[][] {
   if (!('subtaskId' in payload)) return [];
@@ -398,17 +446,23 @@ export function actionsFor(payload: TemplatePayload): OutboundAction[][] {
     return commitmentButtons(id);
   }
 
-  if (payload.kind === 'OVERDUE_MEMBER' || payload.kind === 'DEADLINE_REMINDER') {
+  if (payload.kind === 'APPROVAL_REQUIRED') {
     return [
       [
-        { label: 'Mark completed', data: `done:${id}` },
-        { label: 'Report problem', data: `prob:${id}` },
+        { label: 'Approve', data: `ok:${id}` },
+        { label: 'Send back', data: `back:${id}` },
       ],
-      attach(id),
     ];
   }
 
-  if (payload.kind === 'READY_TO_START') return [attach(id)];
+  if (
+    payload.kind === 'SUBTASK_ASSIGNED' ||
+    payload.kind === 'DEADLINE_REMINDER' ||
+    payload.kind === 'OVERDUE_MEMBER' ||
+    payload.kind === 'READY_TO_START'
+  ) {
+    return workButtons(id, payload.status);
+  }
 
   return [];
 }

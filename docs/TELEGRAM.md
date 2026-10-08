@@ -35,4 +35,18 @@ The site is already on HTTPS. Telegram posts an update as soon as a button is pr
 
 On **Your account**, Get a link code. The page shows `t.me/<bot>` with the code attached, so opening it sends `/start` and the code. The code works once, for 15 minutes. A used code is refused. A code that does not exist gets no reply. Unlink is on the same page.
 
-Messages that can be acted on carry buttons: Mark completed, Report problem, and on a commitment message +2 days, +5 days, +1 week, Other date. Other date is typed as DD/MM. The bot shows the date it understood and waits for Confirm before it writes anything. Those buttons call the same completion, problem, and commit services as the website.
+A job arrives as two messages. The first is the timeline: every department, its date, and what was recorded. The second is that person's own work and deadline, and it carries the buttons. Email is unchanged.
+
+Buttons on an assignment, a reminder, an overdue notice, and a ready-to-start notice: Start work (while it is still pending), Mark completed, Report problem, +2 days, +5 days, +1 week, Set deadline, and Attach a file. After Mark completed, the bot asks for the finished files and keeps Attach a file available so another photo or PDF can be added. Set deadline is typed as DD/MM. A commitment message offers the same dates, with Other date in place of Set deadline. Other date is typed as DD/MM. The bot shows the date it understood and waits for Confirm before it writes anything. Report problem asks Low, Medium, or High, then the description. An approval notice offers Approve and Send back. Those buttons call the same services as the website.
+
+The same actions work after the message has gone, from the command menu:
+
+- `/tasks` — open work. Tap one to make it the current task.
+- `/job JGE-2026-0003` — the timeline for that job.
+- `/startwork` — start the current task. `/start` is only for linking an account.
+- `/done` — mark the current task completed.
+- `/problem` — report a problem on the current task.
+- `/file` — then send a photo or a PDF.
+- `/help` — the list above.
+
+The current task is the last one this chat was notified about, or the one picked from `/tasks`. A command with no current task shows `/tasks`. Hold, cancel, reassign, and moving a deadline stay on the website.

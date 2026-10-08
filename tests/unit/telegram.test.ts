@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { PermanentChannelError, TransientChannelError } from '@/lib/notifications/channels/types';
-import type { ProblemRaisedPayload } from '@/lib/notifications/templates/types';
+import type {
+  ApprovalRequiredPayload,
+  AssignedPayload,
+  ProblemRaisedPayload,
+} from '@/lib/notifications/templates/types';
 import { parseDayMonth } from '@/lib/telegram/dates';
 import { telegramReplyShouldRetry } from '@/lib/telegram/handle-update';
 import { webhookAuthorized } from '@/lib/telegram/secret';
-import { actionsFor, plainTextFor } from '@/lib/telegram/text';
+import { actionsFor, plainTextFor, timelineNotice } from '@/lib/telegram/text';
 import type { JobTimeline } from '@/lib/telegram/timeline';
 
 describe('telegram text', () => {
@@ -98,15 +102,30 @@ describe('telegram text', () => {
       'prod-user',
     );
 
+    const report = timelineNotice(
+      {
+        jobCode: 'JGE-2026-0003',
+        jobTitle: 'Telegram trial bracket',
+        partNumber: 'TB-100',
+        drawingNumber: 'DRG-TB-100',
+      },
+      timeline,
+      'prod-user',
+    );
+
+    expect(report).toContain('Job timeline');
+    expect(report).toContain('Production — Machine the bracket  ← you');
+    expect(report).toContain('Supplier sent the wrong grade');
+    expect(report).not.toContain('Your work');
+
     expect(text).toContain('Opened by: Managing Director');
     expect(text).toContain('Quantity: 12');
-    expect(text).toContain('Your task');
-    expect(text).toContain('Production — Machine the bracket  ← you');
+    expect(text).not.toContain('Job timeline');
+    expect(text).toContain('Your work');
     expect(text).toContain('Their finish date was 6 Oct 2026, 6:00 PM');
     expect(text).toContain('Accepted 10, rejected 2');
-    expect(text).toContain('Supplier sent the wrong grade');
     expect(text).toContain('Finish date: not set yet');
-    expect(text).toContain('What to do');
+    expect(text).toContain('Commit a finish date by 8 Oct 2026, 1:15 AM.');
   });
 
   it('offers date buttons on a missed commitment, and a file button on the task', () => {
@@ -133,6 +152,62 @@ describe('telegram text', () => {
       'Other date',
       'Attach a file',
     ]);
+  });
+
+  it('offers start, complete, problem and a file while the work is still pending', () => {
+    const assigned: AssignedPayload = {
+      kind: 'SUBTASK_ASSIGNED',
+      subtaskId: 'sub',
+      jobId: 'job',
+      subtaskTitle: 'Machine',
+      departmentName: 'Production',
+      assigneeName: 'Meena',
+      deadlineIst: '12 Oct 2026, 6:00 PM',
+      status: 'pending',
+      jobCode: 'JGE-2026-0003',
+      jobTitle: 'Bracket',
+      partNumber: 'TB-100',
+      drawingNumber: 'DRG-TB-100',
+      reminderLeadMinutes: 360,
+    };
+    expect(
+      actionsFor(assigned)
+        .flat()
+        .map((button) => button.label),
+    ).toEqual([
+      'Start work',
+      'Mark completed',
+      'Report problem',
+      '+2 days',
+      '+5 days',
+      '+1 week',
+      'Set deadline',
+      'Attach a file',
+    ]);
+  });
+
+  it('offers the MD approve and send back', () => {
+    const approval: ApprovalRequiredPayload = {
+      kind: 'APPROVAL_REQUIRED',
+      subtaskId: 'sub',
+      jobId: 'job',
+      subtaskTitle: 'Machine',
+      departmentName: 'Production',
+      assigneeName: 'Meena',
+      deadlineIst: '12 Oct 2026, 6:00 PM',
+      status: 'awaiting approval',
+      jobCode: 'JGE-2026-0003',
+      jobTitle: 'Bracket',
+      partNumber: null,
+      drawingNumber: null,
+      completedByName: 'Meena',
+      completionNote: null,
+    };
+    expect(
+      actionsFor(approval)
+        .flat()
+        .map((button) => button.label),
+    ).toEqual(['Approve', 'Send back']);
   });
 });
 

@@ -12,6 +12,13 @@ export const telegramChannel: NotificationChannel = {
       throw new PermanentChannelError('No Telegram chat is linked.');
     }
 
+    if (notification.preface?.trim()) {
+      await sendTelegramMessage({
+        chatId: user.telegramChatId,
+        text: notification.preface,
+      });
+    }
+
     const sent = await sendTelegramMessage({
       chatId: user.telegramChatId,
       text: notification.body,

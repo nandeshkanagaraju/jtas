@@ -30,5 +30,16 @@ export async function ensureTelegramWebhook(): Promise<void> {
     secret_token: secret,
     allowed_updates: ['message', 'callback_query'],
   });
+  await telegramApi('setMyCommands', {
+    commands: [
+      { command: 'tasks', description: 'My open work' },
+      { command: 'job', description: 'Timeline for a job code' },
+      { command: 'done', description: 'Mark the current task completed' },
+      { command: 'problem', description: 'Report a problem' },
+      { command: 'file', description: 'Attach a photo or PDF' },
+      { command: 'startwork', description: 'Start the current task' },
+      { command: 'help', description: 'What you can do here' },
+    ],
+  });
   log.info({ url }, 'telegram webhook registered');
 }

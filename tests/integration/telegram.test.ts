@@ -4,6 +4,7 @@ import { reminderKey } from '@/lib/notifications/dedupe';
 import { enqueue } from '@/lib/notifications/notification-service';
 import { dispatchDue } from '@/lib/notifications/sweeper';
 import { changeStatus } from '@/lib/services/subtasks';
+import { invalidateSettings } from '@/lib/services/settings';
 import { storageConfigured } from '@/lib/storage/s3';
 import { setTelegramFileDownload, setTelegramTransport } from '@/lib/telegram/api';
 import { handleTelegramUpdate } from '@/lib/telegram/handle-update';
@@ -41,6 +42,12 @@ beforeEach(async () => {
     create: { key: 'suppress_reminders_outside_hours', value: false },
     update: { value: false },
   });
+  await testDb.setting.upsert({
+    where: { key: 'problem.min_description_length' },
+    create: { key: 'problem.min_description_length', value: 20 },
+    update: { value: 20 },
+  });
+  invalidateSettings();
 });
 
 afterEach(() => {
@@ -174,7 +181,7 @@ describe('telegram actions', () => {
     expect(phoneAudit.length).toBeGreaterThan(0);
     expect(phoneAudit.every((row) => row.source === 'TELEGRAM')).toBe(true);
     expect(webAudit.every((row) => row.source === 'WEB')).toBe(true);
-    expect(texts()).toContain('Marked completed.');
+    expect(texts()).toContain('Marked completed. Attach the finished files, a photo, or a PDF.');
   });
 
   it('commits once from a button and refuses a second attempt', async () => {
@@ -233,6 +240,13 @@ describe('telegram actions', () => {
       callback_query: {
         id: 'cb-prob',
         data: `prob:${subtask.id}`,
+        message: { chat: { id: 5001, type: 'private' } },
+      },
+    });
+    await handleTelegramUpdate({
+      callback_query: {
+        id: 'cb-sev',
+        data: `sm:${subtask.id}`,
         message: { chat: { id: 5001, type: 'private' } },
       },
     });
@@ -301,19 +315,31 @@ describe('telegram delivery', () => {
     expect(channels).toEqual(['EMAIL', 'TELEGRAM']);
 
     await dispatchDue(new Date());
-    const body = texts()[0] ?? '';
+    const messages = sent.filter((call) => call.method === 'sendMessage');
+    const timeline = String(messages[0]?.body.text ?? '');
+    const body = String(messages[1]?.body.text ?? '');
     const job = await testDb.job.findUnique({ where: { id: subtask.jobId } });
-    expect(body.startsWith(`${job?.jobCode}`)).toBe(true);
+    expect(timeline.startsWith(`${job?.jobCode}`)).toBe(true);
+    expect(timeline).toContain('Job timeline');
+    expect(timeline).not.toContain('Your work');
     expect(body).toContain('VB-100');
     expect(body).toContain('Assigned to');
-    expect(body).toContain('Job timeline');
-    expect(body).toContain('Your task');
+    expect(body).toContain('Your work');
+    expect(body).not.toContain('Job timeline');
     expect(body.length).toBeLessThanOrEqual(4000);
-    const keyboard = sent.find((call) => call.method === 'sendMessage')?.body.reply_markup as {
+    const keyboard = messages[1]?.body.reply_markup as {
       inline_keyboard: { text: string }[][];
     };
     const labels = keyboard.inline_keyboard.flat().map((button) => button.text);
-    expect(labels).toEqual(['Mark completed', 'Report problem', 'Attach a file']);
+    expect(labels).toEqual([
+      'Mark completed',
+      'Report problem',
+      '+2 days',
+      '+5 days',
+      '+1 week',
+      'Set deadline',
+      'Attach a file',
+    ]);
   });
 
   it.skipIf(!storageConfigured())(
@@ -447,5 +473,63 @@ describe('telegram delivery', () => {
       'That attachment window has expired. Tap Attach a file on the task message, then send the photo or PDF again.',
     ]);
     expect(await testDb.attachment.count({ where: { subtaskId: subtask.id } })).toBe(0);
+  });
+});
+
+describe('telegram commands', () => {
+  it('shows open work when nothing is selected, then files against the task that is picked', async () => {
+    const { member, subtask } = await memberWithTask();
+    await link(member.id, '8001');
+    const job = await testDb.job.findUniqueOrThrow({ where: { id: subtask.jobId } });
+    sent = [];
+
+    await handleTelegramUpdate({
+      message: { text: '/file', chat: { id: 8001, type: 'private' } },
+    });
+    expect(texts()[0]).toContain('No task is selected.');
+    expect(texts()[0]).toContain(job.jobCode);
+
+    await handleTelegramUpdate({
+      callback_query: {
+        id: 'cb-use',
+        data: `use:${subtask.id}`,
+        message: { chat: { id: 8001, type: 'private' } },
+      },
+    });
+    expect(texts().at(-1)).toContain(`Current task: ${job.jobCode}`);
+
+    await handleTelegramUpdate({
+      message: { text: '/file', chat: { id: 8001, type: 'private' } },
+    });
+    expect(texts().at(-1)).toMatch(/Send a photo or a PDF/);
+
+    await handleTelegramUpdate({
+      message: { text: `/job ${job.jobCode}`, chat: { id: 8001, type: 'private' } },
+    });
+    const report = texts().at(-1) ?? '';
+    expect(report).toContain('Job timeline');
+    expect(report).not.toContain('Your work');
+    expect(report).toContain(subtask.title);
+  });
+
+  it('starts the current task from /startwork', async () => {
+    const { member, subtask } = await memberWithTask({ status: 'PENDING' });
+    await link(member.id, '8002');
+    sent = [];
+
+    await handleTelegramUpdate({
+      callback_query: {
+        id: 'cb-use-2',
+        data: `use:${subtask.id}`,
+        message: { chat: { id: 8002, type: 'private' } },
+      },
+    });
+    await handleTelegramUpdate({
+      message: { text: '/startwork', chat: { id: 8002, type: 'private' } },
+    });
+
+    const row = await testDb.subtask.findUnique({ where: { id: subtask.id } });
+    expect(row?.status).toBe('IN_PROGRESS');
+    expect(texts().at(-1)).toBe('Started.');
   });
 });

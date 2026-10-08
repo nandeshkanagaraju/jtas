@@ -22,7 +22,8 @@ import { formatElapsed } from '@/lib/utils/duration';
 import { hoursBetween } from '@/lib/utils/time';
 
 import { channelFor, isRetryable, ProviderQuotaError } from './channels';
-import { actionsFor, plainTextFor } from '@/lib/telegram/text';
+import { rememberFocus } from '@/lib/telegram/focus';
+import { actionsFor, plainTextFor, timelineNotice } from '@/lib/telegram/text';
 import { loadJobTimeline } from '@/lib/telegram/timeline';
 import { loadEscalationConfig, loadSuppressOutsideHours, loadWorkingHours } from './config';
 import { isAllowedRecipient, mailGuardConfig, quotaStatus, suppressionReason } from './mail-guard';
@@ -202,6 +203,23 @@ export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> 
 
 type DeliveryOutcome = 'dispatched' | 'failed' | 'dropped' | 'suppressed' | 'providerQuota';
 
+/**
+ * The last task this chat was told about becomes the one slash commands act on.
+ * A failure here must not retry the message that was already sent.
+ */
+async function focusOnAssignee(chatId: string, userId: string, subtaskId: string): Promise<void> {
+  try {
+    const subtask = await prisma.subtask.findUnique({
+      where: { id: subtaskId },
+      select: { assigneeId: true },
+    });
+    if (subtask?.assigneeId !== userId) return;
+    await rememberFocus(chatId, userId, subtaskId);
+  } catch (error) {
+    log.warn({ err: error, subtaskId }, 'telegram focus was not saved');
+  }
+}
+
 /** Renders and sends one row, recording the outcome. */
 async function deliver(
   row: DueRow,
@@ -288,6 +306,19 @@ async function deliver(
         : null;
     const text = rendered?.text ?? plainTextFor(payload, timeline, user.id);
     const subject = rendered?.subject ?? text.split('\n')[0] ?? text;
+    const preface =
+      row.channel === 'TELEGRAM' && timeline && 'jobCode' in payload
+        ? timelineNotice(
+            {
+              jobCode: payload.jobCode,
+              jobTitle: payload.jobTitle,
+              partNumber: payload.partNumber,
+              drawingNumber: payload.drawingNumber,
+            },
+            timeline,
+            user.id,
+          )
+        : undefined;
 
     const { providerId } = await channelFor(row.channel).send(
       {
@@ -299,6 +330,7 @@ async function deliver(
         entityType: row.entityType,
         entityId: row.entityId,
         actions: row.channel === 'TELEGRAM' ? actionsFor(payload) : undefined,
+        preface,
       },
       user,
     );
@@ -315,6 +347,10 @@ async function deliver(
         lastError: providerId ? `providerId:${providerId}` : null,
       },
     });
+
+    if (row.channel === 'TELEGRAM' && user.telegramChatId && 'subtaskId' in payload) {
+      await focusOnAssignee(user.telegramChatId, user.id, payload.subtaskId);
+    }
 
     return 'dispatched';
   } catch (error) {

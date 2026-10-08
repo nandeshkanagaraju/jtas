@@ -280,5 +280,8 @@ describe('updateSettings', () => {
 
     const rows = await auditRowsFor('problem.min_description_length');
     expect(rows.map((row) => row.action)).toContain('SETTINGS_UPDATED');
+
+    // Later tests in this database still expect the seeded minimum of 20.
+    await updateSettings({ 'problem.min_description_length': 20 }, actor, ctx);
   });
 });

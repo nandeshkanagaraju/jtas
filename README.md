@@ -12,6 +12,7 @@ silently slips.
 - **How** it is built: [`docs/JARAA_SDD_Software_Design_Document.md`](docs/JARAA_SDD_Software_Design_Document.md) — authoritative for schema, API, business rules and the notification engine
 - Build order: [`docs/JARAA_Module_Wise_Build_Prompts.md`](docs/JARAA_Module_Wise_Build_Prompts.md)
 - Known gaps: [`docs/DEFERRED.md`](docs/DEFERRED.md)
+- Rebuilding the UI: [`docs/UI_REBUILD_BRIEF.md`](docs/UI_REBUILD_BRIEF.md) — the design brief, and the accessibility, semantic and end-to-end constraints any UI change has to hold
 
 ---
 

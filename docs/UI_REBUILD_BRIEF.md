@@ -1,7 +1,12 @@
-# Cursor prompt — reimagine the JTAS interface
+# Brief — reimagine the JTAS interface
 
-> Paste everything below the line into Cursor (Agent mode, on a fresh branch).
-> This file is a scratch deliverable — don't commit it.
+The interface shipped so far is a competent admin template and not much more.
+This is the brief for replacing it: what the product actually is, a blunt
+critique of what is wrong with the current UI so it is not reproduced, the
+direction to build, and the constraints a rebuild keeps breaking.
+
+Written to be handed to a coding agent whole. Point it at this file and at the
+PDD and SDD, and have it work through section 8 in order.
 
 ---
 

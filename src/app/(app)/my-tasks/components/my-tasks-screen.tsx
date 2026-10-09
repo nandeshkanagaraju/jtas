@@ -4,7 +4,6 @@ import { ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { PageHeader } from '@/components/shared/page-header';
 import { ApiError } from '@/lib/api/client';
 import { changeSubtaskStatusRequest } from '@/lib/api/subtasks-client';
 import { fetchMyTasks, type MyTaskDto, type MyTasksDto } from '@/lib/api/my-tasks-client';
@@ -50,14 +49,16 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
   const [data, setData] = useState<MyTasksDto>(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [open, setOpen] = useState<Partial<Record<BucketName, boolean>>>({});
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const today = formatIST(new Date(initial.now), 'EEEE d MMMM');
 
   const reload = useCallback(async () => {
     try {
       setData(await fetchMyTasks());
+      setRefreshError(null);
     } catch {
-      // A failed refresh leaves the last good list on screen; the next action
-      // will reload again. Nothing is lost.
+      // The last good list stays. An empty state here would be a lie.
+      setRefreshError('Could not refresh. The list on screen is the last one that loaded.');
     }
   }, []);
 
@@ -97,21 +98,22 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
       });
 
       const freed = result.unblocked.length;
+      const unblocked =
+        freed === 1
+          ? '1 task is no longer blocked'
+          : freed > 1
+            ? `${freed} tasks are no longer blocked`
+            : null;
       toast.success(
         action === 'COMPLETE'
           ? task.requiresApproval
-            ? 'Sent for approval.'
-            : 'Completed.'
+            ? 'Sent for approval'
+            : (unblocked ?? 'Marked completed')
           : action === 'START'
-            ? 'Work started.'
-            : 'Problem reported.',
-        freed > 0
-          ? {
-              description:
-                freed === 1
-                  ? '1 task is no longer blocked.'
-                  : `${freed} tasks are no longer blocked.`,
-            }
+            ? 'Work started'
+            : 'Problem reported. The MD has it.',
+        action === 'COMPLETE' && task.requiresApproval && unblocked
+          ? { description: unblocked }
           : undefined,
       );
 
@@ -129,56 +131,81 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
     }
   }
 
+  const overdue = data.buckets.overdue;
+
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <PageHeader
-        eyebrow={today}
-        title="My tasks"
-        lead={standing(data.summary)}
-        density="comfortable"
-      />
+    <div className="mx-auto max-w-3xl space-y-6">
+      <header>
+        <p className="eyebrow">{today}</p>
+        <h1 className="mt-1 text-base font-medium">{standing(data.summary)}</h1>
+      </header>
+
+      {refreshError ? (
+        <div
+          role="alert"
+          className="border-late-edge bg-late-soft flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3"
+        >
+          <p className="text-late text-sm font-medium">{refreshError}</p>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="border-late-edge text-late min-h-11 rounded-md border px-3 text-sm font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       {/*
-        Overdue and due today are open; everything else is a count until it is
-        asked for. On a phone in a workshop the first screen has to be the work
-        that is actually due, not a scrollable archive of everything assigned.
+        Overdue and due today stay open. A single overdue task is the whole
+        screen: large, with its actions, and everything not due now is a count.
       */}
       {OPEN_GROUPS.map((name) => (
-        <Group key={name} name={name} tasks={data.buckets[name]} busyId={busyId} onAction={act} />
+        <Group
+          key={name}
+          name={name}
+          tasks={data.buckets[name]}
+          emphasis={name === 'overdue' && overdue.length === 1}
+          busyId={busyId}
+          onAction={act}
+        />
       ))}
 
-      <div className="border-border bg-card overflow-hidden rounded-lg border">
+      <div className="flex flex-wrap gap-2">
         {FOLDED_GROUPS.map((name) => {
           const tasks = data.buckets[name];
           const expanded = open[name] === true;
 
           return (
-            <section key={name} className="border-border border-t first:border-t-0">
+            <section key={name} className="min-w-[9.5rem] flex-1">
               <h2>
                 <button
                   type="button"
                   aria-expanded={expanded}
                   onClick={() => setOpen((current) => ({ ...current, [name]: !expanded }))}
-                  className="hover:bg-muted/60 flex min-h-12 w-full items-center justify-between gap-4 px-4 py-3 text-left text-base transition-colors"
+                  className="border-border bg-card hover:bg-muted/60 flex min-h-11 w-full items-center justify-between gap-3 rounded-md border px-3 text-left text-sm font-medium transition-colors duration-150"
                 >
-                  <span className="font-display inline-flex items-center gap-2 font-semibold">
+                  <span className="inline-flex items-center gap-1.5">
                     <ChevronRight
                       className={cn(
-                        'text-muted-foreground size-4 transition-transform',
+                        'text-muted-foreground size-4 transition-transform duration-150',
                         expanded && 'rotate-90',
                       )}
                       aria-hidden
                     />
-                    {GROUP_LABELS[name]}
-                  </span>
-                  <span className="tabular text-muted-foreground text-base font-medium">
-                    {tasks.length}
+                    {GROUP_LABELS[name]} {tasks.length}
                   </span>
                 </button>
               </h2>
               {expanded ? (
-                <div className="border-border border-t px-4">
-                  <TaskList name={name} tasks={tasks} busyId={busyId} onAction={act} />
+                <div className="border-border bg-card mt-2 rounded-md border px-4">
+                  <TaskList
+                    name={name}
+                    tasks={tasks}
+                    emphasis={false}
+                    busyId={busyId}
+                    onAction={act}
+                  />
                 </div>
               ) : null}
             </section>
@@ -208,11 +235,13 @@ function standing(summary: MyTasksDto['summary']): string {
 function Group({
   name,
   tasks,
+  emphasis,
   busyId,
   onAction,
 }: {
   name: BucketName;
   tasks: MyTaskDto[];
+  emphasis: boolean;
   busyId: string | null;
   onAction: (
     task: MyTaskDto,
@@ -229,13 +258,19 @@ function Group({
     >
       <h2
         id={`tasks-${name}`}
-        className="font-display border-border flex items-center justify-between gap-4 border-b px-4 py-3 text-base font-semibold"
+        className="border-border flex items-center justify-between gap-4 border-b px-4 py-3 text-base font-medium"
       >
         <span>{GROUP_LABELS[name]}</span>
-        <span className={cn('tabular font-medium', countTone)}>{tasks.length}</span>
+        <span className={cn('font-mono font-medium tabular-nums', countTone)}>{tasks.length}</span>
       </h2>
       <div className="px-4">
-        <TaskList name={name} tasks={tasks} busyId={busyId} onAction={onAction} />
+        <TaskList
+          name={name}
+          tasks={tasks}
+          emphasis={emphasis}
+          busyId={busyId}
+          onAction={onAction}
+        />
       </div>
     </section>
   );
@@ -244,11 +279,13 @@ function Group({
 function TaskList({
   name,
   tasks,
+  emphasis,
   busyId,
   onAction,
 }: {
   name: BucketName;
   tasks: MyTaskDto[];
+  emphasis: boolean;
   busyId: string | null;
   onAction: (
     task: MyTaskDto,
@@ -267,6 +304,7 @@ function TaskList({
           key={task.id}
           task={task}
           section={name}
+          emphasis={emphasis}
           busy={busyId === task.id}
           onAction={(action, payload) => onAction(task, action, payload)}
         />

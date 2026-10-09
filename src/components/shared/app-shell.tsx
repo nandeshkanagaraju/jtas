@@ -112,7 +112,7 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-border bg-background/90 sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-4 backdrop-blur-sm sm:px-6">
+        <header className="border-border bg-background sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b px-4 py-1.5 sm:px-6">
           <button
             type="button"
             onClick={() => setDrawer(true)}
@@ -123,7 +123,7 @@ export function AppShell({
           </button>
           <Crumb />
           <div className="ml-auto flex items-center gap-2">
-            <ThemeToggle className="hidden sm:inline-flex" />
+            <ThemeToggle />
             <NotificationBell initialUnread={unreadNotifications} />
           </div>
         </header>

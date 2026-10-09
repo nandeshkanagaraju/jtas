@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
-import { Archivo, IBM_Plex_Mono, Instrument_Sans } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
 import { ThemeProvider } from '@/components/shared/theme';
@@ -8,28 +8,18 @@ import { ThemeProvider } from '@/components/shared/theme';
 import './globals.css';
 
 /*
- * Two grotesques of different proportions rather than a display face with
- * personality of its own: Instrument Sans is narrow and quiet enough to carry
- * 14px body text in dense tables, Archivo is wider and sturdier, so a heading
- * reads as a heading without needing extra size or weight.
+ * One superfamily. Geist carries the UI; Geist Mono carries every code,
+ * deadline, count and station label. Hierarchy is size and weight.
  */
-const instrument = Instrument_Sans({
+const geist = Geist({
   subsets: ['latin'],
-  variable: '--font-instrument',
+  variable: '--font-geist',
   display: 'swap',
 });
 
-const archivo = Archivo({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-archivo',
-  display: 'swap',
-});
-
-const plex = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-plex',
+  variable: '--font-geist-mono',
   display: 'swap',
 });
 
@@ -61,8 +51,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   // Day and night values, so the phone's own chrome follows the theme.
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f4ef' },
-    { media: '(prefers-color-scheme: dark)', color: '#16170f' },
+    { media: '(prefers-color-scheme: light)', color: '#f4f6f8' },
+    { media: '(prefers-color-scheme: dark)', color: '#121418' },
   ],
 };
 
@@ -77,9 +67,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${instrument.variable} ${archivo.variable} ${plex.variable} font-sans antialiased`}
-      >
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider nonce={nonce}>
           {children}
           <ServiceWorkerRegistration />

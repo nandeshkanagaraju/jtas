@@ -4,20 +4,16 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * JTAS design system — "shop paper".
+ * JTAS — control room.
  *
- * The screens a CNC shop reads all day are paper: travellers, drawings, route
- * cards. So the canvas is warm paper, the text is ink, depth comes from a
- * hairline rule rather than a shadow, and colour is never decoration — a tone
- * on this screen always means a state, and the same state is always the same
- * tone. Red is late. Amber is at risk. Slate-blue is moving. Green is done.
+ * Dark is the primary theme: a deep neutral canvas, lighter as a surface comes
+ * forward. Light is a separate daylight theme for the shop floor, not an
+ * inversion of the dark values. The accent is a cobalt used only for actions,
+ * so it can never be read as "late". Status is four tones — late, at risk,
+ * in progress, done — each with text, fill and border, and always a word.
  *
- * Surfaces run sidebar (deepest) -> canvas -> card (lightest). Only things
- * that float above the page — a dialog, a drawer, a menu — get a shadow, and
- * they get the one named here rather than inventing their own.
- *
- * A second shift works in a dim workshop, so every token has a night value and
- * `.dark` is a real, switchable theme rather than an unused branch.
+ * Elevation on dark is surface lightness plus a hairline. Shadows exist only
+ * under things that float (dialog, drawer, menu).
  */
 
 @theme inline {
@@ -81,11 +77,11 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
-  /* Headings and the big counts: a wider industrial grotesque. */
-  --font-display: var(--font-archivo), var(--font-instrument), sans-serif;
-  /* Job codes, part numbers, dates. */
-  --font-mono: var(--font-plex), ui-monospace, monospace;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  /* One superfamily. Hierarchy comes from size and weight, not a second face. */
+  --font-display: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  /* Job codes, part numbers, deadlines, station labels, counts. */
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* The one shadow in the system, for things that float above the page. */
   --shadow-pop: var(--pop);
@@ -93,49 +89,48 @@
 
 :root {
   --radius: 0.5rem;
-
-  /* Native controls — a date picker, a <select> — follow the theme too. */
   color-scheme: light;
 
-  /* Warm paper, deep ink, one muted green. */
-  --background: #f5f4ef;
-  --foreground: #1b1c18;
+  /* Daylight. Cool and high-contrast, so a phone in a roller-door reads. */
+  --background: #f4f6f8;
+  --foreground: #14181f;
   --card: #ffffff;
-  --card-foreground: #1b1c18;
+  --card-foreground: #14181f;
   --popover: #ffffff;
-  --popover-foreground: #1b1c18;
-  --primary: #2e6a5b;
+  --popover-foreground: #14181f;
+  --primary: #1e4ed8;
   --primary-foreground: #ffffff;
-  --secondary: #edebe4;
-  --secondary-foreground: #1b1c18;
-  --muted: #edebe4;
-  --muted-foreground: #65665d;
-  --accent: #e8e6dd;
-  --accent-foreground: #1b1c18;
-  --destructive: #a33327;
+  --secondary: #e7ebf0;
+  --secondary-foreground: #14181f;
+  --muted: #e7ebf0;
+  --muted-foreground: #3e4856;
+  --accent: #e7ebf0;
+  --accent-foreground: #14181f;
+  --destructive: #9f1239;
   --destructive-foreground: #ffffff;
-  --border: #e2dfd4;
-  --input: #d4d0c3;
-  --ring: #2e6a5b;
+  --border: #d5dce3;
+  --input: #c5ced8;
+  --ring: #1e4ed8;
 
-  --sidebar: #eeece5;
-  --sidebar-border: #ddd9cc;
-  --sidebar-hover: #e5e2d8;
+  --sidebar: #e8edf2;
+  --sidebar-border: #d5dce3;
+  --sidebar-hover: #dfe5eb;
   --sidebar-active: #ffffff;
-  --rule: #d6d2c6;
+  --rule: #c5ced8;
 
-  --late: #a33327;
-  --late-soft: #faeae6;
-  --late-edge: #eed3cc;
-  --risk: #8a5a0d;
-  --risk-soft: #f9f0dc;
-  --risk-edge: #ead9b8;
-  --ok: #2e6a5b;
-  --ok-soft: #e6efea;
-  --ok-edge: #cadfd5;
-  --info: #2c5f7c;
-  --info-soft: #e8eef3;
-  --info-edge: #ccdce6;
+  /* Text, fill, border. Each ink clears 4.5:1 on the canvas and on its fill. */
+  --late: #9f1239;
+  --late-soft: #fde8ec;
+  --late-edge: #f0c2cb;
+  --risk: #8a4b08;
+  --risk-soft: #fbf1dc;
+  --risk-edge: #ead7b0;
+  --ok: #0e5c38;
+  --ok-soft: #e4f4eb;
+  --ok-edge: #b7ddc8;
+  --info: #0f6b64;
+  --info-soft: #e5f4f2;
+  --info-edge: #b7ddd8;
 
   --state-pending: var(--muted-foreground);
   --state-blocked: var(--muted-foreground);
@@ -144,8 +139,7 @@
   --state-complete: var(--ok);
   --state-overdue: var(--late);
 
-  /* Overlays only: a dialog, a drawer, a menu, a toast. Nothing on the page. */
-  --pop: 0 1px 2px rgb(27 28 24 / 0.06), 0 12px 32px -8px rgb(27 28 24 / 0.18);
+  --pop: 0 1px 2px rgb(20 24 31 / 0.06), 0 16px 40px -12px rgb(20 24 31 / 0.22);
 }
 
 /*
@@ -157,48 +151,51 @@
  * here clears 4.5:1 against its own fill, as the light pairs do.
  */
 .dark {
-  --background: #16170f;
-  --foreground: #f1f0e9;
-  --card: #1e2018;
-  --card-foreground: #f1f0e9;
-  --popover: #232519;
-  --popover-foreground: #f1f0e9;
-  --primary: #7cc6ac;
-  --primary-foreground: #0d1f1a;
-  --secondary: #2a2c22;
-  --secondary-foreground: #f1f0e9;
-  --muted: #2a2c22;
-  --muted-foreground: #a7a89a;
-  --accent: #303226;
-  --accent-foreground: #f1f0e9;
-  --destructive: #ef8a77;
-  --destructive-foreground: #2a0f0a;
-  --border: #343629;
-  --input: #42442f;
-  --ring: #7cc6ac;
-
-  --sidebar: #111208;
-  --sidebar-border: #2b2d1f;
-  --sidebar-hover: #212318;
-  --sidebar-active: #2a2c22;
-  --rule: #3c3e2e;
-
-  --late: #f09180;
-  --late-soft: #3c201a;
-  --late-edge: #58322a;
-  --risk: #e0b169;
-  --risk-soft: #372c17;
-  --risk-edge: #513f22;
-  --ok: #7cc6ac;
-  --ok-soft: #1a3029;
-  --ok-edge: #2d4b41;
-  --info: #8bbcd8;
-  --info-soft: #1b2b34;
-  --info-edge: #2e4450;
-
-  --pop: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 32px -8px rgb(0 0 0 / 0.6);
-
   color-scheme: dark;
+
+  /* Canvas, then panel, then raised. Never pure black. */
+  --background: #121418;
+  --foreground: #e8eaee;
+  --card: #1a1f27;
+  --card-foreground: #e8eaee;
+  --popover: #232a34;
+  --popover-foreground: #e8eaee;
+  /* Cobalt at ~55% lightness: white label clears 4.5:1, and it is not a neon. */
+  --primary: #3a6bdf;
+  --primary-foreground: #ffffff;
+  --secondary: #232a34;
+  --secondary-foreground: #e8eaee;
+  --muted: #232a34;
+  --muted-foreground: #a8b0bc;
+  --accent: #232a34;
+  --accent-foreground: #e8eaee;
+  --destructive: #dc796a;
+  --destructive-foreground: #2a1210;
+  --border: #2c333d;
+  --input: #3a4350;
+  --ring: #3a6bdf;
+
+  --sidebar: #0e1116;
+  --sidebar-border: #2c333d;
+  --sidebar-hover: #1a1f27;
+  --sidebar-active: #232a34;
+  --rule: #3a4350;
+
+  /* Pulled down in saturation, up in lightness, so red does not vibrate. */
+  --late: #dc796a;
+  --late-soft: #3b2421;
+  --late-edge: #6e403c;
+  --risk: #daae62;
+  --risk-soft: #3b3121;
+  --risk-edge: #6a5430;
+  --ok: #70cda1;
+  --ok-soft: #213b2f;
+  --ok-edge: #3d6b54;
+  --info: #70cdc3;
+  --info-soft: #213b38;
+  --info-edge: #3d6b66;
+
+  --pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 16px 40px -12px rgb(0 0 0 / 0.55);
 }
 
 @layer base {
@@ -277,24 +274,45 @@
    * Jobs and Problems looking like the same product.
    */
 
-  /* Above a page title: what this screen is, or the date it is showing. */
+  /*
+   * The one kicker above a page title. Sentence case — all-caps labels are
+   * not used. Mono, because it sits next to dates and codes.
+   */
   .eyebrow {
-    @apply text-muted-foreground font-mono text-[10px] tracking-[0.16em] uppercase;
+    @apply text-muted-foreground font-mono text-xs font-medium tracking-normal;
   }
 
-  /* The one h1 on a screen. */
+  /* The one h1 on a screen. 28px, 32px from the sm breakpoint. */
   .page-title {
-    @apply font-display text-2xl leading-tight font-semibold tracking-[-0.02em];
+    font-size: 1.75rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
   }
 
-  /* The sentence under it: the state of this screen, in words. */
+  @media (min-width: 640px) {
+    .page-title {
+      font-size: 2rem;
+    }
+  }
+
+  /* On a dark ground, text gains apparent weight. Drop one step. */
+  .dark .page-title,
+  .dark .section-title,
+  .dark .metric {
+    font-weight: 500;
+  }
+
+  /* The sentence under the title: the state of this screen, in words. */
   .page-lead {
     @apply text-muted-foreground max-w-prose text-sm;
   }
 
-  /* A panel's heading. Sentence case, never shouted. */
+  /* A panel's heading. 16px, 600. */
   .section-title {
-    @apply font-display text-sm font-semibold;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   /* A field's label, and the header of a table column. */
@@ -304,7 +322,12 @@
 
   /* A number meant to be read across a row of other numbers. */
   .metric {
-    @apply font-display text-[1.75rem] leading-none font-semibold tabular-nums;
+    font-family: var(--font-mono);
+    font-size: 1.75rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1;
   }
 
   /* A job code, a part number, a timestamp. */

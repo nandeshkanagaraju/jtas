@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { Countdown } from '@/components/shared/countdown';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { MyTaskDto } from '@/lib/api/my-tasks-client';
 import type { BucketName } from '@/lib/domain/task-buckets';
@@ -28,11 +27,14 @@ const ACTION =
 export function TaskCard({
   task,
   section,
+  emphasis = false,
   busy,
   onAction,
 }: {
   task: MyTaskDto;
   section: BucketName;
+  /** The only overdue task: it should be the thing the thumb hits. */
+  emphasis?: boolean;
   busy: boolean;
   onAction: (
     action: 'START' | 'COMPLETE' | 'PROBLEM',
@@ -65,26 +67,47 @@ export function TaskCard({
     >
       <div className="xl:flex xl:items-start xl:gap-8">
         <div className="min-w-0 xl:flex-1">
-          <div className="flex items-center justify-between gap-4 xl:justify-start">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <Link
               href={`/tasks/${task.id}`}
-              className="text-foreground focus-visible:outline-ring inline-flex min-h-11 items-center text-xl font-semibold tracking-tight tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2"
+              className={cn(
+                'text-foreground focus-visible:outline-ring inline-flex min-h-11 items-center font-mono font-medium tracking-tight whitespace-nowrap tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2',
+                emphasis ? 'text-[1.75rem] sm:text-3xl' : 'text-xl',
+              )}
             >
               {task.jobCode}
               <span className="sr-only">, details</span>
             </Link>
-            <Badge variant={stamp.tone} className="shrink-0 px-2 py-1 text-sm">
-              {stamp.label}
-            </Badge>
+            <p className="text-sm font-medium sm:pt-2 sm:text-right">
+              <span
+                className={
+                  stamp.tone === 'late'
+                    ? 'text-late'
+                    : stamp.tone === 'risk'
+                      ? 'text-risk'
+                      : stamp.tone === 'ok'
+                        ? 'text-ok'
+                        : stamp.tone === 'info'
+                          ? 'text-info'
+                          : 'text-foreground'
+                }
+              >
+                {stamp.label}
+              </span>
+              {overdue ? <span className="text-late"> · Overdue</span> : null}
+            </p>
           </div>
 
           {task.partNumber ? (
-            <p className="text-foreground mt-1 text-base font-semibold tabular-nums">
+            <p className="text-foreground mt-1 font-mono text-base font-medium tabular-nums">
               {task.partNumber}
             </p>
           ) : null}
 
-          <p className="text-foreground mt-2 text-base">{task.title}</p>
+          <p className={cn('text-foreground mt-2', emphasis ? 'text-lg font-medium' : 'text-base')}>
+            {task.title}
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">{task.department.name}</p>
 
           <p className="text-foreground mt-2 text-base font-semibold">
             {task.deadline ? (
@@ -179,8 +202,9 @@ function stampFor(
   if (flags.blocked) return { label: 'Blocked', tone: 'neutral' };
   if (flags.reported) return { label: 'Problem reported', tone: 'risk' };
   if (flags.waiting) return { label: 'With the MD', tone: 'info' };
-  if (flags.overdue) return { label: 'Overdue', tone: 'late' };
-  if (section === 'dueToday') return { label: 'Due today', tone: 'risk' };
+  if (section === 'dueToday' && task.status === 'PENDING')
+    return { label: 'Due today', tone: 'risk' };
   if (task.status === 'IN_PROGRESS') return { label: 'In progress', tone: 'info' };
+  if (flags.overdue) return { label: 'Not started', tone: 'late' };
   return { label: 'Not started', tone: 'neutral' };
 }

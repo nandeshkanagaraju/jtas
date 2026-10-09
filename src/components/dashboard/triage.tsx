@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { JobRelay, type RelayStation } from '@/components/shared/job-relay';
 import { formatElapsed } from '@/lib/utils/duration';
+import { cn } from '@/lib/utils';
 import type { AttentionProblem, AttentionSubtask, JobAtRisk } from '@/lib/services/analytics';
 
 /**
@@ -56,15 +57,15 @@ export function Triage({
       >
         <div className="border-border flex items-baseline justify-between gap-4 border-b px-4 py-3">
           <h2 id="problems-heading" className="section-title">
-            Problems
+            Still needs you
           </h2>
           <p className="text-muted-foreground text-sm">
-            {rest.length === 0 ? 'Nothing behind it' : `${rest.length} behind it`}
+            {rest.length === 0 ? 'Nothing else' : `${rest.length} more`}
           </p>
         </div>
         {rest.length === 0 ? (
           <p className="text-muted-foreground px-4 py-5 text-sm">
-            {first ? 'Nothing else is waiting on a decision.' : 'Nothing is waiting on you.'}
+            {first ? 'Nothing else needs you.' : 'Nothing is waiting on you.'}
           </p>
         ) : (
           <ol>
@@ -113,9 +114,12 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
       className="border-border bg-card overflow-hidden rounded-lg border"
     >
       <div className="flex">
-        <span aria-hidden className="bg-late w-1 shrink-0" />
+        <span
+          aria-hidden
+          className={cn('w-1 shrink-0', action.late ? 'bg-late' : 'bg-foreground')}
+        />
         <div className="min-w-0 flex-1 px-4 py-4 sm:px-5 sm:py-5">
-          <p className="eyebrow text-late">Decide now</p>
+          <p className="eyebrow">Decide now</p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0 flex-1">
               <p className="font-mono text-sm font-medium">{action.code}</p>
@@ -128,7 +132,10 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
               <p className="mt-2 text-sm">
                 <span className="font-medium">{action.who}</span>
                 <span className="text-muted-foreground"> · {action.where}</span>
-                <span className="text-late"> · {action.elapsed}</span>
+                <span className={action.late ? 'text-late' : 'text-muted-foreground'}>
+                  {' · '}
+                  {action.elapsed}
+                </span>
               </p>
               <p className="mt-1 text-sm">
                 {action.state}
@@ -163,7 +170,14 @@ function QueueRow({ item, stations }: { item: Item; stations: RelayStation[] }) 
       {stations.length > 0 ? <JobRelay stations={stations} density="inline" /> : null}
       <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="font-mono text-sm font-medium">{action.code}</span>
-        <span className="text-late font-mono text-sm tabular-nums">{action.elapsed}</span>
+        <span
+          className={cn(
+            'font-mono text-sm tabular-nums',
+            action.late ? 'text-late' : 'text-muted-foreground',
+          )}
+        >
+          {action.elapsed}
+        </span>
       </span>
       <span className="block text-sm font-medium">{action.title}</span>
       <span className="text-muted-foreground block text-sm">

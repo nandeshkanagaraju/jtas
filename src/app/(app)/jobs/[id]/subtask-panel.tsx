@@ -3,14 +3,16 @@
 import { ListTodo } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { JobRelay, relayStations } from '@/components/shared/job-relay';
 import { Panel } from '@/components/shared/panel';
-import { EmptyState, ErrorState, ListSkeleton } from '@/components/shared/states';
+import { EmptyState, ErrorState } from '@/components/shared/states';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
 import { fetchJobSubtasks, type SubtaskDto } from '@/lib/api/subtasks-client';
 import { fetchUsers, type UserRow } from '@/lib/api/users-client';
+import { formatIST } from '@/lib/utils/time';
 
 import { SubtaskDrawer } from './subtask-drawer';
-import { SubtaskTimeline } from './subtask-timeline';
 
 /**
  * The subtask timeline and its action drawer.
@@ -66,11 +68,11 @@ export function SubtaskPanel({
       title={
         <span className="flex items-center gap-2">
           <ListTodo className="size-4" aria-hidden />
-          Department timeline
+          The relay
         </span>
       }
       id="subtask-timeline"
-      description="One step per department, in shop-flow order. Open a step for its history and actions."
+      description="Each department's piece of this job, in shop order. Open a station for its date and its record."
       action={
         notice ? (
           <span className="text-ok text-xs font-medium" role="status">
@@ -82,7 +84,7 @@ export function SubtaskPanel({
       {error ? (
         <ErrorState message={error} onRetry={() => void load()} />
       ) : subtasks === null ? (
-        <ListSkeleton rows={4} />
+        <RelaySkeleton />
       ) : subtasks.length === 0 ? (
         <EmptyState
           icon={ListTodo}
@@ -90,13 +92,19 @@ export function SubtaskPanel({
           description="A job needs at least one department subtask before it can be published — plan them from the job wizard."
         />
       ) : (
-        <SubtaskTimeline
-          subtasks={subtasks}
-          selectedId={selected?.id}
-          onSelect={(subtask) => {
-            setSelected(subtask);
-            setDrawerOpen(true);
-          }}
+        <JobRelay
+          stations={withDates(subtasks)}
+          density="full"
+          onOpen={
+            canManage
+              ? (stationId) => {
+                  const subtask = subtasks.find((row) => row.id === stationId);
+                  if (!subtask) return;
+                  setSelected(subtask);
+                  setDrawerOpen(true);
+                }
+              : undefined
+          }
         />
       )}
 
@@ -117,5 +125,29 @@ export function SubtaskPanel({
         />
       ) : null}
     </Panel>
+  );
+}
+
+function withDates(subtasks: SubtaskDto[]) {
+  const byId = new Map(subtasks.map((row) => [row.id, row]));
+  return relayStations(subtasks).map((station) => ({
+    ...station,
+    when: whenOf(byId.get(station.id)!),
+  }));
+}
+
+function whenOf(subtask: SubtaskDto): string {
+  if (subtask.deadline) return formatIST(new Date(subtask.deadline), 'dd MMM, hh:mm a');
+  if (subtask.status === 'BLOCKED' || !subtask.commitmentDueAt) return 'No date yet';
+  return 'Awaiting a commitment';
+}
+
+function RelaySkeleton() {
+  return (
+    <div aria-hidden className="space-y-2">
+      {Array.from({ length: 6 }, (_, row) => (
+        <Skeleton key={row} className="h-14 w-full" />
+      ))}
+    </div>
   );
 }

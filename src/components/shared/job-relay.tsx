@@ -63,6 +63,8 @@ export interface RelayStation {
   done: boolean;
   current: boolean;
   problem: string | null;
+  /** A deadline already formatted for the full density. Absent on a sparkline. */
+  when?: string | null;
 }
 
 function millis(value: Date | string | null): number {
@@ -117,10 +119,13 @@ export function JobRelay({
   stations,
   density = 'inline',
   className,
+  onOpen,
 }: {
   stations: RelayStation[];
   density?: 'inline' | 'card' | 'full';
   className?: string;
+  /** Full density only. Opens the station's history. Omitted when the role cannot act. */
+  onOpen?: (stationId: string) => void;
 }) {
   if (stations.length === 0) return null;
 
@@ -134,7 +139,7 @@ export function JobRelay({
           <li key={station.id}>
             <details className="border-border bg-card group open:bg-card rounded-md border">
               <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
-                <Segment station={station} labelled />
+                <Segment station={station} labelled track={false} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="text-sm font-medium">{station.name}</span>
@@ -148,9 +153,19 @@ export function JobRelay({
                   </span>
                 </span>
               </summary>
-              <div className="border-border space-y-1 border-t px-3 py-2.5 text-sm">
+              <div className="border-border space-y-2 border-t px-3 py-2.5 text-sm">
                 <p>{station.title}</p>
+                {station.when ? <p className="font-mono text-sm">{station.when}</p> : null}
                 {station.problem ? <p className="text-foreground">{station.problem}</p> : null}
+                {onOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpen(station.id)}
+                    className="border-border hover:bg-muted min-h-11 rounded-md border px-3 text-sm font-medium"
+                  >
+                    History and actions
+                  </button>
+                ) : null}
               </div>
             </details>
           </li>
@@ -161,7 +176,10 @@ export function JobRelay({
 
   return (
     <div className={className}>
-      <ol className="flex w-full gap-1" aria-label={summary}>
+      <ol
+        className={cn('flex gap-1', density === 'inline' ? 'w-40' : 'w-full')}
+        aria-label={summary}
+      >
         {stations.map((station) => (
           <li key={station.id} className="min-w-0 flex-1">
             <Segment station={station} labelled={density === 'card'} />
@@ -177,7 +195,7 @@ export function JobRelay({
         <p className="mt-2 text-sm">
           <span className="text-muted-foreground">Holding </span>
           <span className="font-medium">
-            {holders.map((station) => `${station.holder} (${station.name})`).join(' · ')}
+            {holders.map((station) => station.holder).join(' · ')}
           </span>
           {holders.some((station) => station.late) ? (
             <span className="text-late"> · Late</span>
@@ -188,11 +206,21 @@ export function JobRelay({
   );
 }
 
-function Segment({ station, labelled }: { station: RelayStation; labelled: boolean }) {
+function Segment({
+  station,
+  labelled,
+  track = true,
+}: {
+  station: RelayStation;
+  labelled: boolean;
+  /** A sparkline segment fills its cell. The full-density mark stays a short bar. */
+  track?: boolean;
+}) {
   return (
     <span
       className={cn(
         'relative block h-2 rounded-[2px] border',
+        track ? 'w-full' : 'w-10 shrink-0 self-center',
         station.done && !station.late && 'bg-ok border-ok',
         station.done && station.late && 'bg-late border-late',
         !station.done && station.late && 'bg-late-soft border-late',

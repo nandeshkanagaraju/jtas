@@ -110,6 +110,14 @@ test('a — the MD creates a job from the template and publishes it', async ({ p
  */
 async function card(page: import('@playwright/test').Page, title: string | RegExp) {
   const found = page.locator('article').filter({ hasText: jobCode }).filter({ hasText: title });
+
+  // Sign-in resolves on the URL change, while the worklist is still the
+  // skeleton. The folds are not in the document yet, so opening them has to
+  // wait until the page has its name.
+  await expect(page.getByRole('heading', { name: 'My tasks' })).toBeVisible({
+    timeout: 20_000,
+  });
+
   if ((await found.count()) > 0) return found;
 
   // Overdue and due today stay open. Everything else is folded, so a task a
@@ -312,6 +320,10 @@ test('g — the dashboard reflects the on-time percentage', async ({ page }) => 
   await signIn(page, ACCOUNTS.md);
   await page.goto('/dashboard');
 
-  await expect(page.getByRole('heading', { name: 'Problems' })).toBeVisible({ timeout: 20_000 });
+  // The queue under the decision mixes overdue work and at-risk jobs with
+  // problems, so it is not labelled "Problems". The problems inbox keeps that name.
+  await expect(page.getByRole('heading', { name: 'Still needs you' })).toBeVisible({
+    timeout: 20_000,
+  });
   await expect(page.getByText(expected)).toBeVisible({ timeout: 20_000 });
 });

@@ -4,31 +4,20 @@ import { ClipboardList, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { JobRelay, relayStations, type RelayStation } from '@/components/shared/job-relay';
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
-import { EmptyState, ErrorState, TableSkeleton } from '@/components/shared/states';
+import { EmptyState, ErrorState } from '@/components/shared/states';
 import { ActiveFilters, Toolbar, type ActiveFilter } from '@/components/shared/toolbar';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
 import { fetchJobs, type JobRowDto } from '@/lib/api/jobs-client';
+import { fetchJobSubtasks } from '@/lib/api/subtasks-client';
 import type { DepartmentSummary } from '@/lib/services/department-service';
 import { cn } from '@/lib/utils';
 
-import {
-  DeadlineCell,
-  DepartmentChain,
-  JobProgress,
-  JobStatusBadge,
-  PriorityBadge,
-} from './job-badges';
+import { DeadlineCell, DepartmentChain, JobStatusBadge, PriorityBadge } from './job-badges';
 import {
   ALL,
   JobsFilters,
@@ -57,6 +46,7 @@ export function JobsScreen({
 
   const [filters, setFilters] = useState<JobFilters>(INITIAL);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [relays, setRelays] = useState<Record<string, RelayStation[] | null>>({});
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(filters.search), 300);
@@ -93,6 +83,35 @@ export function JobsScreen({
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Station state is not on the job list. The existing subtask read fills the
+  // sparkline for the rows on screen; a failed read falls back to the route
+  // codes rather than inventing which department is done.
+  useEffect(() => {
+    const missing = rows.filter((row) => relays[row.id] === undefined);
+    if (missing.length === 0) return;
+    let cancel = false;
+    void Promise.all(
+      missing.map(async (row) => {
+        try {
+          const { data } = await fetchJobSubtasks(row.id);
+          return [row.id, relayStations(data)] as const;
+        } catch {
+          return [row.id, null] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (cancel) return;
+      setRelays((current) => {
+        const next = { ...current };
+        for (const [id, stations] of entries) next[id] = stations;
+        return next;
+      });
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [rows, relays]);
 
   /** Appends the next cursor page rather than replacing the list. */
   async function loadMore() {
@@ -188,7 +207,7 @@ export function JobsScreen({
 
       <Panel flush>
         {loading ? (
-          <TableSkeleton rows={6} columns={5} />
+          <JobsSkeleton />
         ) : error ? (
           <ErrorState message={error} onRetry={() => void load()} />
         ) : rows.length === 0 ? (
@@ -218,76 +237,13 @@ export function JobsScreen({
             }
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-rule hover:bg-transparent">
-                <TableHead className="pl-4">Job</TableHead>
-                <TableHead className="hidden lg:table-cell">Route</TableHead>
-                <TableHead className="hidden md:table-cell">Progress</TableHead>
-                <TableHead className="hidden sm:table-cell">Deadline</TableHead>
-                <TableHead className="pr-4 text-right sm:text-left">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((job) => (
-                <TableRow
-                  key={job.id}
-                  className={cn(
-                    // A job carrying a missed subtask deadline is marked on its
-                    // leading edge as well as in its status — the status word
-                    // can read "In progress" while a department is already late.
-                    job.hasOverdueSubtask && 'border-l-late border-l-[3px]',
-                  )}
-                >
-                  <TableCell className={cn('py-3', job.hasOverdueSubtask ? 'pl-[13px]' : 'pl-4')}>
-                    <Link
-                      href={`/jobs/${job.id}`}
-                      className="block space-y-0.5 focus-visible:outline-none"
-                    >
-                      <span className="code text-muted-foreground block text-xs">
-                        {job.jobCode}
-                      </span>
-                      <span className="block max-w-[13rem] truncate font-medium sm:max-w-none">
-                        {job.title}
-                      </span>
-                      <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
-                        {job.customerName ? <span>{job.customerName}</span> : null}
-                        {job.partNumber ? <span className="code">· {job.partNumber}</span> : null}
-                        <PriorityBadge priority={job.priority} />
-                        {job.hasOverdueSubtask ? (
-                          <span className="text-late font-medium">· a task is overdue</span>
-                        ) : null}
-                      </span>
-                      {/* The deadline column is hidden on a phone, so the
-                          deadline folds in here rather than disappearing. */}
-                      <DeadlineCell
-                        deadline={job.overallDeadline}
-                        completedAt={job.completedAt}
-                        compact
-                        className="pt-0.5 sm:hidden"
-                      />
-                    </Link>
-                  </TableCell>
-
-                  <TableCell className="hidden lg:table-cell">
-                    <DepartmentChain departments={job.departments} />
-                  </TableCell>
-
-                  <TableCell className="hidden md:table-cell">
-                    <JobProgress progress={job.progress} />
-                  </TableCell>
-
-                  <TableCell className="hidden sm:table-cell">
-                    <DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />
-                  </TableCell>
-
-                  <TableCell className="pr-4 text-right sm:text-left">
-                    <JobStatusBadge status={job.status} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ol>
+            {rows.map((job) => (
+              <li key={job.id} className="border-border border-t first:border-t-0">
+                <JobRow job={job} stations={relays[job.id]} />
+              </li>
+            ))}
+          </ol>
         )}
       </Panel>
 
@@ -312,5 +268,76 @@ function lead(total: number, loading: boolean, filtered: boolean, failed: boolea
   if (failed) return 'The job list could not be loaded.';
   if (filtered) return 'Filtered. Clear a chip below to widen the list again.';
   if (total === 0) return 'Nothing has been raised yet.';
-  return 'Newest deadline first. Open a job for its department-by-department timeline.';
+  return 'Newest deadline first. The mark on the route is who holds the job now.';
+}
+
+function JobRow({
+  job,
+  stations,
+}: {
+  job: JobRowDto;
+  /** Undefined while the route is loading, null when that read failed. */
+  stations: RelayStation[] | null | undefined;
+}) {
+  return (
+    <Link
+      href={`/jobs/${job.id}`}
+      className={cn(
+        'hover:bg-muted/60 focus-visible:outline-ring flex flex-col gap-3 px-4 py-3 transition-colors duration-150 md:flex-row md:items-center md:gap-6',
+        job.hasOverdueSubtask && 'border-l-late border-l-[3px]',
+      )}
+    >
+      <span className="min-w-0 md:flex-1">
+        <span className="code text-muted-foreground block text-xs">{job.jobCode}</span>
+        <span className="mt-0.5 block truncate font-medium">{job.title}</span>
+        <span className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
+          {job.customerName ? <span>{job.customerName}</span> : null}
+          {job.partNumber ? <span className="code">{job.partNumber}</span> : null}
+          <PriorityBadge priority={job.priority} />
+          {job.progress.total > 0 ? (
+            <span className="code">
+              {job.progress.completed}/{job.progress.total}
+            </span>
+          ) : null}
+        </span>
+      </span>
+
+      <span className="w-40 shrink-0">
+        {stations === undefined ? (
+          <Skeleton className="h-2 w-40" />
+        ) : stations && stations.length > 0 ? (
+          <JobRelay stations={stations} density="inline" />
+        ) : (
+          <DepartmentChain departments={job.departments} />
+        )}
+      </span>
+
+      <span className="flex items-center justify-between gap-3 md:contents">
+        <DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />
+        <span className="flex shrink-0 flex-col items-end gap-1 md:w-28 md:items-start">
+          <JobStatusBadge status={job.status} />
+          {job.hasOverdueSubtask ? (
+            <span className="text-late text-xs font-medium">Overdue</span>
+          ) : null}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function JobsSkeleton() {
+  return (
+    <div aria-hidden className="divide-border divide-y">
+      {Array.from({ length: 6 }, (_, row) => (
+        <div key={row} className="flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center">
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-4 w-56 max-w-full" />
+          </div>
+          <Skeleton className="h-2 w-40" />
+          <Skeleton className="h-4 w-28" />
+        </div>
+      ))}
+    </div>
+  );
 }

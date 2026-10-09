@@ -137,7 +137,8 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
         <p className="eyebrow">{today}</p>
-        <h1 className="mt-1 text-base font-medium">{standing(data.summary)}</h1>
+        <h1 className="page-title mt-1">My tasks</h1>
+        <p className="mt-2 text-base font-medium">{standing(data.summary)}</p>
       </header>
 
       {refreshError ? (

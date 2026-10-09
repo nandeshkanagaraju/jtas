@@ -134,26 +134,45 @@ admin — while staying unmistakably about *machining jobs and deadlines*.
 
 **Decide these yourself; this is the brief, not the spec:**
 
-- **Surfaces.** A true neutral canvas with real contrast — not beige. Use
-  layered elevation (soft, short-radius shadows) to separate planes, not
-  hairlines alone. Light is the primary theme because members read this on a
-  phone in daylight; ship a genuinely good dark theme as well, switchable, and
-  design both at once rather than deriving one from the other.
+- **Surfaces — dark is the primary theme.** A deep neutral canvas, never pure
+  black: `#000` on an OLED phone makes text bloom and smear, and it kills the
+  sense of depth. Work from roughly `#0E1013`–`#14171B` and go *lighter* as
+  things come forward — canvas, then panel, then raised — because on dark,
+  elevation is carried by surface lightness and a hairline, not by shadow.
+  Shadows exist only under things that genuinely float (a dialog, a drawer, a
+  menu). Light is a **complete second theme**, designed at the same time rather
+  than derived by inverting values — see the daylight requirement below.
 - **Accent.** One saturated accent that is clearly *not* the status palette, so
-  "this is a button" and "this is late" can never be confused. Pick something
-  with conviction — an instrument blue, a cobalt, a deep teal.
-- **Status.** Four genuinely saturated, genuinely distinguishable tones for
-  late / at-risk / in-progress / done, each with a text, a fill and a border
-  value, verified at 4.5:1 in both themes. Loud enough to read across a desk.
-  Never the only signal — always a word too.
-- **Typography.** Replace the current faces. Pick a confident display face for
-  headings and large numbers, a highly legible UI sans for body and tables, and
-  a mono reserved strictly for job codes, part numbers, timestamps and metrics.
-  Build a real scale with wide enough steps to create hierarchy. Reasonable
-  pairings: Geist + Geist Mono; Inter Tight + Inter + JetBrains Mono;
-  Bricolage Grotesque + Inter + JetBrains Mono. Choose on legibility at 13–14px
-  in a dense table, not on novelty. No all-caps labels anywhere except at most
-  one page-level kicker.
+  "this is a button" and "this is late" can never be confused. On a dark canvas
+  it has to carry a white or near-black label at 4.5:1 without glowing — an
+  instrument blue or a cobalt around 55–65% lightness does this; a neon does
+  not.
+- **Status.** Four genuinely distinguishable tones for late / at-risk /
+  in-progress / done, each with a text, a fill and a border value, verified at
+  4.5:1 in **both** themes. On dark, a fully saturated red vibrates against the
+  background and is tiring to sit in front of: pull saturation down and
+  lightness up relative to the light theme, and get contrast from the tinted
+  fill and its border rather than from raw chroma. Loud enough to read across a
+  desk, never the only signal — always a word too.
+- **Typography — use these faces.**
+  - **Geist Sans** for everything: UI, body, tables, and headings. Load via
+    `next/font/google` if it is published there, otherwise the `geist` npm
+    package through `next/font/local`.
+  - **Geist Mono** for job codes, part numbers, drawing numbers, quantities,
+    timestamps, countdowns, metrics, and the station labels on the relay.
+
+  One superfamily, deliberately. The current UI's problem is not too few faces,
+  it is too narrow a scale — everything sits at 14px in two weights. Build
+  hierarchy from **size, weight and tracking** instead: a page title around
+  28–32px at 600 with roughly `-0.02em` tracking, section headings at 15–16px
+  at 600, body at 14px at 400, supporting labels at 12–13px at 500. Then let
+  **the mono carry the character.** Using it structurally — every job code,
+  every deadline, every number in a table — is what will make this read as an
+  instrument panel rather than a website, and it is the cheapest distinctive
+  decision available. Enable tabular figures (`tnum`) everywhere numbers stack
+  in a column. On dark, drop one weight step from what you would use on light;
+  text gains apparent weight against a dark ground. No all-caps labels anywhere
+  except at most one page-level kicker.
 - **Density.** Two modes by intent, not one compromise: the MD's screens are
   dense and scannable; the member's screens are large, high-contrast and
   thumb-sized.
@@ -161,9 +180,14 @@ admin — while staying unmistakably about *machining jobs and deadlines*.
   change — a row leaving a queue, a drawer arriving, a status flipping. Fully
   disabled under `prefers-reduced-motion`.
 
-> **Swap this paragraph if you want a different mood:** if the owner prefers a
-> dark-first instrument panel, invert the above — dark as primary, light as the
-> alternate — and keep everything else.
+> **The one risk dark-first carries, and your job to close it.** Members read
+> My Tasks and the task detail on a phone, on a shop floor, often in daylight
+> coming through a roller door. A dark screen in that light is harder to read
+> than a light one. So: the theme must follow the device by default, with a
+> switch the member can reach in one tap; the light theme must be as finished
+> as the dark one, not an afterthought; and you must check the member screens
+> at full brightness in a bright room before you call them done. If a member
+> screen only works in the dark, it is not done.
 
 ### The signature ideas — build these, they are the point
 
@@ -198,9 +222,10 @@ admin — while staying unmistakably about *machining jobs and deadlines*.
 ## 5. Hard constraints — breaking these breaks the product
 
 **Do not touch at all:** `src/app/api/**`, `src/lib/**`, `src/middleware.ts`,
-`prisma/**`, `worker/**`, `scripts/**`. No schema changes, no new API routes, no
-new dependencies beyond fonts. If a screen needs a field the DTO does not carry,
-redesign the screen — do not change the service.
+`prisma/**`, `worker/**`, `scripts/**`. No schema changes, no new API routes,
+and no new dependencies beyond the font packages named in section 4. If a
+screen needs a field the DTO does not carry, redesign the screen — do not
+change the service.
 
 **Keep every permission exactly as it is.** Server-side `can()` gates and
 `forbidden()` calls stay. Never show an action a role cannot perform, and never
@@ -289,6 +314,10 @@ For every screen, implement and actually verify:
 style, a skip link, semantic landmarks and headings, 4.5:1 contrast in both
 themes, 44px touch targets on coarse pointers, `prefers-reduced-motion`
 honoured globally, and status never signalled by colour alone.
+
+**Both themes, every screen.** Nothing ships verified in one theme only, and
+the member's phone screens are checked in daylight as well — see the note at
+the end of section 4.
 
 **Responsive:** design the phone layout for the shop floor on its own terms —
 not a desktop page squeezed into 390px. Tables become cards or lists; nothing

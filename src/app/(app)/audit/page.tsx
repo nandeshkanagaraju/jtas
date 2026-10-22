@@ -72,8 +72,8 @@ export default async function AuditPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Append-only record"
-        title="Audit log"
+        eyebrow="Governance / Audit trail"
+        title="Activity log"
         lead="Every state-changing action, with who did it and what changed. Nothing here can be edited or removed, which is what makes it evidence."
       />
 

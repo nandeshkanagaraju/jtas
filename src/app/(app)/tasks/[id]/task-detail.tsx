@@ -119,9 +119,9 @@ export function TaskDetail({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="member-workspace w-full space-y-5">
       <PageHeader
-        back={{ href: '/my-tasks', label: 'My tasks' }}
+        back={{ href: '/my-tasks', label: 'My work' }}
         eyebrow={
           <>
             {subtask.jobCode}
@@ -143,179 +143,207 @@ export function TaskDetail({
         }
       />
 
-      {owesCommitment && subtask.commitmentDueAt ? (
-        <CommitmentPanel
-          subtaskId={subtask.id}
-          jobCode={subtask.jobCode}
-          jobTitle={subtask.jobTitle}
-          departmentName={subtask.department.name}
-          commitmentDueAt={subtask.commitmentDueAt}
-          onCommitted={() => router.refresh()}
-          onReportProblem={() => setReporting(true)}
-        />
-      ) : null}
-
-      {/* Everything needed to decide, above the buttons (SDD 7.2). */}
-      <Panel bodyClassName="p-4 space-y-4">
+      <dl className="grid gap-4 border-y py-4 text-sm sm:grid-cols-3">
         <div>
-          <p className="field-label">
-            {subtask.deadline ? 'Your deadline' : owesCommitment ? 'Commit a date' : 'Deadline'}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className={cn('code text-lg font-semibold', subtask.isOverdue && 'text-late')}>
-              {subtask.deadline
-                ? formatIST(new Date(subtask.deadline))
-                : owesCommitment
-                  ? 'Awaiting your commitment'
-                  : 'No date yet'}
-            </span>
-            {subtask.deadline ? (
-              <Countdown deadline={subtask.deadline} className="text-sm" />
-            ) : null}
-            {subtask.requiresApproval ? (
-              <Badge variant="outline" className="gap-1">
-                <Lock className="size-3" aria-hidden />
-                MD approves
-              </Badge>
-            ) : null}
-          </div>
+          <dt className="field-label">Assigned to</dt>
+          <dd className="mt-1 font-medium">{subtask.assignee.name}</dd>
         </div>
+        <div>
+          <dt className="field-label">Department</dt>
+          <dd className="mt-1">{subtask.department.name}</dd>
+        </div>
+        <div>
+          <dt className="field-label">Job reference</dt>
+          <dd className="code mt-1">
+            {subtask.jobCode}
+            {subtask.partNumber ? ` / ${subtask.partNumber}` : ''}
+          </dd>
+        </div>
+      </dl>
+      <div className="task-detail-layout">
+        <div className="min-w-0 space-y-5">
+          {owesCommitment && subtask.commitmentDueAt ? (
+            <CommitmentPanel
+              subtaskId={subtask.id}
+              jobCode={subtask.jobCode}
+              jobTitle={subtask.jobTitle}
+              departmentName={subtask.department.name}
+              commitmentDueAt={subtask.commitmentDueAt}
+              onCommitted={() => router.refresh()}
+              onReportProblem={() => setReporting(true)}
+            />
+          ) : null}
 
-        {subtask.description ? (
-          <p className="text-foreground text-base whitespace-pre-wrap">{subtask.description}</p>
-        ) : null}
+          {/* Everything needed to decide, above the buttons (SDD 7.2). */}
+          <Panel bodyClassName="p-4 space-y-4">
+            <div>
+              <p className="field-label">
+                {subtask.deadline ? 'Your deadline' : owesCommitment ? 'Commit a date' : 'Deadline'}
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span
+                  className={cn('code text-lg font-semibold', subtask.isOverdue && 'text-late')}
+                >
+                  {subtask.deadline
+                    ? formatIST(new Date(subtask.deadline))
+                    : owesCommitment
+                      ? 'Awaiting your commitment'
+                      : 'No date yet'}
+                </span>
+                {subtask.deadline ? (
+                  <Countdown deadline={subtask.deadline} className="text-sm" />
+                ) : null}
+                {subtask.requiresApproval ? (
+                  <Badge variant="outline" className="gap-1">
+                    <Lock className="size-3" aria-hidden />
+                    MD approves
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
 
-        <TaskStatusAlerts subtask={subtask} readOnly={!permissions.updateStatus} />
+            {subtask.description ? (
+              <p className="text-foreground text-base whitespace-pre-wrap">{subtask.description}</p>
+            ) : null}
 
-        {canAct ? (
-          <>
-            <Separator />
+            <TaskStatusAlerts subtask={subtask} readOnly={!permissions.updateStatus} />
 
-            {reporting ? (
-              <ProblemForm
-                busy={busy}
-                autoFocus
-                onCancel={() => setReporting(false)}
-                onSubmit={(payload) => act('PROBLEM', payload)}
-              />
-            ) : completing ? (
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <p className="text-sm font-medium">
-                    Anything worth recording?{' '}
-                    <span className="text-muted-foreground font-normal">(optional)</span>
-                  </p>
-                  <Textarea
-                    ref={completeRef}
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    rows={2}
-                    maxLength={5000}
-                    disabled={busy}
-                    placeholder="Batch cleared, report filed…"
+            {canAct ? (
+              <>
+                <Separator />
+
+                {reporting ? (
+                  <ProblemForm
+                    busy={busy}
+                    autoFocus
+                    onCancel={() => setReporting(false)}
+                    onSubmit={(payload) => act('PROBLEM', payload)}
                   />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    className="min-h-12 flex-1 text-base"
-                    disabled={busy}
-                    onClick={() => act('COMPLETE')}
-                  >
-                    <Check className="size-5" />
-                    {subtask.requiresApproval ? 'Send for approval' : 'Mark completed'}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="min-h-12"
-                    onClick={() => setCompleting(false)}
-                    disabled={busy}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              /* The three large primary buttons of SDD 7.2, 48px tall. */
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Button
-                  variant="outline"
-                  className="min-h-12 text-base"
-                  disabled={busy || blocked || subtask.status !== 'PENDING'}
-                  title={
-                    blocked
-                      ? `Waiting for ${subtask.dependsOn?.title ?? 'another task'} to be finished.`
-                      : undefined
-                  }
-                  onClick={() => act('START')}
-                >
-                  <Play className="size-5" />
-                  Start work
-                </Button>
+                ) : completing ? (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <p className="text-sm font-medium">
+                        Anything worth recording?{' '}
+                        <span className="text-muted-foreground font-normal">(optional)</span>
+                      </p>
+                      <Textarea
+                        ref={completeRef}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        rows={2}
+                        maxLength={5000}
+                        disabled={busy}
+                        placeholder="Batch cleared, report filed…"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        className="min-h-12 flex-1 text-base"
+                        disabled={busy}
+                        onClick={() => act('COMPLETE')}
+                      >
+                        <Check className="size-5" />
+                        {subtask.requiresApproval ? 'Send for approval' : 'Mark completed'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="min-h-12"
+                        onClick={() => setCompleting(false)}
+                        disabled={busy}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* The three large primary buttons of SDD 7.2, 48px tall. */
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <Button
+                      variant="outline"
+                      className="min-h-12 text-base"
+                      disabled={busy || blocked || subtask.status !== 'PENDING'}
+                      title={
+                        blocked
+                          ? `Waiting for ${subtask.dependsOn?.title ?? 'another task'} to be finished.`
+                          : undefined
+                      }
+                      onClick={() => act('START')}
+                    >
+                      <Play className="size-5" />
+                      Start work
+                    </Button>
 
-                <Button
-                  className="min-h-12 text-base"
-                  disabled={busy || blocked}
-                  title={blocked ? 'You can finish this once the task above is done.' : undefined}
-                  onClick={() => setCompleting(true)}
-                >
-                  <Check className="size-5" />
-                  Mark completed
-                </Button>
+                    <Button
+                      className="min-h-12 text-base"
+                      disabled={busy || blocked}
+                      title={
+                        blocked ? 'You can finish this once the task above is done.' : undefined
+                      }
+                      onClick={() => setCompleting(true)}
+                    >
+                      <Check className="size-5" />
+                      Mark completed
+                    </Button>
 
-                <Button
-                  variant="outline"
-                  className="min-h-12 text-base"
-                  disabled={
-                    busy || blocked || !permissions.raiseProblem || subtask.status === 'PROBLEM'
-                  }
-                  title={
-                    blocked ? 'Report a problem once the work is actually yours to do.' : undefined
-                  }
-                  onClick={() => setReporting(true)}
-                >
-                  <TriangleAlert className="size-5" />
-                  Report problem
-                </Button>
-              </div>
-            )}
-          </>
-        ) : null}
+                    <Button
+                      variant="outline"
+                      className="min-h-12 text-base"
+                      disabled={
+                        busy || blocked || !permissions.raiseProblem || subtask.status === 'PROBLEM'
+                      }
+                      title={
+                        blocked
+                          ? 'Report a problem once the work is actually yours to do.'
+                          : undefined
+                      }
+                      onClick={() => setReporting(true)}
+                    >
+                      <TriangleAlert className="size-5" />
+                      Report problem
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : null}
 
-        {blocked && permissions.updateStatus ? (
-          <p className="text-muted-foreground text-xs">
-            These stay unavailable until{' '}
-            {subtask.dependsOn ? `“${subtask.dependsOn.title}”` : 'the task above'} is finished.
-          </p>
-        ) : null}
-      </Panel>
+            {blocked && permissions.updateStatus ? (
+              <p className="text-muted-foreground text-xs">
+                These stay unavailable until{' '}
+                {subtask.dependsOn ? `“${subtask.dependsOn.title}”` : 'the task above'} is finished.
+              </p>
+            ) : null}
+          </Panel>
 
-      {permissions.requestExtension && subtask.deadline && !done && !cancelled ? (
-        <ExtensionPanel
-          subtaskId={subtask.id}
-          currentDeadline={subtask.deadline}
-          requests={extensionRequests}
-          onChanged={() => router.refresh()}
-        />
-      ) : null}
+          {permissions.requestExtension && subtask.deadline && !done && !cancelled ? (
+            <ExtensionPanel
+              subtaskId={subtask.id}
+              currentDeadline={subtask.deadline}
+              requests={extensionRequests}
+              onChanged={() => router.refresh()}
+            />
+          ) : null}
+        </div>
+        <div className="min-w-0 space-y-5">
+          <Panel
+            title="Comments and files"
+            description="Drawings, inspection reports and the back-and-forth on this task."
+            bodyClassName="p-4 space-y-6"
+          >
+            <AttachmentPanel
+              jobId={subtask.jobId}
+              subtaskId={subtask.id}
+              canUpload={permissions.attach}
+              canDelete={permissions.attach}
+            />
 
-      <Panel
-        title="Comments and files"
-        description="Drawings, inspection reports and the back-and-forth on this task."
-        bodyClassName="p-4 space-y-6"
-      >
-        <AttachmentPanel
-          jobId={subtask.jobId}
-          subtaskId={subtask.id}
-          canUpload={permissions.attach}
-          canDelete={permissions.attach}
-        />
-
-        <CommentThread
-          subtaskId={subtask.id}
-          currentUserId={currentUserId}
-          canComment={permissions.comment}
-        />
-      </Panel>
+            <CommentThread
+              subtaskId={subtask.id}
+              currentUserId={currentUserId}
+              canComment={permissions.comment}
+            />
+          </Panel>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/shared/app-shell';
-import type { NavItem } from '@/components/shared/main-nav';
+import { NAV_LABELS, type NavItem } from '@/components/shared/main-nav';
 import { Toaster } from '@/components/ui/sonner';
 import { can } from '@/lib/auth/policy';
 import { listNotifications } from '@/lib/notifications/notification-service';
@@ -95,5 +95,5 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
     nav.push({ href: '/settings', label: 'Settings', icon: 'settings' });
   }
 
-  return nav;
+  return nav.map((item) => ({ ...item, label: NAV_LABELS[item.href] ?? item.label }));
 }

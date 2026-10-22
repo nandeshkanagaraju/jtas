@@ -48,14 +48,18 @@ export function Panel({
 
   return (
     <section
+      data-slot="panel"
       aria-labelledby={title ? headingId : undefined}
-      className={cn('border-border bg-card flex min-w-0 flex-col rounded-lg border', className)}
+      className={cn(
+        'product-panel border-border bg-card flex min-w-0 flex-col rounded-lg border',
+        className,
+      )}
     >
       {title ? (
         <div
           className={cn(
-            'border-border flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b px-4',
-            description ? 'py-3' : 'min-h-11 py-2',
+            'panel-heading border-border flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b px-5',
+            description ? 'py-5' : 'min-h-16 py-4',
           )}
         >
           <div className="min-w-0">
@@ -63,7 +67,7 @@ export function Panel({
               {title}
             </h2>
             {description ? (
-              <p className="text-muted-foreground mt-0.5 text-xs">{description}</p>
+              <p className="text-muted-foreground mt-1 text-xs">{description}</p>
             ) : null}
           </div>
           {action ??
@@ -80,7 +84,7 @@ export function Panel({
         </div>
       ) : null}
 
-      <div className={cn('min-w-0 flex-1', !flush && 'p-4', bodyClassName)}>{children}</div>
+      <div className={cn('min-w-0 flex-1', !flush && 'p-5 sm:p-6', bodyClassName)}>{children}</div>
 
       {footer ? (
         <Link

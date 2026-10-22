@@ -74,7 +74,7 @@ export function UsersTable({
             <TableHead className="hidden sm:table-cell">Role</TableHead>
             <TableHead className="hidden md:table-cell">Department</TableHead>
             <TableHead className="hidden lg:table-cell">Last login</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead className="hidden sm:table-cell">Status</TableHead>
             <TableHead className="pr-4 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -85,6 +85,18 @@ export function UsersTable({
                 <div className="max-w-[8.5rem] truncate font-medium sm:max-w-none">{user.name}</div>
                 <div className="text-muted-foreground max-w-[8.5rem] truncate text-xs sm:max-w-none">
                   {user.email}
+                </div>
+                <div className="mt-1 sm:hidden">
+                  <StatusBadge
+                    isActive={user.isActive}
+                    lockedUntil={user.lockedUntil}
+                    mustChangePassword={user.mustChangePassword}
+                  />
+                  {user.isActive && (user.openSubtaskCount ?? 0) > 0 ? (
+                    <span className="text-muted-foreground ml-1 text-xs">
+                      {user.openSubtaskCount} open
+                    </span>
+                  ) : null}
                 </div>
                 <div className="text-muted-foreground mt-1 max-w-[8.5rem] truncate text-xs sm:hidden">
                   {ROLE_LABELS[user.role]}
@@ -104,7 +116,7 @@ export function UsersTable({
                 {user.lastLoginAt ? formatIST(new Date(user.lastLoginAt)) : 'Never'}
               </TableCell>
 
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <StatusBadge
                   isActive={user.isActive}
                   lockedUntil={user.lockedUntil}

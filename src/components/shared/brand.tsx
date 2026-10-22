@@ -1,23 +1,19 @@
 import { cn } from '@/lib/utils';
 
-/**
- * The JTAS wordmark, with the same mark the sidebar carries so that the sign-in
- * screen and the app read as one product. Intentionally plain beyond that —
- * this is an internal tool, and this screen's job is to get someone onto the
- * shop floor, not to sell.
- */
-export function Brand({ className }: { className?: string }) {
+export function Brand({ className, compact = false }: { className?: string; compact?: boolean }) {
   return (
-    <div className={cn('flex flex-col items-center gap-3 text-center', className)}>
-      <span className="bg-primary text-primary-foreground font-display inline-flex size-10 items-center justify-center rounded-lg text-lg font-bold">
-        J
+    <span className={cn('inline-flex min-w-0 items-center gap-2 sm:gap-2.5', className)}>
+      <span className="brand-symbol" aria-hidden>
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M5 7h8v18H5zM17 7h10v6H17zM17 17h10v8H17z" fill="currentColor" />
+          <path d="M13 13h4v4h-4z" fill="currentColor" opacity=".45" />
+        </svg>
       </span>
-      <span>
-        <span className="font-display block text-xl font-semibold tracking-[-0.02em]">JTAS</span>
-        <span className="text-muted-foreground mt-1 block text-xs">
-          Jaraa Global Engineering Pvt Ltd
+      {!compact ? (
+        <span className="text-[20px] leading-none font-semibold tracking-[-0.065em] sm:text-[25px]">
+          Jaraa<span className="text-action">/</span>
         </span>
-      </span>
-    </div>
+      ) : null}
+    </span>
   );
 }

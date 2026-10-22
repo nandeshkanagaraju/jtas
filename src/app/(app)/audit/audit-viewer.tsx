@@ -236,7 +236,7 @@ function Row({
         aria-expanded={expanded}
         className="hover:bg-accent/40 flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors"
       >
-        <span className="code text-muted-foreground w-36 shrink-0 text-xs">
+        <span className="code text-muted-foreground w-24 shrink-0 text-xs break-words sm:w-36">
           {formatIST(new Date(entry.createdAt))}
         </span>
 
@@ -252,7 +252,7 @@ function Row({
               {entry.action.replaceAll('_', ' ')}
             </Badge>
             <span className="text-muted-foreground text-xs">
-              {entry.entityType} · <span className="code">{entry.entityId}</span>
+              {entry.entityType} · <span className="code break-all">{entry.entityId}</span>
             </span>
           </span>
 

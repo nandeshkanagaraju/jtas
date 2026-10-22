@@ -1,3 +1,6 @@
+import Link from 'next/link';
+import { CalendarDays, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 import { Suspense } from 'react';
@@ -15,15 +18,10 @@ import { listJobSubtasks } from '@/lib/services/subtasks';
 import { formatElapsed } from '@/lib/utils/duration';
 import { formatIST } from '@/lib/utils/time';
 
-export const metadata: Metadata = { title: 'Dashboard' };
+export const metadata: Metadata = { title: 'Production overview' };
 export const dynamic = 'force-dynamic';
 
-/**
- * MD dashboard.
- *
- * The first thing on the page is the decision. Counts and the completion
- * chart sit under it, because they review the shop rather than move it.
- */
+/** Production pulse, the priority decision, then the full action register. */
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -45,7 +43,7 @@ export default async function DashboardPage({
 
   const onTime =
     data.onTimeCompletionPercent === null
-      ? 'Nothing has been completed in this range yet.'
+      ? 'No completed tasks in the selected period.'
       : `${data.onTimeCompletionPercent}% of ${data.completedInRange} completed subtasks were on time` +
         (data.averageDelayHours > 0
           ? `, averaging ${formatElapsed(data.averageDelayHours * 60)} late.`
@@ -53,13 +51,29 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="eyebrow">{formatIST(new Date(), 'EEEE d MMMM')}</p>
-        <h1 className="page-title mt-1.5">What needs you</h1>
-        <p className="page-lead mt-2">
-          {headline(data.kpis.openProblems, data.kpis.overdueSubtasks)}
-        </p>
+      <header className="overview-heading flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <p className="eyebrow">Jaraa Global / Production control</p>
+          <h1 className="overview-title mt-3">
+            Production overview<span className="text-action">.</span>
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-muted-foreground mr-2 inline-flex items-center gap-2 text-xs">
+            <CalendarDays className="size-4" />
+            {formatIST(new Date(), 'dd MMM yyyy')}
+          </span>
+          {can(session, 'job:create', undefined) ? (
+            <Button asChild>
+              <Link href="/jobs/new">
+                <Plus className="size-4" />
+                New job
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </header>
+      <SummaryStrip kpis={data.kpis} />
 
       <Triage
         problems={data.attention.problems}
@@ -70,12 +84,14 @@ export default async function DashboardPage({
 
       <div className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h2 className="section-title">The shop</h2>
+          <div>
+            <p className="eyebrow">Performance review</p>
+            <h2 className="section-title mt-1">Delivery, measured.</h2>
+          </div>
           <Suspense fallback={<Skeleton className="h-14 w-72" />}>
             <RangePicker from={data.range.from} to={data.range.to} plain />
           </Suspense>
         </div>
-        <SummaryStrip kpis={data.kpis} />
         <OnTimeTrend trend={data.trend} summary={onTime} />
       </div>
     </div>
@@ -98,16 +114,4 @@ async function loadRelays(
     }),
   );
   return Object.fromEntries(entries);
-}
-
-function headline(problems: number, overdue: number): string {
-  if (problems === 0 && overdue === 0) {
-    return 'Every live job is on track and no one is blocked.';
-  }
-
-  const parts: string[] = [];
-  if (problems > 0) parts.push(`${problems} open ${problems === 1 ? 'problem' : 'problems'}`);
-  if (overdue > 0) parts.push(`${overdue} ${overdue === 1 ? 'deadline' : 'deadlines'} slipped`);
-
-  return `${parts.join(' and ')}. The decision is the first item.`;
 }

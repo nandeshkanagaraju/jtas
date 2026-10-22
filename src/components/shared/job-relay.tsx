@@ -134,57 +134,65 @@ export function JobRelay({
 
   if (density === 'full') {
     return (
-      <ol className={cn('space-y-2', className)} aria-label={summary}>
-        {stations.map((station) => (
-          <li key={station.id}>
-            <details className="border-border bg-card group open:bg-card rounded-md border">
-              <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
-                <Segment station={station} labelled track={false} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="text-sm font-medium">{station.name}</span>
-                    <span className="font-mono text-xs">{station.code}</span>
+      <div className={cn('space-y-5', className)}>
+        <JobRelay stations={stations} density="card" />
+        <ol className="relay-stations" aria-label={summary}>
+          {stations.map((station) => (
+            <li key={station.id}>
+              <details className="relay-station border-border bg-card group open:bg-card border">
+                <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                  <Segment station={station} labelled track={false} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="text-sm font-medium">{station.name}</span>
+                      <span className="font-mono text-xs">{station.code}</span>
+                    </span>
+                    <span className="text-muted-foreground mt-0.5 block text-sm">
+                      {station.holder}
+                      {' · '}
+                      {station.statusLabel}
+                      {station.late ? <span className="text-late"> · Late</span> : null}
+                    </span>
+                    {station.when ? (
+                      <span className="text-muted-foreground mt-1.5 block font-mono text-xs">
+                        {station.when}
+                      </span>
+                    ) : null}
                   </span>
-                  <span className="text-muted-foreground mt-0.5 block text-sm">
-                    {station.holder}
-                    {' · '}
-                    {station.statusLabel}
-                    {station.late ? <span className="text-late"> · Late</span> : null}
-                  </span>
-                </span>
-              </summary>
-              <div className="border-border space-y-2 border-t px-3 py-2.5 text-sm">
-                <p>{station.title}</p>
-                {station.when ? <p className="font-mono text-sm">{station.when}</p> : null}
-                {station.problem ? <p className="text-foreground">{station.problem}</p> : null}
-                {onOpen ? (
-                  <button
-                    type="button"
-                    onClick={() => onOpen(station.id)}
-                    className="border-border hover:bg-muted min-h-11 rounded-md border px-3 text-sm font-medium"
-                  >
-                    History and actions
-                  </button>
-                ) : null}
-              </div>
-            </details>
-          </li>
-        ))}
-      </ol>
+                </summary>
+                <div className="border-border space-y-3 border-t px-4 py-4 text-sm">
+                  <p>{station.title}</p>
+                  {station.when ? <p className="font-mono text-sm">{station.when}</p> : null}
+                  {station.problem ? <p className="text-foreground">{station.problem}</p> : null}
+                  {onOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpen(station.id)}
+                      className="border-border hover:bg-muted min-h-11 rounded-md border px-3 text-sm font-medium"
+                    >
+                      History and actions
+                    </button>
+                  ) : null}
+                </div>
+              </details>
+            </li>
+          ))}
+        </ol>
+      </div>
     );
   }
 
   return (
-    <div className={className}>
+    <div className={cn(density === 'card' && 'relay-card', className)}>
       <ol
-        className={cn('flex gap-1', density === 'inline' ? 'w-40' : 'w-full')}
+        className={cn('relay-track', density === 'inline' ? 'w-32' : 'w-full')}
         aria-label={summary}
       >
         {stations.map((station) => (
           <li key={station.id} className="min-w-0 flex-1">
             <Segment station={station} labelled={density === 'card'} />
             {density === 'card' ? (
-              <span className="text-muted-foreground mt-1 block truncate text-center font-mono text-xs">
+              <span className="text-muted-foreground mt-2 block truncate text-center font-mono text-[10px]">
                 {station.code}
               </span>
             ) : null}
@@ -192,8 +200,8 @@ export function JobRelay({
         ))}
       </ol>
       {density === 'card' && holders.length > 0 ? (
-        <p className="mt-2 text-sm">
-          <span className="text-muted-foreground">Holding </span>
+        <p className="mt-3 text-xs leading-relaxed">
+          <span className="text-muted-foreground">Current owner · </span>
           <span className="font-medium">
             {holders.map((station) => station.holder).join(' · ')}
           </span>
@@ -219,8 +227,8 @@ function Segment({
   return (
     <span
       className={cn(
-        'relative block h-2 rounded-[2px] border',
-        track ? 'w-full' : 'w-10 shrink-0 self-center',
+        'relay-segment',
+        track ? 'w-full' : 'w-8 shrink-0 self-center',
         station.done && !station.late && 'bg-ok border-ok',
         station.done && station.late && 'bg-late border-late',
         !station.done && station.late && 'bg-late-soft border-late',
@@ -232,7 +240,7 @@ function Segment({
       {station.current ? (
         <span
           aria-hidden
-          className="bg-foreground ring-card absolute top-1/2 left-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2"
+          className="bg-foreground absolute -top-1 left-1/2 h-3 w-0.5 -translate-x-1/2"
         />
       ) : null}
     </span>

@@ -1,13 +1,13 @@
 'use client';
 
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Clock3, Inbox, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
-import { EmptyState, Spinner, TableSkeleton } from '@/components/shared/states';
+import { EmptyState, ErrorState, Spinner, TableSkeleton } from '@/components/shared/states';
 import {
   ActiveFilters,
   FilterSelect,
@@ -60,7 +60,9 @@ export function ProblemsScreen({
   initial,
   departments,
   candidates,
+  initialOpenId,
 }: {
+  initialOpenId?: string;
   initial: ProblemInboxDto;
   departments: DepartmentSummary[];
   candidates: UserRow[];
@@ -68,8 +70,13 @@ export function ProblemsScreen({
   const router = useRouter();
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<ProblemDto | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selected, setSelected] = useState<ProblemDto | null>(
+    () => initial.data.find((problem) => problem.id === initialOpenId) ?? null,
+  );
+  const [drawerOpen, setDrawerOpen] = useState(() =>
+    initial.data.some((problem) => problem.id === initialOpenId),
+  );
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [severity, setSeverity] = useState<string>(ALL);
   const [departmentId, setDepartmentId] = useState<string>(ALL);
@@ -78,6 +85,7 @@ export function ProblemsScreen({
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       setData(
         await fetchProblems({
@@ -88,7 +96,11 @@ export function ProblemsScreen({
         }),
       );
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Could not load the inbox.');
+      setLoadError(
+        error instanceof ApiError
+          ? error.message
+          : 'Could not load the inbox. The last loaded reports are still shown below.',
+      );
     } finally {
       setLoading(false);
     }
@@ -137,8 +149,8 @@ export function ProblemsScreen({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Waiting on a decision"
-        title="Problems"
+        eyebrow="Decisions / Reports"
+        title="Decision inbox"
         lead={lead(waiting, counts.stale)}
         actions={loading ? <Spinner label="Refreshing" /> : null}
       >
@@ -190,8 +202,44 @@ export function ProblemsScreen({
         </div>
       </PageHeader>
 
+      <div className="grid gap-3 sm:grid-cols-3" aria-label="Decision queue summary">
+        {[
+          { label: 'Awaiting a decision', value: waiting, icon: Inbox, tone: 'text-foreground' },
+          {
+            label: 'Not yet acknowledged',
+            value: counts.open,
+            icon: TriangleAlert,
+            tone: counts.open > 0 ? 'text-risk' : 'text-muted-foreground',
+          },
+          {
+            label: 'Waiting over 24 hours',
+            value: counts.stale,
+            icon: Clock3,
+            tone: counts.stale > 0 ? 'text-late' : 'text-muted-foreground',
+          },
+        ].map(({ label, value, icon: Icon, tone }) => (
+          <div
+            key={label}
+            className="border-border bg-card flex items-center gap-4 rounded-lg border p-5"
+          >
+            <span
+              className={cn(
+                'bg-muted flex size-11 shrink-0 items-center justify-center rounded-xl',
+                tone,
+              )}
+            >
+              <Icon className="size-5" />
+            </span>
+            <div>
+              <p className="text-muted-foreground text-xs">{label}</p>
+              <p className={cn('mt-2 font-mono text-2xl tracking-tight', tone)}>{value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      {loadError ? <ErrorState message={loadError} onRetry={() => void load()} /> : null}
       <Panel flush>
-        {loading && data.data.length === 0 ? (
+        {loadError && data.data.length === 0 ? null : loading && data.data.length === 0 ? (
           <TableSkeleton rows={4} columns={4} />
         ) : data.data.length === 0 ? (
           <EmptyState
@@ -311,6 +359,26 @@ export function ProblemsScreen({
         onOpenChange={setDrawerOpen}
         departments={departments}
         candidates={candidates}
+        queuePosition={
+          selected ? data.data.findIndex((problem) => problem.id === selected.id) + 1 : 0
+        }
+        queueTotal={data.data.length}
+        onNext={
+          selected &&
+          data.data.some(
+            (problem) =>
+              problem.id !== selected.id &&
+              (problem.status === 'OPEN' || problem.status === 'ACKNOWLEDGED'),
+          )
+            ? () => {
+                const index = data.data.findIndex((problem) => problem.id === selected.id);
+                const next = [...data.data.slice(index + 1), ...data.data.slice(0, index)].find(
+                  (problem) => problem.status === 'OPEN' || problem.status === 'ACKNOWLEDGED',
+                );
+                if (next) setSelected(next);
+              }
+            : undefined
+        }
         onResolved={async (message) => {
           toast.success(message);
           // The row leaves the inbox on the next load…

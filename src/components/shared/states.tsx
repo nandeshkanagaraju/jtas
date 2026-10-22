@@ -37,11 +37,11 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={cn('flex flex-col items-center gap-3 px-6 py-14 text-center', className)}
+      className={cn('flex flex-col items-center gap-4 px-6 py-16 text-center', className)}
       data-slot="empty-state"
     >
       {Icon ? (
-        <span className="border-border bg-muted/60 text-muted-foreground flex size-10 items-center justify-center rounded-full border">
+        <span className="border-border bg-muted/60 text-muted-foreground flex size-14 items-center justify-center rounded-2xl border">
           <Icon className="size-5" strokeWidth={1.75} />
         </span>
       ) : null}
@@ -77,7 +77,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={cn('flex flex-col items-center gap-3 px-6 py-14 text-center', className)}
+      className={cn('flex flex-col items-center gap-4 px-6 py-16 text-center', className)}
     >
       <div className="space-y-1">
         <p className="font-display text-late font-semibold">{title}</p>

@@ -1,23 +1,27 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Shaped like the triage console, so the page does not jump when it arrives. */
 export default function DashboardLoading() {
   return (
     <div className="space-y-8" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading the dashboard</span>
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-80" />
+      <span className="sr-only">Loading production overview</span>
+      <div className="space-y-3">
+        <Skeleton className="h-3 w-48" />
+        <Skeleton className="h-14 w-full max-w-xl" />
       </div>
-      <Skeleton className="h-44 w-full rounded-lg" />
-      <div className="border-border overflow-hidden rounded-lg border">
-        <Skeleton className="h-12 w-full rounded-none" />
-        <Skeleton className="h-16 w-full rounded-none" />
-        <Skeleton className="h-16 w-full rounded-none" />
-        <Skeleton className="h-16 w-full rounded-none" />
+      <div className="grid grid-cols-2 gap-5 border-y py-6 sm:grid-cols-3 lg:grid-cols-6">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="space-y-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-10 w-16" />
+          </div>
+        ))}
       </div>
-      <Skeleton className="h-24 w-full rounded-lg" />
+      <Skeleton className="h-80 w-full rounded-[20px]" />
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
     </div>
   );
 }

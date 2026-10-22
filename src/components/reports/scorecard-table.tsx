@@ -111,7 +111,65 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
       description="On-time rate first. A department that completed nothing in the range shows a dash rather than a zero."
       flush
     >
-      <div className="overflow-x-auto">
+      <div className="p-4 xl:hidden">
+        <label className="text-muted-foreground mb-4 flex flex-wrap items-center gap-2 text-xs">
+          Sort scorecards
+          <select
+            aria-label="Sort scorecards"
+            value={sort.key}
+            onChange={(event) =>
+              setSort({ key: event.target.value as SortKey, desc: event.target.value !== 'name' })
+            }
+            className="border-input bg-card text-foreground min-h-10 rounded-lg border px-3 text-sm"
+          >
+            {COLUMNS.map((column) => (
+              <option key={column.key} value={column.key}>
+                {column.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => toggle(sort.key)}
+            className="border-input text-foreground min-h-10 rounded-lg border px-3 text-sm"
+          >
+            {sort.desc ? 'Highest first ↓' : 'Lowest first ↑'}
+          </button>
+        </label>
+        <ul className="grid gap-4 md:grid-cols-2">
+          {sorted.map((row) => (
+            <li
+              key={row.departmentId}
+              className="border-border bg-background/60 rounded-xl border p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-semibold">{row.name}</h3>
+                <span className={cn('font-mono text-xl font-medium', rateTone(row.onTimePercent))}>
+                  {row.onTimePercent === null ? '—' : `${row.onTimePercent}%`}
+                  <span className="text-muted-foreground ml-1.5 font-sans text-xs">on time</span>
+                </span>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                {COLUMNS.filter(
+                  (column) => column.key !== 'name' && column.key !== 'onTimePercent',
+                ).map((column) => (
+                  <div key={column.key}>
+                    <dt className="text-muted-foreground text-xs">{column.label}</dt>
+                    <dd className="mt-1 font-mono text-sm">
+                      {column.key === 'averageDelayHours'
+                        ? row.subtasksCompleted === 0
+                          ? '—'
+                          : formatElapsed(row.averageDelayHours * 60)
+                        : row[column.key]}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="hidden overflow-x-auto xl:block">
         <table className="w-full min-w-[46rem] text-sm">
           <thead>
             <tr className="text-muted-foreground border-rule border-b text-xs">

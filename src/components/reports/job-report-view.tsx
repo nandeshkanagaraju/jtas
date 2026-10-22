@@ -39,7 +39,7 @@ export function JobReportView({ report }: { report: JobReport }) {
 
   return (
     <div className="space-y-4">
-      <section className="bg-card rounded-lg border">
+      <section className="product-panel bg-card rounded-lg border">
         <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b px-4 py-3">
           <h2 className="tabular text-base font-semibold">{report.job.jobCode}</h2>
           <p className="text-muted-foreground text-sm">{report.job.title}</p>
@@ -66,7 +66,7 @@ export function JobReportView({ report }: { report: JobReport }) {
         </dl>
       </section>
 
-      <section className="bg-card rounded-lg border" aria-labelledby="chain">
+      <section className="product-panel bg-card rounded-lg border" aria-labelledby="chain">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
           <h3 id="chain" className="text-sm font-semibold">
             Subtask chain ({report.subtasks.length})
@@ -74,7 +74,40 @@ export function JobReportView({ report }: { report: JobReport }) {
           <p className="text-muted-foreground text-xs">{verdict}</p>
         </header>
 
-        <div className="overflow-x-auto">
+        <ol className="divide-border divide-y 2xl:hidden">
+          {report.subtasks.map((subtask, index) => (
+            <li key={`${subtask.title}-${index}`} className="p-5">
+              <div className="flex items-center gap-3">
+                <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {subtask.department} · {subtask.title}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">{subtask.assignee}</p>
+                </div>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                <Fact label="Planned deadline" value={ist(subtask.plannedDeadline)} />
+                <Fact
+                  label="Actual completion"
+                  value={
+                    subtask.actualCompletion
+                      ? ist(subtask.actualCompletion)
+                      : subtask.status.replaceAll('_', ' ')
+                  }
+                />
+                <Fact
+                  label="Delay"
+                  value={subtask.actualCompletion ? formatElapsed(subtask.delayHours * 60) : '—'}
+                />
+                <Fact label="Extensions" value={String(subtask.extensions)} />
+              </dl>
+            </li>
+          ))}
+        </ol>
+        <div className="hidden overflow-x-auto 2xl:block">
           <table className="w-full min-w-[48rem] text-sm">
             <thead>
               <tr className="text-muted-foreground border-b text-left text-xs">
@@ -124,7 +157,7 @@ export function JobReportView({ report }: { report: JobReport }) {
         </div>
       </section>
 
-      <section className="bg-card rounded-lg border" aria-labelledby="job-problems">
+      <section className="product-panel bg-card rounded-lg border" aria-labelledby="job-problems">
         <header className="border-b px-4 py-3">
           <h3 id="job-problems" className="text-sm font-semibold">
             Problems ({report.problems.length})

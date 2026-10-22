@@ -134,10 +134,10 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
   const overdue = data.buckets.overdue;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header>
+    <div className="member-workspace w-full space-y-6">
+      <header className="page-heading">
         <p className="eyebrow">{today}</p>
-        <h1 className="page-title mt-1">My tasks</h1>
+        <h1 className="page-title mt-1">My work</h1>
         <p className="mt-2 text-base font-medium">{standing(data.summary)}</p>
       </header>
 
@@ -161,18 +161,20 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
         Overdue and due today stay open. A single overdue task is the whole
         screen: large, with its actions, and everything not due now is a count.
       */}
-      {OPEN_GROUPS.map((name) => (
-        <Group
-          key={name}
-          name={name}
-          tasks={data.buckets[name]}
-          emphasis={name === 'overdue' && overdue.length === 1}
-          busyId={busyId}
-          onAction={act}
-        />
-      ))}
+      <div className="workspace-columns">
+        {OPEN_GROUPS.map((name) => (
+          <Group
+            key={name}
+            name={name}
+            tasks={data.buckets[name]}
+            emphasis={name === 'overdue' && overdue.length === 1}
+            busyId={busyId}
+            onAction={act}
+          />
+        ))}
+      </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {FOLDED_GROUPS.map((name) => {
           const tasks = data.buckets[name];
           const expanded = open[name] === true;

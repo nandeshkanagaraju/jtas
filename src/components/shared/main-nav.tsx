@@ -32,7 +32,7 @@ export const NAV_ICONS: Record<NavItem['icon'], LucideIcon> = {
 };
 
 /** Daily routes, in the order the MD sees them. Members simply lack some. */
-export const PRIMARY_ORDER = ['/dashboard', '/problems', '/jobs', '/my-tasks', '/reports'] as const;
+export const PRIMARY_ORDER = ['/dashboard', '/jobs', '/problems', '/my-tasks', '/reports'] as const;
 
 export const ADMIN_HREFS = new Set(['/users', '/audit', '/settings']);
 
@@ -43,3 +43,17 @@ export function sortPrimary(items: NavItem[]): NavItem[] {
       PRIMARY_ORDER.indexOf(b.href as (typeof PRIMARY_ORDER)[number]),
   );
 }
+
+export const NAV_LABELS: Record<string, string> = {
+  '/dashboard': 'Overview',
+  '/jobs': 'Production',
+  '/problems': 'Decisions',
+  '/my-tasks': 'My work',
+  '/reports': 'Insights',
+  '/users': 'People',
+  '/audit': 'Activity log',
+  '/settings': 'Settings',
+  '/account': 'Your account',
+  '/tasks': 'My work',
+  '/notifications': 'Notifications',
+};

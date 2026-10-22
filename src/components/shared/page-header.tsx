@@ -3,17 +3,6 @@ import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
 
-/**
- * The top of every screen, in one shape.
- *
- * Eyebrow, title, one sentence of state, actions on the right. Before this
- * existed each screen stacked its own `text-2xl font-semibold` and the app read
- * as a dozen pages by a dozen hands; the whole point is that Jobs and Problems
- * now open the same way.
- *
- * `lead` is deliberately a sentence and not a count: "3 deadlines slipped" tells
- * an MD something, "10 jobs" tells him what he can already see.
- */
 export function PageHeader({
   eyebrow,
   title,
@@ -40,7 +29,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className={cn('space-y-4', className)}>
+    <header className={cn('page-heading space-y-6', className)}>
       {back ? (
         <Link
           href={back.href}
@@ -51,15 +40,17 @@ export function PageHeader({
         </Link>
       ) : null}
 
-      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
         <div className="min-w-0">
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-          <h1 className={cn('page-title', eyebrow && 'mt-1.5')}>{title}</h1>
+          <h1 className={cn('page-title break-words', eyebrow && 'mt-2.5')}>{title}</h1>
           {lead ? (
-            <p className={cn('page-lead mt-1', density === 'comfortable' && 'text-base')}>{lead}</p>
+            <p className={cn('page-lead mt-3', density === 'comfortable' && 'text-base')}>{lead}</p>
           ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
       </div>
 
       {children}

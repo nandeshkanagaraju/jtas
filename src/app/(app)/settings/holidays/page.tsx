@@ -24,7 +24,7 @@ export default async function HolidaysPage() {
   if (!can(session, 'settings:view', undefined)) forbidden();
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="w-full space-y-5">
       <PageHeader
         eyebrow="How the system chases work"
         title="Holiday calendar"

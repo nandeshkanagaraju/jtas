@@ -1,23 +1,11 @@
 'use client';
 
-import { RotateCw } from 'lucide-react';
+import { RotateCw, Unplug } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect } from 'react';
-
+import { SystemState } from '@/components/shared/system-state';
 import { Button } from '@/components/ui/button';
 
-/**
- * The last resort: an unhandled error anywhere under the app shell.
- *
- * Next's own error page is unstyled and says nothing useful, which on an
- * internal tool reads as "the system is broken, stop working". This one offers
- * the two things that actually help — try again, or go back to your own
- * screen — and names the digest so a report to the administrator can be
- * matched against the server log.
- *
- * `reset()` re-renders the segment without a full reload, so a transient
- * failure costs nothing.
- */
 export default function AppError({
   error,
   reset,
@@ -26,36 +14,30 @@ export default function AppError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Sentry's Next.js integration captures this automatically; the console
-    // line is for a developer running the app locally without it.
     console.error(error);
   }, [error]);
-
   return (
-    <main className="bg-background flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
-      <div className="space-y-2">
-        <p className="eyebrow">Something broke</p>
-        <h1 className="page-title">This screen did not load</h1>
-        <p className="text-muted-foreground mx-auto max-w-md text-sm">
-          Nothing you did was lost — JTAS does not record a change unless it tells you it has. Try
-          again, and if it keeps happening tell the administrator.
-        </p>
-        {error.digest ? (
-          <p className="text-muted-foreground text-xs">
-            Reference <span className="code">{error.digest}</span>
+    <SystemState
+      code="Something broke"
+      icon={Unplug}
+      title="This screen did not load"
+      description={
+        <>
+          <p>
+            Try again. If it keeps happening, share the reference below with the administrator. If
+            you were saving a change, check its status before submitting again.
           </p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button onClick={reset}>
-          <RotateCw className="size-4" />
-          Try again
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/">Go to my home page</Link>
-        </Button>
-      </div>
-    </main>
+          {error.digest ? <p className="code mt-3 text-xs">Reference {error.digest}</p> : null}
+        </>
+      }
+    >
+      <Button onClick={reset}>
+        <RotateCw className="size-4" />
+        Try again
+      </Button>
+      <Button asChild variant="outline">
+        <Link href="/">Go to my home page</Link>
+      </Button>
+    </SystemState>
   );
 }

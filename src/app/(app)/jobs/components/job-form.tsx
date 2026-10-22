@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
@@ -56,6 +56,9 @@ export function JobForm({
   onSubmit: (values: CreateJobInput) => Promise<void>;
   onCancel?: () => void;
 }) {
+  // A pre-hydration edit can otherwise be replaced by RHF's initial values in WebKit.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<CreateJobInput>({
@@ -74,7 +77,7 @@ export function JobForm({
   });
 
   const frozen = new Set(frozenFields);
-  const isSubmitting = form.formState.isSubmitting;
+  const isSubmitting = form.formState.isSubmitting || !hydrated;
 
   async function handleSubmit(values: CreateJobInput) {
     setFormError(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut } from 'lucide-react';
+import { LogOut, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -80,7 +80,7 @@ export function AccountMenu({
           collapsed && 'justify-center px-0',
         )}
       >
-        <span className="border-border bg-card text-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-md border text-xs font-semibold">
+        <span className="border-border bg-card text-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
           {initials(name)}
         </span>
         {collapsed ? null : (
@@ -92,7 +92,7 @@ export function AccountMenu({
           </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-64">
+      <DropdownMenuContent side="bottom" align="end" className="w-64">
         <DropdownMenuLabel className="font-normal">
           <span className="block text-sm font-medium">{name}</span>
           <span className="text-muted-foreground block truncate text-xs">{email}</span>
@@ -103,6 +103,11 @@ export function AccountMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="min-h-11">
           <Link href="/account">Your account</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="min-h-11">
+          <Link href="/account#install">
+            <Smartphone /> Install on your phone
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="min-h-11" disabled={busy} onSelect={signOut}>
           <LogOut />

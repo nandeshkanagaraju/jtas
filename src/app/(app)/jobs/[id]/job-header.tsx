@@ -49,7 +49,7 @@ function Fact({
   return (
     <div className="min-w-0">
       <dt className="field-label">{label}</dt>
-      <dd className={cn('text-foreground mt-0.5 truncate text-sm', machine && 'code')}>
+      <dd className={cn('text-foreground mt-0.5 text-sm break-words', machine && 'code')}>
         {value ?? <span className="text-muted-foreground">—</span>}
       </dd>
     </div>
@@ -115,7 +115,7 @@ export function JobHeader({
             <Button asChild variant="outline">
               <Link href={`/audit?job=${job.id}`}>
                 <ScrollText className="size-4" />
-                <span className="hidden sm:inline">Full history</span>
+                <span className="">Full history</span>
               </Link>
             </Button>
           ) : null}
@@ -168,7 +168,7 @@ export function JobHeader({
         this screen that anybody is ever chased about. The part details sit
         beside it as a grid rather than a stacked specification.
       */}
-      <div className="border-border bg-card grid gap-4 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="instrument-hero border-border bg-card grid gap-5 rounded-lg border p-5 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sm:col-span-2 lg:col-span-1">
           <p className="field-label">Overall deadline</p>
           <p className="code text-foreground mt-0.5 text-base font-medium">{formatIST(deadline)}</p>

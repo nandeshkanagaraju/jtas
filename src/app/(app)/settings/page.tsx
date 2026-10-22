@@ -29,9 +29,9 @@ export default async function SettingsPage() {
   const readOnly = !can(session, 'settings:manage', undefined);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="w-full space-y-5">
       <PageHeader
-        eyebrow="How the system chases work"
+        eyebrow="Administration / Configuration"
         title="Settings"
         lead="A change takes effect from the next notification the system schedules; anything already queued keeps the time it was given."
       >

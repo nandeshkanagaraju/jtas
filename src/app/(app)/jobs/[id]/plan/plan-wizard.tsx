@@ -11,6 +11,7 @@ import {
 } from '@/app/(app)/jobs/components/subtask-builder';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { WorkflowSteps } from '@/components/shared/workflow-steps';
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
 import { Label } from '@/components/ui/label';
@@ -171,13 +172,15 @@ export function PlanWizard({
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="w-full space-y-6">
       <PageHeader
         back={{ href: `/jobs/${job.id}`, label: 'Back to the job' }}
         eyebrow={`${job.jobCode} · Step ${step} of 3`}
         title={job.title}
         lead={step === 2 ? 'Break the job into department subtasks' : 'Review and publish'}
-      />
+      >
+        <WorkflowSteps current={step} />
+      </PageHeader>
 
       {error ? (
         <Alert variant="destructive" role="alert">

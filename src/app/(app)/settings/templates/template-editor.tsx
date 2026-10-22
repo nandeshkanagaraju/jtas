@@ -136,7 +136,7 @@ export function TemplateEditor({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
-      <aside className="space-y-2">
+      <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
         <ul className="border-border divide-border bg-card divide-y rounded-lg border">
           {templates.map((template) => (
             <li key={template.id}>
@@ -144,8 +144,8 @@ export function TemplateEditor({
                 type="button"
                 onClick={() => load(template)}
                 className={cn(
-                  'hover:bg-accent/40 w-full px-3 py-2.5 text-left transition-colors',
-                  template.id === selected && 'bg-accent/60',
+                  'hover:bg-accent/40 w-full rounded-lg px-4 py-4 text-left transition-colors',
+                  template.id === selected && 'bg-primary/10 text-action',
                 )}
               >
                 <p className="text-sm font-medium">{template.name}</p>

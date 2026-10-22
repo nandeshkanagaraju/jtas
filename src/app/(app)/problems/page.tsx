@@ -19,7 +19,12 @@ export const dynamic = 'force-dynamic';
  * metric is a median under two hours from raise to decision, and a spinner
  * between the MD and the queue works against that.
  */
-export default async function ProblemsPage() {
+export default async function ProblemsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ open?: string }>;
+}) {
+  const { open } = await searchParams;
   const session = await requireActiveSession();
   if (!can(session, 'dashboard:md', undefined)) forbidden();
 
@@ -31,6 +36,7 @@ export default async function ProblemsPage() {
 
   return (
     <ProblemsScreen
+      initialOpenId={open}
       initial={{
         counts: inbox.counts,
         data: inbox.data.map((problem) => ({

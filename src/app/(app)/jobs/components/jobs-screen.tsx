@@ -1,6 +1,6 @@
 'use client';
 
-import { ClipboardList, Loader2, Plus } from 'lucide-react';
+import { ArrowUpRight, ClipboardList, LayoutGrid, List, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -37,6 +37,7 @@ export function JobsScreen({
   departments: DepartmentSummary[];
   canCreate: boolean;
 }) {
+  const [view, setView] = useState<'list' | 'grid'>('grid');
   const [rows, setRows] = useState<JobRowDto[]>([]);
   const [total, setTotal] = useState(0);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -167,8 +168,8 @@ export function JobsScreen({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Every job on the floor"
-        title="Jobs"
+        eyebrow="Production / Job register"
+        title="Production"
         lead={lead(total, loading, filtered, error !== null)}
         actions={
           canCreate ? (
@@ -205,7 +206,35 @@ export function JobsScreen({
         </div>
       </PageHeader>
 
-      <Panel flush>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="section-title">All jobs</h2>
+        <div
+          role="group"
+          aria-label="Job layout"
+          className="border-border bg-card inline-flex gap-1 rounded-lg border p-1"
+        >
+          {(['list', 'grid'] as const).map((mode) => (
+            <Button
+              key={mode}
+              variant={view === mode ? 'secondary' : 'ghost'}
+              size="icon-sm"
+              aria-label={`${mode === 'list' ? 'List' : 'Card'} view`}
+              aria-pressed={view === mode}
+              onClick={() => setView(mode)}
+            >
+              {mode === 'list' ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <Panel
+        flush
+        className={
+          view === 'grid' && !loading && !error && rows.length > 0
+            ? 'border-0 bg-transparent shadow-none'
+            : undefined
+        }
+      >
         {loading ? (
           <JobsSkeleton />
         ) : error ? (
@@ -237,10 +266,17 @@ export function JobsScreen({
             }
           />
         ) : (
-          <ol>
+          <ol className={view === 'grid' ? 'grid gap-4 lg:grid-cols-2 2xl:grid-cols-3' : undefined}>
             {rows.map((job) => (
-              <li key={job.id} className="border-border border-t first:border-t-0">
-                <JobRow job={job} stations={relays[job.id]} />
+              <li
+                key={job.id}
+                className={
+                  view === 'grid'
+                    ? 'border-border bg-card rounded-2xl border'
+                    : 'border-border border-t first:border-t-0'
+                }
+              >
+                <JobRow job={job} stations={relays[job.id]} card={view === 'grid'} />
               </li>
             ))}
           </ol>
@@ -268,13 +304,15 @@ function lead(total: number, loading: boolean, filtered: boolean, failed: boolea
   if (failed) return 'The job list could not be loaded.';
   if (filtered) return 'Filtered. Clear a chip below to widen the list again.';
   if (total === 0) return 'Nothing has been raised yet.';
-  return 'Newest deadline first. The mark on the route is who holds the job now.';
+  return 'Nearest deadline first. Track the route, owner and delivery date of each order.';
 }
 
 function JobRow({
   job,
   stations,
+  card,
 }: {
+  card: boolean;
   job: JobRowDto;
   /** Undefined while the route is loading, null when that read failed. */
   stations: RelayStation[] | null | undefined;
@@ -283,13 +321,15 @@ function JobRow({
     <Link
       href={`/jobs/${job.id}`}
       className={cn(
-        'hover:bg-muted/60 focus-visible:outline-ring flex flex-col gap-3 px-4 py-3 transition-colors duration-150 md:flex-row md:items-center md:gap-6',
+        'group hover:bg-muted/60 focus-visible:outline-ring flex h-full flex-col gap-4 rounded-lg px-5 py-5 transition-colors duration-150',
+        !card && 'xl:flex-row xl:items-center xl:gap-6',
+        card && 'job-register-card',
         job.hasOverdueSubtask && 'border-l-late border-l-[3px]',
       )}
     >
-      <span className="min-w-0 md:flex-1">
+      <div className="min-w-0 xl:flex-1">
         <span className="code text-muted-foreground block text-xs">{job.jobCode}</span>
-        <span className="mt-0.5 block truncate font-medium">{job.title}</span>
+        <span className="mt-1 block text-base font-medium">{job.title}</span>
         <span className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
           {job.customerName ? <span>{job.customerName}</span> : null}
           {job.partNumber ? <span className="code">{job.partNumber}</span> : null}
@@ -300,27 +340,31 @@ function JobRow({
             </span>
           ) : null}
         </span>
-      </span>
+      </div>
 
-      <span className="w-40 shrink-0">
+      <div className={cn('block shrink-0', card ? 'w-full' : 'w-full xl:w-64')}>
         {stations === undefined ? (
           <Skeleton className="h-2 w-40" />
         ) : stations && stations.length > 0 ? (
-          <JobRelay stations={stations} density="inline" />
+          <JobRelay stations={stations} density="card" />
         ) : (
           <DepartmentChain departments={job.departments} />
         )}
-      </span>
+      </div>
 
-      <span className="flex items-center justify-between gap-3 md:contents">
+      <div className={cn('flex items-center justify-between gap-3', !card && 'xl:contents')}>
         <DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />
-        <span className="flex shrink-0 flex-col items-end gap-1 md:w-28 md:items-start">
+        <span className="flex shrink-0 flex-col items-end gap-1 xl:w-28 xl:items-start">
           <JobStatusBadge status={job.status} />
           {job.hasOverdueSubtask ? (
             <span className="text-late text-xs font-medium">Overdue</span>
           ) : null}
         </span>
-      </span>
+      </div>
+      <ArrowUpRight
+        className="text-muted-foreground group-hover:text-action hidden size-4 shrink-0 xl:block"
+        aria-hidden
+      />
     </Link>
   );
 }

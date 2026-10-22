@@ -80,11 +80,11 @@ export function LoginForm({ next }: { next?: string }) {
   const isSubmitting = form.formState.isSubmitting;
 
   return (
-    <div className="bg-card border-border rounded-lg border p-6">
+    <div className="w-full">
       <div className="mb-6 space-y-1">
-        <h1 className="font-display text-lg font-semibold tracking-[-0.01em]">Sign in</h1>
+        <h1 className="font-display text-4xl font-medium tracking-[-0.05em]">Sign in</h1>
         <p className="text-muted-foreground text-sm">
-          Use the work email address your account was created with.
+          Enter your work credentials to access production.
         </p>
       </div>
 

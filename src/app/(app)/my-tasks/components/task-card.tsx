@@ -61,12 +61,12 @@ export function TaskCard({
       className={cn(
         // Pulled out to the panel's edge so the overdue rule is flush with it
         // rather than floating inside the padding.
-        'border-border -mx-4 border-b px-4 py-4 last:border-b-0',
+        'task-work-card border-border -mx-4 border-b px-5 py-6 last:border-b-0',
         overdue && 'border-l-late border-l-[3px] pl-[calc(1rem-3px)]',
       )}
     >
-      <div className="xl:flex xl:items-start xl:gap-8">
-        <div className="min-w-0 xl:flex-1">
+      <div className="space-y-4">
+        <div className="min-w-0">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <Link
               href={`/tasks/${task.id}`}
@@ -146,7 +146,7 @@ export function TaskCard({
           ) : null}
         </div>
 
-        <div className="mt-4 xl:mt-0 xl:w-80 xl:shrink-0">
+        <div className="mt-4 w-full">
           {reporting ? (
             <ProblemForm
               busy={busy}

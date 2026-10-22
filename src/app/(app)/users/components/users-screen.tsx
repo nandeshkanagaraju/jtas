@@ -145,8 +145,8 @@ export function UsersScreen({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Accounts and access"
-        title="Users"
+        eyebrow="Administration / People"
+        title="People & access"
         lead={`${total} ${total === 1 ? 'account' : 'accounts'}. Accounts are never deleted — a departed colleague stays visible on the jobs they worked on.`}
         actions={
           <Button

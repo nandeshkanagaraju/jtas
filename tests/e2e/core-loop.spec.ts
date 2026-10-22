@@ -83,7 +83,8 @@ test('a — the MD creates a job from the template and publishes it', async ({ p
   try {
     const subtasks = await prisma2.subtask.findMany({
       where: { jobId },
-      orderBy: { deadline: 'asc' },
+      // Commitment-based plans have null deadlines, so deadline order is not shop order.
+      orderBy: { department: { sequenceOrder: 'asc' } },
       select: { title: true, status: true, dependsOnId: true },
     });
 
@@ -114,7 +115,7 @@ async function card(page: import('@playwright/test').Page, title: string | RegEx
   // Sign-in resolves on the URL change, while the worklist is still the
   // skeleton. The folds are not in the document yet, so opening them has to
   // wait until the page has its name.
-  await expect(page.getByRole('heading', { name: 'My tasks' })).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'My work' })).toBeVisible({
     timeout: 20_000,
   });
 
@@ -202,6 +203,104 @@ test('d — Purchase reports a BLOCKER problem', async ({ page }) => {
     expect(await subtaskStatus(/Raise PO/)).toBe('PROBLEM');
   } finally {
     await prisma.$disconnect();
+  }
+});
+
+test('d.1 — dashboard and production layouts fit each viewport in both themes', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  await signIn(page, ACCOUNTS.md);
+  const prisma = e2ePrisma();
+  const task = await prisma.subtask
+    .findFirstOrThrow({ where: { jobId, department: { code: 'PURCHASE' } }, select: { id: true } })
+    .finally(() => prisma.$disconnect());
+  for (const width of [1920, 1440, 768, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    for (const theme of ['Day', 'Night']) {
+      await page.goto('/dashboard');
+      const switcher = page.getByRole('button', { name: /^Theme:/ });
+      for (let step = 0; step < 3; step++) {
+        if ((await switcher.getAttribute('title')) === `Theme: ${theme}`) break;
+        await switcher.click();
+      }
+      await expect(switcher).toHaveAttribute('title', `Theme: ${theme}`);
+      await expect(page.getByRole('heading', { name: 'Production overview.' })).toBeVisible();
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+        .toBeLessThanOrEqual(1);
+      await page.screenshot({
+        path: testInfo.outputPath(`dashboard-${theme.toLowerCase()}-${width}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.goto('/jobs');
+      await expect(page.getByText('Spindle housing batch', { exact: true }).first()).toBeVisible();
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+        .toBeLessThanOrEqual(1);
+      await expect(page.locator('main [data-slot="skeleton"]')).toHaveCount(0);
+      await page.screenshot({
+        path: testInfo.outputPath(`production-${theme.toLowerCase()}-${width}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.goto(`/tasks/${task.id}`);
+      await expect(page.getByRole('heading', { name: /Raise PO/ })).toBeVisible();
+      const pageWidth = await page.locator('#content').boundingBox();
+      const workWidth = await page.locator('.member-workspace').boundingBox();
+      expect(pageWidth).not.toBeNull();
+      expect(workWidth).not.toBeNull();
+      expect(workWidth!.width).toBeGreaterThanOrEqual(pageWidth!.width - 2);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+        .toBeLessThanOrEqual(1);
+      await page.screenshot({
+        path: testInfo.outputPath(`task-${theme.toLowerCase()}-${width}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+    }
+  }
+});
+
+test('d.2 — settings and personal pages fill the workspace and respect reduced motion', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  await signIn(page, ACCOUNTS.md);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const width of [1920, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const path of [
+      '/account',
+      '/notifications',
+      '/settings',
+      '/settings/holidays',
+      '/settings/templates',
+      '/jobs/new',
+      '/my-tasks',
+    ]) {
+      await page.goto(path);
+      await expect(page.locator('#content h1')).toBeVisible();
+      const frame = await page.locator('#content').boundingBox();
+      const content = await page.locator('.route-enter > div').boundingBox();
+      expect(content!.width).toBeGreaterThanOrEqual(frame!.width - 2);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+        .toBeLessThanOrEqual(1);
+      expect(
+        await page
+          .locator('.route-enter')
+          .evaluate((element) => getComputedStyle(element).animationName),
+      ).toBe('none');
+      if (path === '/settings')
+        await page.screenshot({
+          path: testInfo.outputPath(`settings-${width}.png`),
+          fullPage: true,
+          animations: 'disabled',
+        });
+    }
   }
 });
 
@@ -320,9 +419,8 @@ test('g — the dashboard reflects the on-time percentage', async ({ page }) => 
   await signIn(page, ACCOUNTS.md);
   await page.goto('/dashboard');
 
-  // The queue under the decision mixes overdue work and at-risk jobs with
-  // problems, so it is not labelled "Problems". The problems inbox keeps that name.
-  await expect(page.getByRole('heading', { name: 'Still needs you' })).toBeVisible({
+  // The action register combines reports, overdue work and at-risk jobs.
+  await expect(page.getByRole('heading', { name: 'Action register' })).toBeVisible({
     timeout: 20_000,
   });
   await expect(page.getByText(expected)).toBeVisible({ timeout: 20_000 });

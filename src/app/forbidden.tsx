@@ -1,27 +1,19 @@
 import Link from 'next/link';
-
+import { LockKeyhole } from 'lucide-react';
+import { SystemState } from '@/components/shared/system-state';
 import { Button } from '@/components/ui/button';
 
-/**
- * Rendered with a real 403 whenever a page calls `forbidden()` from
- * `next/navigation`. Deliberately says nothing about what the resource was —
- * the refusal must not itself leak information.
- */
 export default function Forbidden() {
   return (
-    <main className="bg-background flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
-      <div className="space-y-2">
-        <p className="eyebrow">Error 403</p>
-        <h1 className="page-title">You do not have access to this page</h1>
-        <p className="text-muted-foreground mx-auto max-w-md text-sm">
-          Your account does not have permission for this area. If you think that is wrong, ask the
-          Managing Director or the system administrator.
-        </p>
-      </div>
-
+    <SystemState
+      code="Error 403"
+      icon={LockKeyhole}
+      title="You do not have access to this page"
+      description="Your account does not have permission for this area. If you think that is wrong, ask the Managing Director or the system administrator."
+    >
       <Button asChild>
         <Link href="/">Go to my home page</Link>
       </Button>
-    </main>
+    </SystemState>
   );
 }

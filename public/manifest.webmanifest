@@ -1,11 +1,11 @@
 {
   "name": "JTAS — Jaraa Task & Accountability System",
-  "short_name": "JTAS",
+  "short_name": "Jaraa",
+  "id": "/my-tasks",
   "description": "Your tasks, your deadlines, and a two-tap way to report where they stand.",
   "start_url": "/my-tasks",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#f5f4ef",
   "theme_color": "#f5f4ef",
   "lang": "en-IN",
@@ -14,5 +14,5 @@
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
-  "shortcuts": [{ "name": "My tasks", "short_name": "Tasks", "url": "/my-tasks" }]
+  "shortcuts": [{ "name": "My work", "short_name": "My work", "url": "/my-tasks" }]
 }

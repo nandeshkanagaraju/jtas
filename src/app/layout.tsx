@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
+import { AppInstallProvider } from '@/components/shared/app-install';
 import { ThemeProvider } from '@/components/shared/theme';
 
 import './globals.css';
@@ -51,8 +52,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   // Day and night values, so the phone's own chrome follows the theme.
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f4f6f8' },
-    { media: '(prefers-color-scheme: dark)', color: '#121418' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f4ef' },
+    { media: '(prefers-color-scheme: dark)', color: '#181d17' },
   ],
 };
 
@@ -69,7 +70,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider nonce={nonce}>
-          {children}
+          <AppInstallProvider>{children}</AppInstallProvider>
           <ServiceWorkerRegistration />
         </ThemeProvider>
       </body>

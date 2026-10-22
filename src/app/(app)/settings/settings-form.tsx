@@ -123,28 +123,30 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
         header so it stays in view while the fields below it are being changed —
         it is the only feedback on this screen that is live.
       */}
-      <div className="border-info-edge bg-info-soft rounded-lg border p-4">
+      <div className="instrument-hero border-border rounded-lg border p-5">
         <p className="eyebrow text-info">With these values</p>
         <p className="text-foreground mt-1.5 text-sm">{preview.sentence}</p>
       </div>
 
-      {SETTING_GROUPS.map((group) => (
-        <Section
-          key={group.id}
-          group={group}
-          rows={rows.filter((row) => row.group === group.id)}
-          valueOf={valueOf}
-          set={set}
-          errors={errors}
-        />
-      ))}
+      <div className="settings-sections">
+        {SETTING_GROUPS.map((group) => (
+          <Section
+            key={group.id}
+            group={group}
+            rows={rows.filter((row) => row.group === group.id)}
+            valueOf={valueOf}
+            set={set}
+            errors={errors}
+          />
+        ))}
+      </div>
 
       {/*
         The save bar floats over the last field, so the page carries padding
         below it — a sticky bar that hides the control somebody is about to
         change is worse than one that scrolls away.
       */}
-      <div className="bg-background/95 border-border sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="bg-card border-border shadow-pop sticky bottom-4 z-[5] flex flex-wrap items-center gap-3 rounded-xl border px-5 py-4">
         <Button
           onClick={save}
           disabled={

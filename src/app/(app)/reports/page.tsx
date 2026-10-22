@@ -55,7 +55,7 @@ export default async function ReportsPage({
     <div className="space-y-5">
       <PageHeader
         eyebrow="The record"
-        title="Reports"
+        title="Production insights"
         lead="How each department is holding its dates, and the full history of any one job."
         actions={<RangePicker from={range.fromKey} to={range.toKey} />}
       >

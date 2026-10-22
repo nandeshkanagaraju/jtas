@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 /** Shaped like one task and the folded counts, not a spinner in an empty box. */
 export default function MyTasksLoading() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6" aria-busy="true" aria-live="polite">
+    <div className="w-full space-y-6" aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading your tasks</span>
       <div className="space-y-2">
         <Skeleton className="h-4 w-36" />

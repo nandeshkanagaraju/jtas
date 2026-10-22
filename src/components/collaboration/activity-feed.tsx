@@ -191,7 +191,7 @@ export function ActivityFeed({
                 item.attachmentId ? (
                   <button
                     type="button"
-                    className="text-primary mt-0.5 text-left text-sm underline underline-offset-2"
+                    className="text-action mt-0.5 text-left text-sm underline underline-offset-2"
                     onClick={() => {
                       openAttachment(item.attachmentId!).catch(() =>
                         toast.error('Could not open that file.'),

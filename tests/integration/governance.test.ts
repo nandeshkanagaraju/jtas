@@ -242,8 +242,19 @@ describe('the audit viewer', () => {
   });
 
   it('filters by an IST date range, inclusive of the last day', async () => {
-    const day = istDateKey(new Date());
-    await makeRows(3);
+    // Fixed boundaries avoid moving recent rows into yesterday just after IST midnight.
+    const day = '2026-10-22';
+    const start = fromISTInput(`${day}T00:00`).getTime();
+    const nextDay = fromISTInput('2026-10-23T00:00').getTime();
+    await testDb.auditLog.createMany({
+      data: [start - 1, start, start + 12 * 60 * 60_000, nextDay - 1, nextDay].map((at, i) => ({
+        actorId: actor.id,
+        action: 'JOB_CREATED',
+        entityType: 'JOB',
+        entityId: `date-boundary-${i}`,
+        createdAt: new Date(at),
+      })),
+    });
 
     expect((await listAudit({ from: day, to: day })).total).toBe(3);
     expect((await listAudit({ from: '2020-01-01', to: '2020-01-02' })).total).toBe(0);

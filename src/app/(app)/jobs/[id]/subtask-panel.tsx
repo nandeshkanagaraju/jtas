@@ -68,11 +68,11 @@ export function SubtaskPanel({
       title={
         <span className="flex items-center gap-2">
           <ListTodo className="size-4" aria-hidden />
-          The relay
+          Department route
         </span>
       }
       id="subtask-timeline"
-      description="Each department's piece of this job, in shop order. Open a station for its date and its record."
+      description="The production sequence, with accountable owners and agreed deadlines."
       action={
         notice ? (
           <span className="text-ok text-xs font-medium" role="status">
@@ -144,9 +144,9 @@ function whenOf(subtask: SubtaskDto): string {
 
 function RelaySkeleton() {
   return (
-    <div aria-hidden className="space-y-2">
+    <div aria-hidden className="relay-stations">
       {Array.from({ length: 6 }, (_, row) => (
-        <Skeleton key={row} className="h-14 w-full" />
+        <Skeleton key={row} className="h-28 w-full" />
       ))}
     </div>
   );

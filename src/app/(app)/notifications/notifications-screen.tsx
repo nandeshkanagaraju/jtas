@@ -4,6 +4,7 @@ import { BellOff, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
@@ -91,13 +92,18 @@ export function NotificationsScreen({
       await apiPost('/api/notifications/read-all', {});
       setInbox(await apiFetch('/api/notifications?limit=50'));
       router.refresh();
+      toast.success('All notifications marked as read.');
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Could not mark notifications as read. Try again.',
+      );
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="w-full space-y-5">
       <PageHeader
         eyebrow="Your inbox"
         title="Notifications"
@@ -129,11 +135,11 @@ export function NotificationsScreen({
                   href={inboxLinkFor(item)}
                   onClick={() => !item.readAt && markOne(item.id)}
                   className={cn(
-                    'hover:bg-accent/40 block px-4 py-3.5 transition-colors',
+                    'hover:bg-accent/40 block px-5 py-5 transition-colors',
                     // Unread carries a rule on the leading edge rather than a
                     // tinted row: a page of tinted rows stops reading as "these
                     // are the new ones" the moment most of them are.
-                    !item.readAt && 'border-l-info border-l-[3px] pl-[13px]',
+                    !item.readAt && 'border-l-primary bg-primary/5 border-l-[3px] pl-[17px]',
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

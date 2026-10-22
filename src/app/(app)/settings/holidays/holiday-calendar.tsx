@@ -151,8 +151,8 @@ export function HolidayCalendar({
     .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <div className="space-y-4">
-      <section className="border-border bg-card rounded-lg border">
+    <div className="workspace-columns">
+      <section className="product-panel border-border bg-card rounded-lg border">
         <header className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="section-title">
             {MONTHS[month]} {year}
@@ -189,13 +189,15 @@ export function HolidayCalendar({
                   disabled={!canManage || busy}
                   onClick={() => setPending(selected ? null : date)}
                   className={cn(
-                    'aspect-square rounded-md border p-1 text-left text-xs transition-colors',
+                    'min-h-12 rounded-lg border p-1.5 text-left text-sm transition-colors sm:aspect-square sm:p-2',
                     holiday
                       ? 'border-risk-edge bg-risk-soft'
                       : 'hover:bg-accent/50 border-transparent',
                     selected && 'ring-ring ring-2',
                     !canManage && 'cursor-default',
                   )}
+                  aria-label={`${date}${holiday ? `, ${holiday.name}` : ', add holiday'}`}
+                  aria-pressed={selected}
                   title={holiday?.name}
                 >
                   <span className="tabular font-medium">{day}</span>
@@ -244,7 +246,7 @@ export function HolidayCalendar({
         ) : null}
       </section>
 
-      <section className="border-border bg-card rounded-lg border">
+      <section className="product-panel border-border bg-card rounded-lg border">
         <header className="border-border border-b px-4 py-3">
           <h2 className="section-title">
             {MONTHS[month]} holidays ({inMonth.length})
@@ -281,7 +283,7 @@ export function HolidayCalendar({
       </section>
 
       {canManage ? (
-        <section className="border-border bg-card rounded-lg border">
+        <section className="product-panel border-border bg-card rounded-lg border">
           <header className="border-border border-b px-4 py-3">
             <h2 className="section-title">Import the annual list</h2>
             <p className="text-muted-foreground mt-0.5 text-xs">

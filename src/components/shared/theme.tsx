@@ -52,11 +52,37 @@ const CHOICES = [
  * theme is only known in the browser, and swapping a wrong highlight for the
  * right one on hydration is worse than waiting one frame.
  */
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  if (compact) {
+    const current = mounted
+      ? (CHOICES.find((choice) => choice.value === theme) ?? CHOICES[2])
+      : CHOICES[2];
+    const Icon = current.icon;
+    const next =
+      current.value === 'system' ? 'dark' : current.value === 'dark' ? 'light' : 'system';
+    return (
+      <button
+        type="button"
+        className={cn('header-icon', className)}
+        aria-label={`Theme: ${current.label}. Switch to ${next === 'system' ? 'Auto' : next === 'dark' ? 'Night' : 'Day'}`}
+        title={`Theme: ${current.label}`}
+        onClick={() => setTheme(next)}
+      >
+        <Icon className="size-[18px]" strokeWidth={1.7} />
+      </button>
+    );
+  }
 
   return (
     <div
@@ -78,6 +104,30 @@ export function ThemeToggle({ className }: { className?: string }) {
             aria-checked={active}
             aria-label={choice.label}
             title={choice.label}
+            tabIndex={!mounted || active ? 0 : -1}
+            onKeyDown={(event) => {
+              const direction =
+                event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                  ? 1
+                  : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                    ? -1
+                    : 0;
+              if (!direction && event.key !== 'Home' && event.key !== 'End') return;
+              event.preventDefault();
+              const index = CHOICES.findIndex((item) => item.value === choice.value);
+              const next =
+                event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? CHOICES.length - 1
+                    : (index + direction + CHOICES.length) % CHOICES.length;
+              setTheme(CHOICES[next].value);
+              const buttons =
+                event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                  '[role="radio"]',
+                );
+              buttons?.[next]?.focus();
+            }}
             onClick={() => setTheme(choice.value)}
             className={cn(
               'inline-flex size-7 items-center justify-center rounded-[5px] transition-colors',

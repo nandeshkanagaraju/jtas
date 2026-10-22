@@ -46,7 +46,13 @@ export function ProblemDrawer({
   departments,
   candidates,
   onResolved,
+  onNext,
+  queuePosition,
+  queueTotal,
 }: {
+  onNext?: () => void;
+  queuePosition?: number;
+  queueTotal?: number;
   problem: ProblemDto | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -98,13 +104,19 @@ export function ProblemDrawer({
    * not the decision, and dismissing the panel there makes the MD reopen it to
    * do the thing they came for.
    */
-  async function run(action: () => Promise<unknown>, message: string, close = true) {
+  async function run(
+    action: () => Promise<unknown>,
+    message: string,
+    close = true,
+    advance = false,
+  ) {
     setBusy(true);
     setError(null);
     try {
       await action();
       onResolved(message);
-      if (close) onOpenChange(false);
+      if (advance && onNext) onNext();
+      else if (close) onOpenChange(false);
     } catch (caught) {
       if (caught instanceof ApiError) {
         const details = caught.details as { requiresOverride?: string } | undefined;
@@ -122,6 +134,20 @@ export function ProblemDrawer({
   }
 
   const noteTooShort = draft.mdActionNote.trim().length < 5;
+  const closed = problem.status === 'RESOLVED' || problem.status === 'REJECTED';
+  const resolveCurrent = (advance = false) =>
+    run(
+      () =>
+        resolveProblemRequest(problem.id, {
+          ...draft,
+          ...(overrideField && overrideReason.trim()
+            ? { [overrideField]: overrideReason.trim() }
+            : {}),
+        } as never),
+      'Problem resolved.',
+      !advance,
+      advance,
+    );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -137,7 +163,29 @@ export function ProblemDrawer({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 px-4 pb-6">
+        <div className="space-y-5 px-5 pb-6 sm:px-6">
+          {onNext ? (
+            <div className="border-border bg-muted/40 flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+              <span className="text-muted-foreground font-mono text-xs">
+                Report {queuePosition} of {queueTotal}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={
+                  busy || draft.mdActionNote.trim().length > 0 || rejectNote.trim().length > 0
+                }
+                title={
+                  draft.mdActionNote || rejectNote
+                    ? 'Finish or clear your decision note before moving to the next report.'
+                    : undefined
+                }
+                onClick={onNext}
+              >
+                Next report →
+              </Button>
+            </div>
+          ) : null}
           {problem.isStale ? (
             <Alert variant="destructive">
               <TriangleAlert className="size-4" />
@@ -158,7 +206,7 @@ export function ProblemDrawer({
           <div className="space-y-1.5">
             <p className="field-label">What {problem.raisedBy?.name ?? 'the member'} reported</p>
             {/* The member's words, verbatim and unedited (SDD section 5.4). */}
-            <blockquote className="border-border bg-muted/50 rounded-md border px-3 py-2.5 text-sm whitespace-pre-wrap">
+            <blockquote className="border-primary/30 bg-primary/5 rounded-xl border border-l-[3px] px-4 py-4 text-base leading-relaxed whitespace-pre-wrap">
               {problem.description}
             </blockquote>
           </div>
@@ -213,124 +261,142 @@ export function ProblemDrawer({
           ) : null}
 
           <Separator />
-
-          {/*
+          {closed ? (
+            <div className="border-border bg-muted/50 space-y-2 rounded-lg border p-4">
+              <p className="section-title">
+                Recorded decision · {problem.status === 'RESOLVED' ? 'Resolved' : 'Rejected'}
+              </p>
+              <p className="whitespace-pre-wrap">
+                {problem.mdActionNote ?? 'No decision note recorded.'}
+              </p>
+              {problem.resolvedAt ? (
+                <p className="code text-muted-foreground text-xs">
+                  {formatIST(new Date(problem.resolvedAt))}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              {/*
             Two toggle buttons rather than a radio group: they stay buttons for
             anyone reading the page by role, and `aria-pressed` carries which
             one is chosen.
           */}
-          <div
-            role="group"
-            aria-label="What to do with this report"
-            className="border-border bg-muted inline-flex rounded-md border p-0.5"
-          >
-            {(['resolve', 'reject'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={mode === value}
-                disabled={busy}
-                onClick={() => setMode(value)}
-                className={cn(
-                  'rounded-[5px] px-3 py-1.5 text-sm font-medium transition-colors',
-                  mode === value
-                    ? 'bg-card text-foreground border-border border'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
+              <div
+                role="group"
+                aria-label="What to do with this report"
+                className="border-border bg-muted inline-flex rounded-md border p-0.5"
               >
-                {value === 'resolve' ? 'Resolve it' : 'Not a problem'}
-              </button>
-            ))}
-          </div>
-
-          {mode === 'resolve' ? (
-            <>
-              <ResolutionForm
-                draft={draft}
-                onChange={setDraft}
-                departments={departments}
-                candidates={candidates}
-                currentDeadline={
-                  problem.subtask.deadline
-                    ? formatIST(new Date(problem.subtask.deadline))
-                    : 'No date yet'
-                }
-                busy={busy}
-              />
-
-              {overrideField ? (
-                <div className="border-risk-edge bg-risk-soft space-y-1.5 rounded-lg border p-3">
-                  <Label className="text-risk text-xs font-medium">
-                    Confirm the exception <span aria-hidden>*</span>
-                    <span className="sr-only">(required)</span>
-                  </Label>
-                  <Textarea
-                    value={overrideReason}
-                    onChange={(event) => setOverrideReason(event.target.value)}
-                    rows={2}
-                    maxLength={500}
-                    placeholder="Why this is correct anyway — it goes on the record."
+                {(['resolve', 'reject'] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={mode === value}
                     disabled={busy}
-                  />
-                </div>
-              ) : null}
-
-              <Button
-                className="w-full"
-                disabled={
-                  busy ||
-                  noteTooShort ||
-                  (overrideField !== null && overrideReason.trim().length < 5)
-                }
-                onClick={() =>
-                  run(
-                    () =>
-                      resolveProblemRequest(problem.id, {
-                        ...draft,
-                        // The server names which confirmation it wants; send it
-                        // back under exactly that key.
-                        ...(overrideField && overrideReason.trim()
-                          ? { [overrideField]: overrideReason.trim() }
-                          : {}),
-                      } as never),
-                    'Problem resolved.',
-                  )
-                }
-              >
-                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                Resolve
-              </Button>
-            </>
-          ) : (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-xs">
-                  Why is this not a problem? <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  value={rejectNote}
-                  onChange={(event) => setRejectNote(event.target.value)}
-                  rows={3}
-                  maxLength={2000}
-                  placeholder="The member sees this. A bare rejection teaches people to stop reporting."
-                  disabled={busy}
-                />
+                    onClick={() => setMode(value)}
+                    className={cn(
+                      'rounded-[5px] px-3 py-1.5 text-sm font-medium transition-colors',
+                      mode === value
+                        ? 'bg-card text-foreground border-border border'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {value === 'resolve' ? 'Resolve it' : 'Not a problem'}
+                  </button>
+                ))}
               </div>
 
-              <Button
-                variant="destructive"
-                className="w-full"
-                disabled={busy || rejectNote.trim().length < 5}
-                onClick={() =>
-                  run(
-                    () => rejectProblemRequest(problem.id, { note: rejectNote.trim() }),
-                    'Sent back to the member.',
-                  )
-                }
-              >
-                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                Send it back
-              </Button>
+              {mode === 'resolve' ? (
+                <>
+                  <ResolutionForm
+                    draft={draft}
+                    onChange={setDraft}
+                    departments={departments}
+                    candidates={candidates}
+                    currentDeadline={
+                      problem.subtask.deadline
+                        ? formatIST(new Date(problem.subtask.deadline))
+                        : 'No date yet'
+                    }
+                    busy={busy}
+                  />
+
+                  {overrideField ? (
+                    <div className="border-risk-edge bg-risk-soft space-y-1.5 rounded-lg border p-3">
+                      <Label className="text-risk text-xs font-medium">
+                        Confirm the exception <span aria-hidden>*</span>
+                        <span className="sr-only">(required)</span>
+                      </Label>
+                      <Textarea
+                        value={overrideReason}
+                        onChange={(event) => setOverrideReason(event.target.value)}
+                        rows={2}
+                        maxLength={500}
+                        placeholder="Why this is correct anyway — it goes on the record."
+                        disabled={busy}
+                      />
+                    </div>
+                  ) : null}
+
+                  <Button
+                    className="w-full"
+                    disabled={
+                      busy ||
+                      noteTooShort ||
+                      (overrideField !== null && overrideReason.trim().length < 5)
+                    }
+                    onClick={() => resolveCurrent()}
+                  >
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Resolve
+                  </Button>
+                  {onNext ? (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={
+                        busy ||
+                        noteTooShort ||
+                        (overrideField !== null && overrideReason.trim().length < 5)
+                      }
+                      onClick={() => resolveCurrent(true)}
+                    >
+                      Resolve and next
+                    </Button>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">
+                      Why is this not a problem? <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      value={rejectNote}
+                      onChange={(event) => setRejectNote(event.target.value)}
+                      rows={3}
+                      maxLength={2000}
+                      placeholder="The member sees this. A bare rejection teaches people to stop reporting."
+                      disabled={busy}
+                    />
+                  </div>
+
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    disabled={busy || rejectNote.trim().length < 5}
+                    onClick={() =>
+                      run(
+                        () => rejectProblemRequest(problem.id, { note: rejectNote.trim() }),
+                        'Sent back to the member.',
+                      )
+                    }
+                  >
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Send it back
+                  </Button>
+                </>
+              )}
             </>
           )}
         </div>

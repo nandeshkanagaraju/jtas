@@ -116,9 +116,9 @@ export function ChangePasswordForm({
   }
 
   return (
-    <div className="bg-card border-border rounded-lg border p-6">
+    <div className="w-full">
       <div className="mb-6 space-y-1">
-        <h1 className="font-display text-lg font-semibold tracking-[-0.01em]">
+        <h1 className="font-display text-4xl font-medium tracking-[-0.05em]">
           {forced ? 'Set your password' : 'Change password'}
         </h1>
         <p className="text-muted-foreground text-sm">

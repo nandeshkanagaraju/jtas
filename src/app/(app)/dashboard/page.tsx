@@ -9,6 +9,7 @@ import { OnTimeTrend } from '@/components/dashboard/on-time-trend';
 import { RangePicker } from '@/components/dashboard/range-picker';
 import { SummaryStrip } from '@/components/dashboard/summary-strip';
 import { Triage } from '@/components/dashboard/triage';
+import { PhoneDisclosure } from '@/components/shared/phone-app';
 import { relayStations, type RelayStation } from '@/components/shared/job-relay';
 import { Skeleton } from '@/components/ui/skeleton';
 import { can } from '@/lib/auth/policy';
@@ -50,7 +51,7 @@ export default async function DashboardPage({
           : '.');
 
   return (
-    <div className="space-y-8">
+    <div className="production-overview space-y-8">
       <header className="overview-heading flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="eyebrow">Jaraa Global / Production control</p>
@@ -73,7 +74,12 @@ export default async function DashboardPage({
           ) : null}
         </div>
       </header>
-      <SummaryStrip kpis={data.kpis} />
+      <PhoneDisclosure
+        title="Production totals"
+        hint={`${data.kpis.activeJobs} active jobs · ${data.kpis.openProblems} decisions pending`}
+      >
+        <SummaryStrip kpis={data.kpis} />
+      </PhoneDisclosure>
 
       <Triage
         problems={data.attention.problems}
@@ -82,18 +88,20 @@ export default async function DashboardPage({
         relays={relays}
       />
 
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="eyebrow">Performance review</p>
-            <h2 className="section-title mt-1">Delivery, measured.</h2>
+      <PhoneDisclosure title="Delivery performance">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">Performance review</p>
+              <h2 className="section-title mt-1">Delivery, measured.</h2>
+            </div>
+            <Suspense fallback={<Skeleton className="h-14 w-72" />}>
+              <RangePicker from={data.range.from} to={data.range.to} plain />
+            </Suspense>
           </div>
-          <Suspense fallback={<Skeleton className="h-14 w-72" />}>
-            <RangePicker from={data.range.from} to={data.range.to} plain />
-          </Suspense>
+          <OnTimeTrend trend={data.trend} summary={onTime} />
         </div>
-        <OnTimeTrend trend={data.trend} summary={onTime} />
-      </div>
+      </PhoneDisclosure>
     </div>
   );
 }

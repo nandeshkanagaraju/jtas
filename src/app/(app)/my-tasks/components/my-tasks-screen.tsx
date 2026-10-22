@@ -9,6 +9,7 @@ import { changeSubtaskStatusRequest } from '@/lib/api/subtasks-client';
 import { fetchMyTasks, type MyTaskDto, type MyTasksDto } from '@/lib/api/my-tasks-client';
 import { BUCKET_ORDER, type BucketName } from '@/lib/domain/task-buckets';
 import { cn } from '@/lib/utils';
+import { usePhoneApp } from '@/components/shared/phone-app';
 import { formatIST } from '@/lib/utils/time';
 
 import { TaskCard } from './task-card';
@@ -47,6 +48,7 @@ const EMPTY_STATES: Record<BucketName, string> = {
 
 export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
   const [data, setData] = useState<MyTasksDto>(initial);
+  const phone = usePhoneApp();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [open, setOpen] = useState<Partial<Record<BucketName, boolean>>>({});
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -132,6 +134,10 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
   }
 
   const overdue = data.buckets.overdue;
+  const focusGroup =
+    phone && OPEN_GROUPS.every((name) => data.buckets[name].length === 0)
+      ? FOLDED_GROUPS.find((name) => data.buckets[name].length > 0)
+      : undefined;
 
   return (
     <div className="member-workspace w-full space-y-6">
@@ -162,7 +168,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
         screen: large, with its actions, and everything not due now is a count.
       */}
       <div className="workspace-columns">
-        {OPEN_GROUPS.map((name) => (
+        {OPEN_GROUPS.filter((name) => !phone || data.buckets[name].length > 0).map((name) => (
           <Group
             key={name}
             name={name}
@@ -174,13 +180,17 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="phone-task-groups grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {FOLDED_GROUPS.map((name) => {
           const tasks = data.buckets[name];
-          const expanded = open[name] === true;
+          const expanded = open[name] ?? name === focusGroup;
 
           return (
-            <section key={name} className="min-w-[9.5rem] flex-1">
+            <section
+              key={name}
+              className="phone-task-group min-w-[9.5rem] flex-1"
+              data-expanded={expanded}
+            >
               <h2>
                 <button
                   type="button"

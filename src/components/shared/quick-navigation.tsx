@@ -9,7 +9,15 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Input } from '@/components/ui/input';
 
 /** Navigation stays scoped to the links the server grants this account. */
-export function QuickNavigation({ items }: { items: NavItem[] }) {
+export function QuickNavigation({
+  items,
+  mobile = false,
+  onNavigate,
+}: {
+  items: NavItem[];
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -35,10 +43,16 @@ export function QuickNavigation({ items }: { items: NavItem[] }) {
           setOpen(true);
         }}
         aria-label="Find a page"
-        className="text-muted-foreground hover:text-foreground hover:bg-muted hidden min-h-10 items-center gap-2 rounded-lg px-3 text-sm transition-colors sm:inline-flex"
+        className={
+          mobile
+            ? 'bg-muted text-foreground inline-flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted hidden min-h-10 items-center gap-2 rounded-lg px-3 text-sm transition-colors sm:inline-flex'
+        }
       >
         <Search className="size-4" />
-        <span className="hidden xl:inline">Jump to</span>
+        <span className={mobile ? undefined : 'hidden xl:inline'}>
+          {mobile ? 'Find a page' : 'Jump to'}
+        </span>
         <kbd className="border-border hidden rounded border px-1.5 py-0.5 font-mono text-[10px] xl:inline">
           ⌘ / Ctrl K
         </kbd>
@@ -65,7 +79,10 @@ export function QuickNavigation({ items }: { items: NavItem[] }) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      setOpen(false);
+                      onNavigate?.();
+                    }}
                     className="hover:bg-muted flex min-h-12 items-center gap-3 rounded-lg px-3"
                   >
                     <Icon className="text-muted-foreground size-4" />

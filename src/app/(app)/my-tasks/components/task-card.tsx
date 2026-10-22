@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { Countdown } from '@/components/shared/countdown';
+import { PhoneDisclosure, usePhoneApp } from '@/components/shared/phone-app';
 import { Button } from '@/components/ui/button';
 import type { MyTaskDto } from '@/lib/api/my-tasks-client';
 import type { BucketName } from '@/lib/domain/task-buckets';
@@ -42,6 +43,7 @@ export function TaskCard({
   ) => void;
 }) {
   const [reporting, setReporting] = useState(false);
+  const phone = usePhoneApp();
 
   const blocked = task.status === 'BLOCKED';
   const done = task.status === 'COMPLETED';
@@ -66,85 +68,136 @@ export function TaskCard({
       )}
     >
       <div className="space-y-4">
-        <div className="min-w-0">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-            <Link
-              href={`/tasks/${task.id}`}
-              className={cn(
-                'text-foreground focus-visible:outline-ring inline-flex min-h-11 items-center font-mono font-medium tracking-tight whitespace-nowrap tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2',
-                emphasis ? 'text-[1.75rem] sm:text-3xl' : 'text-xl',
-              )}
-            >
-              {task.jobCode}
-              <span className="sr-only">, details</span>
-            </Link>
-            <p className="text-sm font-medium sm:pt-2 sm:text-right">
+        {phone ? (
+          <div className="min-w-0 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <Link
+                href={`/tasks/${task.id}`}
+                className="code inline-flex min-h-11 items-center text-sm font-semibold"
+              >
+                {task.jobCode}
+                <span className="sr-only">, details</span>
+              </Link>
               <span
-                className={
-                  stamp.tone === 'late'
-                    ? 'text-late'
-                    : stamp.tone === 'risk'
-                      ? 'text-risk'
-                      : stamp.tone === 'ok'
-                        ? 'text-ok'
-                        : stamp.tone === 'info'
-                          ? 'text-info'
-                          : 'text-foreground'
-                }
+                className={cn(
+                  'text-xs font-medium',
+                  overdue ? 'text-late' : 'text-muted-foreground',
+                )}
               >
                 {stamp.label}
+                {overdue ? ' · Overdue' : ''}
               </span>
-              {overdue ? <span className="text-late"> · Overdue</span> : null}
+            </div>
+            <p className="text-base leading-snug font-semibold">{task.title}</p>
+            <p className={cn('text-sm', overdue ? 'text-late' : 'text-muted-foreground')}>
+              {task.deadline
+                ? `Due ${formatIST(new Date(task.deadline), 'd MMM, h:mm a')}`
+                : task.commitmentDueAt
+                  ? `Commit by ${formatIST(new Date(task.commitmentDueAt), 'd MMM, h:mm a')}`
+                  : 'Waiting for your turn'}
             </p>
+            {blocked && task.dependency ? (
+              <p className="text-sm">Waiting on {task.dependency.departmentName}</p>
+            ) : null}
+            <PhoneDisclosure title="Task details">
+              <p className="text-sm">
+                {task.department.name}
+                {task.partNumber ? ` · ${task.partNumber}` : ''}
+              </p>
+              {task.deadline ? <Countdown deadline={task.deadline} /> : null}
+              {task.dependency ? (
+                <p className="mt-2 text-sm">
+                  {task.dependency.title}
+                  {task.dependency.deadline
+                    ? ` · ${formatIST(new Date(task.dependency.deadline))}`
+                    : ''}
+                </p>
+              ) : null}
+            </PhoneDisclosure>
           </div>
+        ) : (
+          <div className="min-w-0">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <Link
+                href={`/tasks/${task.id}`}
+                className={cn(
+                  'text-foreground focus-visible:outline-ring inline-flex min-h-11 items-center font-mono font-medium tracking-tight whitespace-nowrap tabular-nums focus-visible:outline-2 focus-visible:outline-offset-2',
+                  emphasis ? 'text-[1.75rem] sm:text-3xl' : 'text-xl',
+                )}
+              >
+                {task.jobCode}
+                <span className="sr-only">, details</span>
+              </Link>
+              <p className="text-sm font-medium sm:pt-2 sm:text-right">
+                <span
+                  className={
+                    stamp.tone === 'late'
+                      ? 'text-late'
+                      : stamp.tone === 'risk'
+                        ? 'text-risk'
+                        : stamp.tone === 'ok'
+                          ? 'text-ok'
+                          : stamp.tone === 'info'
+                            ? 'text-info'
+                            : 'text-foreground'
+                  }
+                >
+                  {stamp.label}
+                </span>
+                {overdue ? <span className="text-late"> · Overdue</span> : null}
+              </p>
+            </div>
 
-          {task.partNumber ? (
-            <p className="text-foreground mt-1 font-mono text-base font-medium tabular-nums">
-              {task.partNumber}
+            {task.partNumber ? (
+              <p className="text-foreground mt-1 font-mono text-base font-medium tabular-nums">
+                {task.partNumber}
+              </p>
+            ) : null}
+
+            <p
+              className={cn('text-foreground mt-2', emphasis ? 'text-lg font-medium' : 'text-base')}
+            >
+              {task.title}
             </p>
-          ) : null}
+            <p className="text-muted-foreground mt-1 text-sm">{task.department.name}</p>
 
-          <p className={cn('text-foreground mt-2', emphasis ? 'text-lg font-medium' : 'text-base')}>
-            {task.title}
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">{task.department.name}</p>
-
-          <p className="text-foreground mt-2 text-base font-semibold">
-            {task.deadline ? (
-              <Countdown
-                deadline={task.deadline}
-                className="!text-foreground text-base font-semibold"
-              />
-            ) : task.commitmentDueAt ? (
-              <>
-                Awaiting commitment ·{' '}
+            <p className="text-foreground mt-2 text-base font-semibold">
+              {task.deadline ? (
                 <Countdown
-                  deadline={task.commitmentDueAt}
+                  deadline={task.deadline}
                   className="!text-foreground text-base font-semibold"
                 />
-              </>
-            ) : (
-              'Not your turn yet'
-            )}
-          </p>
-          <p className="text-foreground text-sm tabular-nums">
-            {task.deadline
-              ? formatIST(new Date(task.deadline))
-              : task.commitmentDueAt
-                ? `Commit by ${formatIST(new Date(task.commitmentDueAt))}`
-                : 'No date yet'}
-          </p>
-
-          {blocked && task.dependency ? (
-            <p className="text-foreground mt-3 text-base">
-              Waiting on {task.dependency.departmentName} — {task.dependency.title}
-              {task.dependency.deadline
-                ? `, due ${formatIST(new Date(task.dependency.deadline), 'd MMM')}`
-                : ''}
-              .
+              ) : task.commitmentDueAt ? (
+                <>
+                  Awaiting commitment ·{' '}
+                  <Countdown
+                    deadline={task.commitmentDueAt}
+                    className="!text-foreground text-base font-semibold"
+                  />
+                </>
+              ) : (
+                'Not your turn yet'
+              )}
             </p>
-          ) : null}
-        </div>
+            <p className="text-foreground text-sm tabular-nums">
+              {task.deadline
+                ? formatIST(new Date(task.deadline))
+                : task.commitmentDueAt
+                  ? `Commit by ${formatIST(new Date(task.commitmentDueAt))}`
+                  : 'No date yet'}
+            </p>
+
+            {blocked && task.dependency ? (
+              <p className="text-foreground mt-3 text-base">
+                Waiting on {task.dependency.departmentName} — {task.dependency.title}
+                {task.dependency.deadline
+                  ? `, due ${formatIST(new Date(task.dependency.deadline), 'd MMM')}`
+                  : ''}
+                .
+              </p>
+            ) : null}
+          </div>
+        )}
 
         <div className="mt-4 w-full">
           {reporting ? (
@@ -161,7 +214,7 @@ export function TaskCard({
             <div className="space-y-2">
               {task.status === 'PENDING' ? (
                 <Button
-                  variant="outline"
+                  variant={phone ? 'default' : 'outline'}
                   className={cn(ACTION, 'w-full')}
                   disabled={busy}
                   onClick={() => onAction('START')}
@@ -173,7 +226,12 @@ export function TaskCard({
               <div
                 className={cn('grid gap-2', task.requiresApproval ? 'grid-cols-1' : 'grid-cols-2')}
               >
-                <Button className={ACTION} disabled={busy} onClick={() => onAction('COMPLETE')}>
+                <Button
+                  variant={phone && task.status === 'PENDING' ? 'outline' : 'default'}
+                  className={ACTION}
+                  disabled={busy}
+                  onClick={() => onAction('COMPLETE')}
+                >
                   {task.requiresApproval ? 'Send for approval' : 'Mark completed'}
                 </Button>
                 <Button

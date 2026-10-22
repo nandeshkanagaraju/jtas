@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { JobRelay, relayStations, type RelayStation } from '@/components/shared/job-relay';
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
+import { PhoneDisclosure } from '@/components/shared/phone-app';
 import { EmptyState, ErrorState } from '@/components/shared/states';
 import { ActiveFilters, Toolbar, type ActiveFilter } from '@/components/shared/toolbar';
 import { Button } from '@/components/ui/button';
@@ -182,28 +183,33 @@ export function JobsScreen({
           ) : null
         }
       >
-        <div className="space-y-3">
-          <Toolbar label="Filter jobs">
-            <JobsFilters
-              filters={filters}
-              departments={departments}
-              onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+        <PhoneDisclosure
+          title="Search and filters"
+          hint={filtered ? `${active.length} filters applied` : 'Find a job or narrow the register'}
+        >
+          <div className="space-y-3">
+            <Toolbar label="Filter jobs">
+              <JobsFilters
+                filters={filters}
+                departments={departments}
+                onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+              />
+            </Toolbar>
+            <ActiveFilters
+              filters={active}
+              onClearAll={() => setFilters(INITIAL)}
+              resultLabel={
+                loading
+                  ? 'Loading…'
+                  : error
+                    ? 'Not loaded'
+                    : filtered
+                      ? `${rows.length} shown of ${total} matching`
+                      : `${total} ${total === 1 ? 'job' : 'jobs'}`
+              }
             />
-          </Toolbar>
-          <ActiveFilters
-            filters={active}
-            onClearAll={() => setFilters(INITIAL)}
-            resultLabel={
-              loading
-                ? 'Loading…'
-                : error
-                  ? 'Not loaded'
-                  : filtered
-                    ? `${rows.length} shown of ${total} matching`
-                    : `${total} ${total === 1 ? 'job' : 'jobs'}`
-            }
-          />
-        </div>
+          </div>
+        </PhoneDisclosure>
       </PageHeader>
 
       <div className="flex items-center justify-between gap-3">

@@ -304,6 +304,93 @@ test('d.2 — settings and personal pages fill the workspace and respect reduced
   }
 });
 
+test('d.3 — installed phones get focused screens while wide and browser views keep web navigation', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = (query) => {
+      const result = original(query);
+      if (query === '(display-mode: standalone)')
+        Object.defineProperty(result, 'matches', { value: true });
+      return result;
+    };
+  });
+  await signIn(page, ACCOUNTS.md);
+  const db = e2ePrisma();
+  const task = await db.subtask.findFirstOrThrow({
+    where: { jobId, department: { code: 'PURCHASE' } },
+    select: { id: true },
+  });
+  await db.$disconnect();
+  await expect(page.locator('.app-canvas')).toHaveAttribute('data-phone-app', 'true');
+  await expect(page.getByRole('navigation', { name: 'App navigation' })).toBeVisible();
+  expect((await page.locator('.phone-app-header').boundingBox())!.height).toBeLessThan(75);
+  await expect(page.locator('.web-app-chrome')).toHaveCount(0);
+  for (const width of [360, 390, 768]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const theme of ['Day', 'Night']) {
+      await page.getByRole('button', { name: 'More', exact: true }).click();
+      await page.getByRole('radio', { name: theme, exact: true }).click();
+      await page.getByRole('button', { name: 'Close menu' }).click();
+      for (const route of ['/dashboard', '/jobs', `/tasks/${task.id}`]) {
+        await page.goto(route);
+        await expect(page.locator('.app-canvas')).toHaveAttribute('data-phone-app', 'true');
+        await expect(page.locator('#content h1')).toBeVisible();
+        await expect(page.locator('main [data-slot="skeleton"]')).toHaveCount(0);
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth))
+          .toBeLessThanOrEqual(1);
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `phone-${route.startsWith('/tasks') ? 'task' : route.slice(1)}-${theme}-${width}.png`,
+          ),
+          fullPage: true,
+          animations: 'disabled',
+        });
+      }
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/jobs');
+  await page.getByText('Search and filters', { exact: true }).click();
+  await expect(page.getByRole('search', { name: 'Filter jobs' })).toBeVisible();
+  await page.goto('/dashboard');
+  await page.getByText('Production totals', { exact: true }).click();
+  await expect(page.getByRole('link', { name: /Active jobs/ })).toBeVisible();
+  await page.goto(`/tasks/${task.id}`);
+  await page.getByText('Task information', { exact: true }).click();
+  await expect(page.getByText('Assigned to', { exact: true })).toBeVisible();
+  await page.getByText('Files and discussion', { exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Comments and files', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Mobile navigation' })
+      .getByRole('link', { name: 'People' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Close menu' }).click();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/dashboard');
+  await expect(page.locator('.app-canvas')).not.toHaveAttribute('data-phone-app', 'true');
+  await expect(page.getByRole('navigation', { name: 'Main', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'App navigation' })).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, ACCOUNTS.purchase);
+  const memberNavigation = page.getByRole('navigation', { name: 'App navigation' });
+  await expect(memberNavigation.getByRole('link', { name: 'My work' })).toBeVisible();
+  await expect(memberNavigation.getByRole('link', { name: 'Overview' })).toHaveCount(0);
+  await page.screenshot({
+    path: testInfo.outputPath('phone-member-work.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+});
+
 test('e — the MD resolves it from the inbox by extending the deadline', async ({ page }) => {
   await signIn(page, ACCOUNTS.md);
   await page.goto('/problems');

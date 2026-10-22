@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
+import { PhoneDisclosure } from '@/components/shared/phone-app';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api/client';
@@ -143,23 +144,28 @@ export function TaskDetail({
         }
       />
 
-      <dl className="grid gap-4 border-y py-4 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="field-label">Assigned to</dt>
-          <dd className="mt-1 font-medium">{subtask.assignee.name}</dd>
-        </div>
-        <div>
-          <dt className="field-label">Department</dt>
-          <dd className="mt-1">{subtask.department.name}</dd>
-        </div>
-        <div>
-          <dt className="field-label">Job reference</dt>
-          <dd className="code mt-1">
-            {subtask.jobCode}
-            {subtask.partNumber ? ` / ${subtask.partNumber}` : ''}
-          </dd>
-        </div>
-      </dl>
+      <PhoneDisclosure
+        title="Task information"
+        hint={`${subtask.assignee.name} · ${subtask.department.name}`}
+      >
+        <dl className="grid gap-4 border-y py-4 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="field-label">Assigned to</dt>
+            <dd className="mt-1 font-medium">{subtask.assignee.name}</dd>
+          </div>
+          <div>
+            <dt className="field-label">Department</dt>
+            <dd className="mt-1">{subtask.department.name}</dd>
+          </div>
+          <div>
+            <dt className="field-label">Job reference</dt>
+            <dd className="code mt-1">
+              {subtask.jobCode}
+              {subtask.partNumber ? ` / ${subtask.partNumber}` : ''}
+            </dd>
+          </div>
+        </dl>
+      </PhoneDisclosure>
       <div className="task-detail-layout">
         <div className="min-w-0 space-y-5">
           {owesCommitment && subtask.commitmentDueAt ? (
@@ -324,24 +330,26 @@ export function TaskDetail({
           ) : null}
         </div>
         <div className="min-w-0 space-y-5">
-          <Panel
-            title="Comments and files"
-            description="Drawings, inspection reports and the back-and-forth on this task."
-            bodyClassName="p-4 space-y-6"
-          >
-            <AttachmentPanel
-              jobId={subtask.jobId}
-              subtaskId={subtask.id}
-              canUpload={permissions.attach}
-              canDelete={permissions.attach}
-            />
+          <PhoneDisclosure title="Files and discussion" hint="Drawings, uploads and comments">
+            <Panel
+              title="Comments and files"
+              description="Drawings, inspection reports and the back-and-forth on this task."
+              bodyClassName="p-4 space-y-6"
+            >
+              <AttachmentPanel
+                jobId={subtask.jobId}
+                subtaskId={subtask.id}
+                canUpload={permissions.attach}
+                canDelete={permissions.attach}
+              />
 
-            <CommentThread
-              subtaskId={subtask.id}
-              currentUserId={currentUserId}
-              canComment={permissions.comment}
-            />
-          </Panel>
+              <CommentThread
+                subtaskId={subtask.id}
+                currentUserId={currentUserId}
+                canComment={permissions.comment}
+              />
+            </Panel>
+          </PhoneDisclosure>
         </div>
       </div>
     </div>

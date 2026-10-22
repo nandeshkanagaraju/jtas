@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { JobRelay, type RelayStation } from '@/components/shared/job-relay';
+import { PhoneDisclosure, PhoneQueue } from '@/components/shared/phone-app';
 import { formatElapsed } from '@/lib/utils/duration';
 import { cn } from '@/lib/utils';
 import type { AttentionProblem, AttentionSubtask, JobAtRisk } from '@/lib/services/analytics';
@@ -47,11 +48,12 @@ export function Triage({
   const [first, ...rest] = items;
 
   return (
-    <div className="space-y-8">
+    <div className="phone-triage space-y-8">
       {first ? <Hero item={first} stations={stationsFor(first, relays)} /> : <Clear />}
       <section
         aria-labelledby="action-register-heading"
-        className="product-panel border-border bg-card border"
+        className="phone-action-register product-panel border-border bg-card border"
+        data-empty={rest.length === 0}
       >
         <div className="flex flex-wrap items-center justify-between gap-4 border-b px-5 py-5 sm:px-6">
           <div className="flex items-center gap-3">
@@ -77,13 +79,13 @@ export function Triage({
             <p className="text-muted-foreground">No additional items in the queue.</p>
           </div>
         ) : (
-          <ol className="divide-y">
+          <PhoneQueue>
             {rest.map((item, index) => (
               <li key={keyOf(item)}>
                 <QueueRow item={item} index={index} />
               </li>
             ))}
-          </ol>
+          </PhoneQueue>
         )}
       </section>
     </div>
@@ -132,7 +134,7 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
   const action = actionFor(item);
   const complete = stations.filter((station) => station.done).length;
   return (
-    <section className="decision-hero overflow-hidden" aria-label="Priority review">
+    <section className="decision-hero phone-priority overflow-hidden" aria-label="Priority review">
       <div className="grid lg:grid-cols-[1.5fr_1fr]">
         <div className="flex min-w-0 flex-col p-6 sm:p-8 lg:p-9">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -160,20 +162,25 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
             </span>
           </div>
         </div>
-        <div className="flex min-w-0 flex-col border-t border-[#45513f] p-6 sm:p-8 lg:border-t-0 lg:border-l lg:p-9">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-[#c4cebd]">Department handoff</p>
+        <div className="phone-priority-handoff flex min-w-0 flex-col border-t border-[#45513f] p-6 sm:p-8 lg:border-t-0 lg:border-l lg:p-9">
+          <PhoneDisclosure
+            title="Department handoff"
+            hint={`${complete}/${stations.length} complete`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-[#c4cebd]">Department handoff</p>
+              {stations.length > 0 ? (
+                <span className="font-mono text-[11px] text-[#c4cebd]">
+                  {complete}/{stations.length} complete
+                </span>
+              ) : null}
+            </div>
             {stations.length > 0 ? (
-              <span className="font-mono text-[11px] text-[#c4cebd]">
-                {complete}/{stations.length} complete
-              </span>
-            ) : null}
-          </div>
-          {stations.length > 0 ? (
-            <JobRelay stations={stations} density="card" className="mt-4" />
-          ) : (
-            <p className="mt-4 text-base">{action.where}</p>
-          )}
+              <JobRelay stations={stations} density="card" className="mt-4" />
+            ) : (
+              <p className="mt-4 text-base">{action.where}</p>
+            )}
+          </PhoneDisclosure>
           <div className="mt-auto pt-5">
             <Link
               href={action.href}
@@ -185,7 +192,7 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
           </div>
         </div>
       </div>
-      <dl className="grid grid-cols-1 gap-4 border-t border-[#45513f] px-6 py-5 text-xs sm:grid-cols-3 sm:px-8 lg:px-9">
+      <dl className="phone-priority-facts grid grid-cols-1 gap-4 border-t border-[#45513f] px-6 py-5 text-xs sm:grid-cols-3 sm:px-8 lg:px-9">
         <div>
           <dt className="text-[#bec5b6]">Accountable owner</dt>
           <dd className="mt-1 text-sm">{action.who}</dd>

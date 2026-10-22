@@ -3,7 +3,7 @@
   "short_name": "Jaraa",
   "id": "/my-tasks",
   "description": "Your tasks, your deadlines, and a two-tap way to report where they stand.",
-  "start_url": "/my-tasks",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f5f4ef",

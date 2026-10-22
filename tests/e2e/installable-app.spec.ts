@@ -10,6 +10,7 @@ test('manifest and app icons are accessible without authentication', async ({ re
   expect(manifest.display).toBe('standalone');
   expect(manifest.scope).toBe('/');
   expect(manifest.id).toBe('/my-tasks');
+  expect(manifest.start_url).toBe('/');
   for (const icon of manifest.icons) {
     const image = await request.get(icon.src);
     expect(image.ok()).toBeTruthy();

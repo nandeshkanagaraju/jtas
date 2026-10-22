@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
 import { AppInstallProvider } from '@/components/shared/app-install';
+import { PhoneAppProvider } from '@/components/shared/phone-app';
 import { ThemeProvider } from '@/components/shared/theme';
 
 import './globals.css';
@@ -48,6 +49,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
   // The shop-floor UI must remain zoomable for readability.
   maximumScale: 5,
   // Day and night values, so the phone's own chrome follows the theme.
@@ -70,7 +72,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider nonce={nonce}>
-          <AppInstallProvider>{children}</AppInstallProvider>
+          <AppInstallProvider>
+            <PhoneAppProvider>{children}</PhoneAppProvider>
+          </AppInstallProvider>
           <ServiceWorkerRegistration />
         </ThemeProvider>
       </body>

@@ -1,16 +1,17 @@
 import { ArrowDownRight, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { Brand } from '@/components/shared/brand';
 import { ThemeToggle } from '@/components/shared/theme';
+import { PhoneAppMain } from '@/components/shared/phone-app';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="grid min-h-dvh lg:grid-cols-[.9fr_1.1fr]">
-      <section className="bg-card relative flex min-w-0 flex-col px-6 py-8 sm:px-12 lg:px-16">
+    <PhoneAppMain className="grid min-h-dvh lg:grid-cols-[.9fr_1.1fr]">
+      <section className="phone-auth-form bg-card relative flex min-w-0 flex-col px-6 py-8 sm:px-12 lg:px-16">
         <div className="flex items-center justify-between gap-4">
           <Brand />
           <ThemeToggle compact />
         </div>
-        <div className="mx-auto my-auto w-full max-w-[25rem] py-16">
+        <div className="phone-auth-fields mx-auto my-auto w-full max-w-[25rem] py-16">
           {children}
           <p className="text-muted-foreground mt-8 flex items-center justify-center gap-2 text-xs">
             <ShieldCheck className="size-3.5" /> Secure access for Jaraa Global Engineering
@@ -61,6 +62,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <span className="font-mono">Jaraa Global /</span>
         </div>
       </section>
-    </main>
+    </PhoneAppMain>
   );
 }

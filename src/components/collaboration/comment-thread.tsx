@@ -1,8 +1,10 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useEffect, useRef, useState } from 'react';
 import { AtSign, Loader2, MessageSquare, Send } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { CommentBody } from '@/components/collaboration/comment-body';
 import { Button } from '@/components/ui/button';
@@ -124,7 +126,7 @@ export function CommentThread({
     <section className="space-y-3" aria-labelledby="comments">
       <h3 id="comments" className="section-title flex items-center gap-2">
         <MessageSquare className="size-4" aria-hidden />
-        Comments
+        <T>{'Comments '}</T>
         {comments ? (
           <span className="text-muted-foreground font-mono">({comments.length})</span>
         ) : null}
@@ -144,7 +146,7 @@ export function CommentThread({
         </div>
       ) : comments.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Nothing here yet. Ask a question, or record what you found.
+          <T>{'Nothing here yet. Ask a question, or record what you found. '}</T>
         </p>
       ) : (
         <ol className="space-y-3">
@@ -219,11 +221,11 @@ export function CommentThread({
           <div className="flex items-center gap-3">
             <Button size="sm" onClick={send} disabled={sending || draft.trim().length === 0}>
               {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Post
+              <T>{'Post '}</T>
             </Button>
 
             <span className={cn('text-muted-foreground text-xs', remaining < 100 && 'text-risk')}>
-              {remaining < 200 ? `${remaining} characters left` : 'Ctrl+Enter to post'}
+              {remaining < 200 ? `${remaining} characters left` : <T>{'Ctrl+Enter to post'}</T>}
             </span>
           </div>
         </div>

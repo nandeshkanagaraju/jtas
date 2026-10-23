@@ -1,4 +1,5 @@
 'use client';
+import { useLanguage } from '@/lib/i18n/provider';
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,14 @@ function SelectGroup({ ...props }: React.ComponentProps<typeof SelectPrimitive.G
 }
 
 function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.Value>) {
-  return <SelectPrimitive.Value data-slot="select-value" {...props} />;
+  const { t } = useLanguage();
+  return (
+    <SelectPrimitive.Value
+      data-slot="select-value"
+      {...props}
+      placeholder={typeof props.placeholder === 'string' ? t(props.placeholder) : props.placeholder}
+    />
+  );
 }
 
 function SelectTrigger({

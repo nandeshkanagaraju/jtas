@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -68,8 +70,12 @@ export function ReasonDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>
+            <T>{title}</T>
+          </DialogTitle>
+          <DialogDescription>
+            <T>{description}</T>
+          </DialogDescription>
         </DialogHeader>
 
         {error ? (
@@ -79,7 +85,9 @@ export function ReasonDialog({
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="reason">Reason</Label>
+          <Label htmlFor="reason">
+            <T>{'Reason'}</T>
+          </Label>
           <Textarea
             id="reason"
             value={reason}
@@ -90,15 +98,17 @@ export function ReasonDialog({
             disabled={busy}
           />
           <p className="text-muted-foreground text-xs">
-            {reason.trim().length < 5
-              ? 'At least 5 characters.'
-              : `${reason.trim().length}/500 characters.`}
+            {reason.trim().length < 5 ? (
+              <T>{'At least 5 characters.'}</T>
+            ) : (
+              `${reason.trim().length}/500 characters.`
+            )}
           </p>
         </div>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
-            Cancel
+            <T>{'Cancel '}</T>
           </Button>
           <Button
             variant={destructive ? 'destructive' : 'default'}

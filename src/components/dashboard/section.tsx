@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import { Panel } from '@/components/shared/panel';
 import type { Tone } from '@/lib/ui/tone';
 
@@ -30,7 +31,7 @@ export function Section({
   return (
     <Panel
       id={id}
-      title={title}
+      title={<T>{title}</T>}
       count={count}
       countTone={countTone}
       footer={footer}

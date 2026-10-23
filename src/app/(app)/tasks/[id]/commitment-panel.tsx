@@ -1,7 +1,9 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
 import { Button } from '@/components/ui/button';
@@ -66,7 +68,7 @@ export function CommitmentPanel({
     <Panel
       id="commitment-panel"
       className={label.overdue ? 'border-late' : 'border-primary'}
-      title="Commit a finish date"
+      title={<T>{'Commit a finish date'}</T>}
       description={
         <>
           <span className="code">{jobCode}</span> · {departmentName} · {jobTitle}
@@ -75,14 +77,17 @@ export function CommitmentPanel({
       bodyClassName="p-4 space-y-4"
     >
       <p className={label.overdue ? 'text-late text-base font-medium' : 'text-base'}>
-        Commit by <span className="code font-medium">{formatIST(due)}</span>. {windowText}
+        <T>{'Commit by '}</T>
+        <span className="code font-medium">{formatIST(due)}</span>. {windowText}
       </p>
 
       <div className="space-y-1.5">
-        <Label htmlFor="commit-deadline">This becomes the deadline</Label>
+        <Label htmlFor="commit-deadline">
+          <T>{'This becomes the deadline'}</T>
+        </Label>
         <IstDateTimePicker id="commit-deadline" value={deadline} onChange={setDeadline} />
         <p className="text-muted-foreground text-xs">
-          Once committed you cannot move it yourself — you can ask the MD for more time.
+          <T>{'Once committed you cannot move it yourself — you can ask the MD for more time. '}</T>
         </p>
       </div>
 
@@ -92,7 +97,7 @@ export function CommitmentPanel({
           disabled={busy || deadline === ''}
           onClick={() => void commit()}
         >
-          Commit this date
+          <T>{'Commit this date '}</T>
         </Button>
         <Button
           variant="outline"
@@ -100,7 +105,7 @@ export function CommitmentPanel({
           disabled={busy}
           onClick={onReportProblem}
         >
-          Report problem
+          <T>{'Report problem '}</T>
         </Button>
       </div>
     </Panel>

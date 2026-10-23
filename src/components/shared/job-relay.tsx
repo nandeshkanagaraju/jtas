@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import { cn } from '@/lib/utils';
 
 /**
@@ -151,7 +152,12 @@ export function JobRelay({
                       {station.holder}
                       {' · '}
                       {station.statusLabel}
-                      {station.late ? <span className="text-late"> · Late</span> : null}
+                      {station.late ? (
+                        <span className="text-late">
+                          {' '}
+                          <T>{' · Late'}</T>
+                        </span>
+                      ) : null}
                     </span>
                     {station.when ? (
                       <span className="text-muted-foreground mt-1.5 block font-mono text-xs">
@@ -170,7 +176,7 @@ export function JobRelay({
                       onClick={() => onOpen(station.id)}
                       className="border-border hover:bg-muted min-h-11 rounded-md border px-3 text-sm font-medium"
                     >
-                      History and actions
+                      <T>{'History and actions '}</T>
                     </button>
                   ) : null}
                 </div>
@@ -201,12 +207,17 @@ export function JobRelay({
       </ol>
       {density === 'card' && holders.length > 0 ? (
         <p className="mt-3 text-xs leading-relaxed">
-          <span className="text-muted-foreground">Current owner · </span>
+          <span className="text-muted-foreground">
+            <T>{'Current owner · '}</T>
+          </span>
           <span className="font-medium">
             {holders.map((station) => station.holder).join(' · ')}
           </span>
           {holders.some((station) => station.late) ? (
-            <span className="text-late"> · Late</span>
+            <span className="text-late">
+              {' '}
+              <T>{' · Late'}</T>
+            </span>
           ) : null}
         </p>
       ) : null}

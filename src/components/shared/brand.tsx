@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import { cn } from '@/lib/utils';
 
 export function Brand({ className, compact = false }: { className?: string; compact?: boolean }) {
@@ -11,7 +12,8 @@ export function Brand({ className, compact = false }: { className?: string; comp
       </span>
       {!compact ? (
         <span className="text-[20px] leading-none font-semibold tracking-[-0.065em] sm:text-[25px]">
-          Jaraa<span className="text-action">/</span>
+          <T>{'Jaraa'}</T>
+          <span className="text-action">/</span>
         </span>
       ) : null}
     </span>

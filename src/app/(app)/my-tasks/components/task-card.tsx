@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -76,7 +78,9 @@ export function TaskCard({
                 className="code inline-flex min-h-11 items-center text-sm font-semibold"
               >
                 {task.jobCode}
-                <span className="sr-only">, details</span>
+                <span className="sr-only">
+                  <T>{', details'}</T>
+                </span>
               </Link>
               <span
                 className={cn(
@@ -84,20 +88,25 @@ export function TaskCard({
                   overdue ? 'text-late' : 'text-muted-foreground',
                 )}
               >
-                {stamp.label}
-                {overdue ? ' · Overdue' : ''}
+                <T>{stamp.label}</T>
+                {overdue ? <T>{' · Overdue'}</T> : ''}
               </span>
             </div>
             <p className="text-base leading-snug font-semibold">{task.title}</p>
             <p className={cn('text-sm', overdue ? 'text-late' : 'text-muted-foreground')}>
-              {task.deadline
-                ? `Due ${formatIST(new Date(task.deadline), 'd MMM, h:mm a')}`
-                : task.commitmentDueAt
-                  ? `Commit by ${formatIST(new Date(task.commitmentDueAt), 'd MMM, h:mm a')}`
-                  : 'Waiting for your turn'}
+              {task.deadline ? (
+                `Due ${formatIST(new Date(task.deadline), 'd MMM, h:mm a')}`
+              ) : task.commitmentDueAt ? (
+                `Commit by ${formatIST(new Date(task.commitmentDueAt), 'd MMM, h:mm a')}`
+              ) : (
+                <T>{'Waiting for your turn'}</T>
+              )}
             </p>
             {blocked && task.dependency ? (
-              <p className="text-sm">Waiting on {task.dependency.departmentName}</p>
+              <p className="text-sm">
+                <T>{'Waiting on '}</T>
+                {task.dependency.departmentName}
+              </p>
             ) : null}
             <PhoneDisclosure title="Task details">
               <p className="text-sm">
@@ -126,7 +135,9 @@ export function TaskCard({
                 )}
               >
                 {task.jobCode}
-                <span className="sr-only">, details</span>
+                <span className="sr-only">
+                  <T>{', details'}</T>
+                </span>
               </Link>
               <p className="text-sm font-medium sm:pt-2 sm:text-right">
                 <span
@@ -142,9 +153,14 @@ export function TaskCard({
                             : 'text-foreground'
                   }
                 >
-                  {stamp.label}
+                  <T>{stamp.label}</T>
                 </span>
-                {overdue ? <span className="text-late"> · Overdue</span> : null}
+                {overdue ? (
+                  <span className="text-late">
+                    {' '}
+                    <T>{' · Overdue'}</T>
+                  </span>
+                ) : null}
               </p>
             </div>
 
@@ -169,27 +185,30 @@ export function TaskCard({
                 />
               ) : task.commitmentDueAt ? (
                 <>
-                  Awaiting commitment ·{' '}
+                  <T>{'Awaiting commitment ·'}</T>{' '}
                   <Countdown
                     deadline={task.commitmentDueAt}
                     className="!text-foreground text-base font-semibold"
                   />
                 </>
               ) : (
-                'Not your turn yet'
+                <T>{'Not your turn yet'}</T>
               )}
             </p>
             <p className="text-foreground text-sm tabular-nums">
-              {task.deadline
-                ? formatIST(new Date(task.deadline))
-                : task.commitmentDueAt
-                  ? `Commit by ${formatIST(new Date(task.commitmentDueAt))}`
-                  : 'No date yet'}
+              {task.deadline ? (
+                formatIST(new Date(task.deadline))
+              ) : task.commitmentDueAt ? (
+                `Commit by ${formatIST(new Date(task.commitmentDueAt))}`
+              ) : (
+                <T>{'No date yet'}</T>
+              )}
             </p>
 
             {blocked && task.dependency ? (
               <p className="text-foreground mt-3 text-base">
-                Waiting on {task.dependency.departmentName} — {task.dependency.title}
+                <T>{'Waiting on '}</T>
+                {task.dependency.departmentName} — {task.dependency.title}
                 {task.dependency.deadline
                   ? `, due ${formatIST(new Date(task.dependency.deadline), 'd MMM')}`
                   : ''}
@@ -219,7 +238,7 @@ export function TaskCard({
                   disabled={busy}
                   onClick={() => onAction('START')}
                 >
-                  Start work
+                  <T>{'Start work '}</T>
                 </Button>
               ) : null}
 
@@ -232,7 +251,7 @@ export function TaskCard({
                   disabled={busy}
                   onClick={() => onAction('COMPLETE')}
                 >
-                  {task.requiresApproval ? 'Send for approval' : 'Mark completed'}
+                  {task.requiresApproval ? <T>{'Send for approval'}</T> : <T>{'Mark completed'}</T>}
                 </Button>
                 <Button
                   variant="outline"
@@ -240,7 +259,7 @@ export function TaskCard({
                   disabled={busy}
                   onClick={() => setReporting(true)}
                 >
-                  Report problem
+                  <T>{'Report problem '}</T>
                 </Button>
               </div>
             </div>

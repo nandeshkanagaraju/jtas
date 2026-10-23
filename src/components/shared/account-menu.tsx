@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { LogOut, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -87,7 +89,7 @@ export function AccountMenu({
           <span className="min-w-0 flex-1">
             <span className="block truncate font-medium">{name}</span>
             <span className="text-muted-foreground block truncate text-xs">
-              {ROLE_LABELS[role] ?? role}
+              <T>{ROLE_LABELS[role] ?? role}</T>
             </span>
           </span>
         )}
@@ -97,21 +99,23 @@ export function AccountMenu({
           <span className="block text-sm font-medium">{name}</span>
           <span className="text-muted-foreground block truncate text-xs">{email}</span>
           <span className="text-muted-foreground mt-1 block text-xs">
-            {ROLE_LABELS[role] ?? role}
+            <T>{ROLE_LABELS[role] ?? role}</T>
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="min-h-11">
-          <Link href="/account">Your account</Link>
+          <Link href="/account">
+            <T>{'Your account'}</T>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="min-h-11">
           <Link href="/account#install">
-            <Smartphone /> Install on your phone
+            <Smartphone /> <T>{' Install on your phone '}</T>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="min-h-11" disabled={busy} onSelect={signOut}>
           <LogOut />
-          Sign out
+          <T>{'Sign out '}</T>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

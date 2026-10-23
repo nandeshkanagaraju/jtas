@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
@@ -51,7 +53,7 @@ function StrengthHint({ value }: { value: string }) {
           />
         </div>
         <span className="text-muted-foreground w-16 text-right text-xs">
-          {STRENGTH_LABELS[score]}
+          <T>{STRENGTH_LABELS[score]}</T>
         </span>
       </div>
 
@@ -64,7 +66,7 @@ function StrengthHint({ value }: { value: string }) {
       ) : (
         <p className="text-ok flex items-center gap-1 text-xs">
           <Check className="size-3" />
-          Meets the password policy.
+          <T>{'Meets the password policy. '}</T>
         </p>
       )}
     </div>
@@ -119,19 +121,25 @@ export function ChangePasswordForm({
     <div className="w-full">
       <div className="mb-6 space-y-1">
         <h1 className="font-display text-4xl font-medium tracking-[-0.05em]">
-          {forced ? 'Set your password' : 'Change password'}
+          {forced ? <T>{'Set your password'}</T> : <T>{'Change password'}</T>}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Signed in as <span className="font-medium">{email}</span>
+          <T>{'Signed in as '}</T>
+          <span className="font-medium">{email}</span>
         </p>
       </div>
 
       {forced ? (
         <Alert className="mb-4">
-          <AlertTitle>First sign-in</AlertTitle>
+          <AlertTitle>
+            <T>{'First sign-in'}</T>
+          </AlertTitle>
           <AlertDescription>
-            Choose your own password before you continue. The temporary one stops working straight
-            away.
+            <T>
+              {
+                'Choose your own password before you continue. The temporary one stops working straight away. '
+              }
+            </T>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -150,7 +158,9 @@ export function ChangePasswordForm({
             name="currentPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{forced ? 'Temporary password' : 'Current password'}</FormLabel>
+                <FormLabel>
+                  {forced ? <T>{'Temporary password'}</T> : <T>{'Current password'}</T>}
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -169,7 +179,9 @@ export function ChangePasswordForm({
             name="newPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>New password</FormLabel>
+                <FormLabel>
+                  <T>{'New password'}</T>
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -179,7 +191,7 @@ export function ChangePasswordForm({
                   />
                 </FormControl>
                 <FormDescription>
-                  At least 8 characters, including a letter and a digit.
+                  <T>{'At least 8 characters, including a letter and a digit. '}</T>
                 </FormDescription>
                 <StrengthHint value={newPassword} />
                 <FormMessage />
@@ -192,7 +204,9 @@ export function ChangePasswordForm({
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm new password</FormLabel>
+                <FormLabel>
+                  <T>{'Confirm new password'}</T>
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -210,17 +224,17 @@ export function ChangePasswordForm({
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Saving…
+                <T>{'Saving… '}</T>
               </>
             ) : (
-              'Save password'
+              <T>{'Save password'}</T>
             )}
           </Button>
         </form>
       </Form>
 
       <p className="text-muted-foreground mt-6 text-center text-xs">
-        Changing your password signs you out of every other device.
+        <T>{'Changing your password signs you out of every other device. '}</T>
       </p>
     </div>
   );

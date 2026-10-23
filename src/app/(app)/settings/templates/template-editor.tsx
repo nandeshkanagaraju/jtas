@@ -1,9 +1,11 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AlertTriangle, Archive, ArrowDown, Loader2, Plus, Save, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -150,7 +152,8 @@ export function TemplateEditor({
               >
                 <p className="text-sm font-medium">{template.name}</p>
                 <p className="text-muted-foreground text-xs">
-                  {template.items.length} step{template.items.length === 1 ? '' : 's'}
+                  {template.items.length} <T>{' step'}</T>
+                  {template.items.length === 1 ? '' : 's'}
                 </p>
               </button>
             </li>
@@ -158,7 +161,7 @@ export function TemplateEditor({
 
           {templates.length === 0 ? (
             <li className="text-muted-foreground px-3 py-6 text-center text-sm">
-              No templates yet.
+              <T>{'No templates yet. '}</T>
             </li>
           ) : null}
         </ul>
@@ -182,7 +185,7 @@ export function TemplateEditor({
             }}
           >
             <Plus className="size-4" />
-            New template
+            <T>{'New template '}</T>
           </Button>
         ) : null}
       </aside>
@@ -191,21 +194,27 @@ export function TemplateEditor({
         <div className="border-risk-edge bg-risk-soft text-risk flex items-start gap-2 rounded-lg border p-3">
           <AlertTriangle className="mt-px size-4 shrink-0" />
           <p className="text-sm">
-            A template is a recipe. Editing it changes how <em>future</em> jobs are laid out and
-            never touches a job that already exists — those chains stay exactly as they were
-            created, deadlines included.
+            <T>{'A template is a recipe. Editing it changes how '}</T>
+            <em>
+              <T>{'future'}</T>
+            </em>{' '}
+            <T>
+              {
+                ' jobs are laid out and never touches a job that already exists — those chains stay exactly as they were created, deadlines included. '
+              }
+            </T>
           </p>
         </div>
 
         {steps.length === 0 && !selected ? (
           <p className="text-muted-foreground bg-card rounded-lg border py-16 text-center text-sm">
-            Choose a template, or create one.
+            <T>{'Choose a template, or create one. '}</T>
           </p>
         ) : (
           <>
             <div className="bg-card rounded-lg border p-4">
               <Label htmlFor="template-name" className="text-sm font-medium">
-                Template name
+                <T>{'Template name '}</T>
               </Label>
               <Input
                 id="template-name"
@@ -223,9 +232,12 @@ export function TemplateEditor({
 
             <section className="border-border bg-card rounded-lg border">
               <header className="flex items-center justify-between border-b px-4 py-3">
-                <h2 className="section-title">Chain ({steps.length})</h2>
+                <h2 className="section-title">
+                  <T>{'Chain ('}</T>
+                  {steps.length})
+                </h2>
                 <p className="text-muted-foreground text-xs">
-                  Offsets run backwards from the job’s overall deadline.
+                  <T>{'Offsets run backwards from the job’s overall deadline. '}</T>
                 </p>
               </header>
 
@@ -301,13 +313,16 @@ export function TemplateEditor({
                         }
                         className="border-input bg-background h-8 rounded-md border px-2 text-sm"
                       >
-                        <option value="">Waits for nothing</option>
+                        <option value="">
+                          <T>{'Waits for nothing'}</T>
+                        </option>
                         {/* Only earlier steps: the offsets run backwards, so a
                             step waiting on a later one would need to finish
                             before the thing it depends on starts. */}
                         {steps.slice(0, index).map((earlier, i) => (
                           <option key={i} value={i}>
-                            Waits for {i + 1}. {earlier.title.slice(0, 28)}
+                            <T>{'Waits for '}</T>
+                            {i + 1}. {earlier.title.slice(0, 28)}
                           </option>
                         ))}
                       </select>
@@ -348,7 +363,7 @@ export function TemplateEditor({
                     }
                   >
                     <Plus className="size-4" />
-                    Add step
+                    <T>{'Add step '}</T>
                   </Button>
                 </div>
               ) : null}
@@ -360,13 +375,13 @@ export function TemplateEditor({
               <div className="flex flex-wrap gap-2">
                 <Button onClick={save} disabled={busy || steps.length === 0}>
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  {selected ? 'Save template' : 'Create template'}
+                  {selected ? <T>{'Save template'}</T> : <T>{'Create template'}</T>}
                 </Button>
 
                 {selected ? (
                   <Button variant="outline" onClick={archive} disabled={busy}>
                     <Archive className="size-4" />
-                    Archive
+                    <T>{'Archive '}</T>
                   </Button>
                 ) : null}
               </div>
@@ -385,9 +400,11 @@ function DependencyPreview({ steps, departments }: { steps: Step[]; departments:
   return (
     <section className="border-border bg-card rounded-lg border">
       <header className="border-b px-4 py-3">
-        <h2 className="section-title">What a job from this template looks like</h2>
+        <h2 className="section-title">
+          <T>{'What a job from this template looks like'}</T>
+        </h2>
         <p className="text-muted-foreground mt-0.5 text-xs">
-          A step that waits for another starts BLOCKED until that one is complete.
+          <T>{'A step that waits for another starts BLOCKED until that one is complete. '}</T>
         </p>
       </header>
 
@@ -397,9 +414,11 @@ function DependencyPreview({ steps, departments }: { steps: Step[]; departments:
             {index > 0 ? (
               <div className="text-muted-foreground flex items-center gap-1 py-0.5 pl-3 text-xs">
                 <ArrowDown className="size-3" />
-                {step.dependsOnItemOrder === null
-                  ? 'independent — can run in parallel'
-                  : `waits for step ${step.dependsOnItemOrder + 1}`}
+                {step.dependsOnItemOrder === null ? (
+                  <T>{'independent — can run in parallel'}</T>
+                ) : (
+                  `waits for step ${step.dependsOnItemOrder + 1}`
+                )}
               </div>
             ) : null}
 

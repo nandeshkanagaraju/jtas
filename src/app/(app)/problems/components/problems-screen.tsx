@@ -1,9 +1,13 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import { CheckCircle2, Clock3, Inbox, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
@@ -149,8 +153,8 @@ export function ProblemsScreen({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Decisions / Reports"
-        title="Decision inbox"
+        eyebrow={<T>{'Decisions / Reports'}</T>}
+        title={<T>{'Decision inbox'}</T>}
         lead={lead(waiting, counts.stale)}
         actions={loading ? <Spinner label="Refreshing" /> : null}
       >
@@ -202,7 +206,11 @@ export function ProblemsScreen({
         </div>
       </PageHeader>
 
-      <div className="grid gap-3 sm:grid-cols-3" aria-label="Decision queue summary">
+      <LocalizedElement
+        as="div"
+        className="grid gap-3 sm:grid-cols-3"
+        aria-label="Decision queue summary"
+      >
         {[
           { label: 'Awaiting a decision', value: waiting, icon: Inbox, tone: 'text-foreground' },
           {
@@ -231,12 +239,14 @@ export function ProblemsScreen({
               <Icon className="size-5" />
             </span>
             <div>
-              <p className="text-muted-foreground text-xs">{label}</p>
+              <p className="text-muted-foreground text-xs">
+                <T>{label}</T>
+              </p>
               <p className={cn('mt-2 font-mono text-2xl tracking-tight', tone)}>{value}</p>
             </div>
           </div>
         ))}
-      </div>
+      </LocalizedElement>
       {loadError ? <ErrorState message={loadError} onRetry={() => void load()} /> : null}
       <Panel flush>
         {loadError && data.data.length === 0 ? null : loading && data.data.length === 0 ? (
@@ -255,10 +265,18 @@ export function ProblemsScreen({
           <Table>
             <TableHeader>
               <TableRow className="border-rule hover:bg-transparent">
-                <TableHead className="hidden w-28 pl-4 sm:table-cell">Waiting</TableHead>
-                <TableHead className="pl-4 sm:pl-2">Problem</TableHead>
-                <TableHead className="hidden lg:table-cell">Task deadline</TableHead>
-                <TableHead className="hidden pr-4 sm:table-cell">Status</TableHead>
+                <TableHead className="hidden w-28 pl-4 sm:table-cell">
+                  <T>{'Waiting'}</T>
+                </TableHead>
+                <TableHead className="pl-4 sm:pl-2">
+                  <T>{'Problem'}</T>
+                </TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  <T>{'Task deadline'}</T>
+                </TableHead>
+                <TableHead className="hidden pr-4 sm:table-cell">
+                  <T>{'Status'}</T>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -325,12 +343,15 @@ export function ProblemsScreen({
                         <span
                           className={cn('sm:hidden', problem.isStale && 'text-late font-medium')}
                         >
-                          Waiting {formatElapsed(problem.ageHours * 60)} ·
+                          <T>{'Waiting '}</T>
+                          {formatElapsed(problem.ageHours * 60)} ·
                         </span>
                         <span>
-                          {problem.subtask.deadline
-                            ? `Task due ${formatIST(new Date(problem.subtask.deadline), 'dd MMM, hh:mm a')}`
-                            : 'No date yet'}
+                          {problem.subtask.deadline ? (
+                            `Task due ${formatIST(new Date(problem.subtask.deadline), 'dd MMM, hh:mm a')}`
+                          ) : (
+                            <T>{'No date yet'}</T>
+                          )}
                         </span>
                         <span className="sm:hidden">· {STATUS_WORD[problem.status]}</span>
                       </p>
@@ -338,9 +359,11 @@ export function ProblemsScreen({
                   </TableCell>
 
                   <TableCell className="code hidden align-top text-sm lg:table-cell">
-                    {problem.subtask.deadline
-                      ? formatIST(new Date(problem.subtask.deadline))
-                      : 'No date yet'}
+                    {problem.subtask.deadline ? (
+                      formatIST(new Date(problem.subtask.deadline))
+                    ) : (
+                      <T>{'No date yet'}</T>
+                    )}
                   </TableCell>
 
                   <TableCell className="hidden pr-4 align-top sm:table-cell">

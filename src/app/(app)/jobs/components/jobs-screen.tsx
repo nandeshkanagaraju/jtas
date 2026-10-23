@@ -1,5 +1,9 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import { ArrowUpRight, ClipboardList, LayoutGrid, List, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -169,15 +173,15 @@ export function JobsScreen({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Production / Job register"
-        title="Production"
+        eyebrow={<T>{'Production / Job register'}</T>}
+        title={<T>{'Production'}</T>}
         lead={lead(total, loading, filtered, error !== null)}
         actions={
           canCreate ? (
             <Button asChild>
               <Link href="/jobs/new">
                 <Plus className="size-4" />
-                New job
+                <T>{'New job '}</T>
               </Link>
             </Button>
           ) : null
@@ -213,8 +217,11 @@ export function JobsScreen({
       </PageHeader>
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="section-title">All jobs</h2>
-        <div
+        <h2 className="section-title">
+          <T>{'All jobs'}</T>
+        </h2>
+        <LocalizedElement
+          as="div"
           role="group"
           aria-label="Job layout"
           className="border-border bg-card inline-flex gap-1 rounded-lg border p-1"
@@ -231,7 +238,7 @@ export function JobsScreen({
               {mode === 'list' ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
             </Button>
           ))}
-        </div>
+        </LocalizedElement>
       </div>
       <Panel
         flush
@@ -259,13 +266,13 @@ export function JobsScreen({
             action={
               filtered ? (
                 <Button variant="outline" size="sm" onClick={() => setFilters(INITIAL)}>
-                  Clear filters
+                  <T>{'Clear filters '}</T>
                 </Button>
               ) : canCreate ? (
                 <Button asChild size="sm">
                   <Link href="/jobs/new">
                     <Plus className="size-4" />
-                    New job
+                    <T>{'New job '}</T>
                   </Link>
                 </Button>
               ) : null
@@ -295,7 +302,8 @@ export function JobsScreen({
             {loadingMore ? (
               <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
             ) : null}
-            Load {Math.min(PAGE_SIZE, total - rows.length)} more
+            <T>{'Load '}</T>
+            {Math.min(PAGE_SIZE, total - rows.length)} <T>{' more '}</T>
           </Button>
         </div>
       ) : null}
@@ -363,7 +371,9 @@ function JobRow({
         <span className="flex shrink-0 flex-col items-end gap-1 xl:w-28 xl:items-start">
           <JobStatusBadge status={job.status} />
           {job.hasOverdueSubtask ? (
-            <span className="text-late text-xs font-medium">Overdue</span>
+            <span className="text-late text-xs font-medium">
+              <T>{'Overdue'}</T>
+            </span>
           ) : null}
         </span>
       </div>

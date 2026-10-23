@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
@@ -47,7 +48,7 @@ export function TabNav({
                 : 'text-muted-foreground hover:text-foreground border-transparent',
             )}
           >
-            {tab.label}
+            <T>{tab.label}</T>
           </Link>
         );
       })}

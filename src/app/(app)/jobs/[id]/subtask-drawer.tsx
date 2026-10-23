@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
@@ -127,7 +129,11 @@ export function SubtaskDrawer({
           <SheetDescription className="flex flex-wrap items-center gap-2">
             <SubtaskStatusBadge status={subtask.status} />
             {/* Overdue rides beside the state rather than replacing it. */}
-            {subtask.isOverdue ? <Badge variant="late">Overdue</Badge> : null}
+            {subtask.isOverdue ? (
+              <Badge variant="late">
+                <T>{'Overdue'}</T>
+              </Badge>
+            ) : null}
             <span>{subtask.department.name}</span>
             <span>· {subtask.assignee.name}</span>
           </SheetDescription>
@@ -136,7 +142,9 @@ export function SubtaskDrawer({
         <div className="space-y-4 px-4 pb-6">
           {error ? (
             <Alert variant="destructive" role="alert">
-              <AlertTitle>That did not work</AlertTitle>
+              <AlertTitle>
+                <T>{'That did not work'}</T>
+              </AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
@@ -148,7 +156,7 @@ export function SubtaskDrawer({
               <AlertTitle>
                 {subtask.openProblem.severity.charAt(0) +
                   subtask.openProblem.severity.slice(1).toLowerCase()}{' '}
-                problem reported
+                <T>{'problem reported '}</T>
               </AlertTitle>
               <AlertDescription className="whitespace-pre-wrap">
                 {subtask.openProblem.description}
@@ -158,13 +166,16 @@ export function SubtaskDrawer({
 
           {subtask.exceedsJobDeadline ? (
             <Alert>
-              <AlertDescription>This deadline is after the job&rsquo;s own.</AlertDescription>
+              <AlertDescription>
+                <T>{'This deadline is after the job’s own.'}</T>
+              </AlertDescription>
             </Alert>
           ) : null}
 
           {closed ? (
             <p className="text-muted-foreground text-sm">
-              This subtask is {subtask.status.toLowerCase()} and no longer takes actions.
+              <T>{'This subtask is '}</T>
+              {subtask.status.toLowerCase()} <T>{' and no longer takes actions. '}</T>
             </p>
           ) : (
             <>
@@ -223,7 +234,7 @@ export function SubtaskDrawer({
             >
               <div className="space-y-1.5">
                 <Label htmlFor="subtask-new-deadline" className="field-label">
-                  New deadline (IST)
+                  <T>{'New deadline (IST) '}</T>
                 </Label>
                 <IstDateTimePicker
                   id="subtask-new-deadline"
@@ -270,7 +281,9 @@ export function SubtaskDrawer({
               }
             >
               <div className="space-y-1.5">
-                <Label className="field-label">New owner</Label>
+                <Label className="field-label">
+                  <T>{'New owner'}</T>
+                </Label>
                 <Select value={newAssignee} onValueChange={setNewAssignee}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose somebody" />
@@ -358,7 +371,9 @@ export function SubtaskDrawer({
           <CommentThread subtaskId={subtask.id} currentUserId={currentUserId} canComment />
 
           <Button asChild variant="link" className="h-auto px-0">
-            <Link href={`/tasks/${subtask.id}`}>Open the full task</Link>
+            <Link href={`/tasks/${subtask.id}`}>
+              <T>{'Open the full task'}</T>
+            </Link>
           </Button>
         </div>
       </SheetContent>

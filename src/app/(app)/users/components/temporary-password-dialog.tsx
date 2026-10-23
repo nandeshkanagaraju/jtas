@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { TriangleAlert } from 'lucide-react';
 
 import { CopyableSecret } from '@/components/shared/copyable-secret';
@@ -41,7 +43,9 @@ export function TemporaryPasswordDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{context === 'created' ? 'Account created' : 'Password reset'}</DialogTitle>
+          <DialogTitle>
+            {context === 'created' ? <T>{'Account created'}</T> : <T>{'Password reset'}</T>}
+          </DialogTitle>
           <DialogDescription>
             {context === 'created'
               ? `${userName} can now sign in with the temporary password below.`
@@ -51,28 +55,39 @@ export function TemporaryPasswordDialog({
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <p className="text-muted-foreground text-sm">Email</p>
+            <p className="text-muted-foreground text-sm">
+              <T>{'Email'}</T>
+            </p>
             <p className="font-medium">{userEmail}</p>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-muted-foreground text-sm">Temporary password</p>
+            <p className="text-muted-foreground text-sm">
+              <T>{'Temporary password'}</T>
+            </p>
             <CopyableSecret value={password} />
           </div>
 
           <Alert variant="destructive">
             <TriangleAlert className="size-4" />
-            <AlertTitle>Shown only once</AlertTitle>
+            <AlertTitle>
+              <T>{'Shown only once'}</T>
+            </AlertTitle>
             <AlertDescription>
-              Only an encrypted form is stored, so this password cannot be shown again. Copy it now
-              and hand it over. If it is lost, reset the password to issue a new one. {userName}{' '}
-              must change it at first sign-in.
+              <T>
+                {
+                  'Only an encrypted form is stored, so this password cannot be shown again. Copy it now and hand it over. If it is lost, reset the password to issue a new one. '
+                }
+              </T>
+              {userName} <T>{'must change it at first sign-in. '}</T>
             </AlertDescription>
           </Alert>
         </div>
 
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>I have copied it</Button>
+          <Button onClick={() => onOpenChange(false)}>
+            <T>{'I have copied it'}</T>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { Loader2, Search } from 'lucide-react';
@@ -66,7 +68,8 @@ export function JobPicker({ jobs, selected }: { jobs: PickableJob[]; selected: s
       <ul className="max-h-[28rem] divide-y overflow-y-auto">
         {matches.length === 0 ? (
           <li className="text-muted-foreground px-3 py-8 text-center text-sm">
-            No job matches “{query}”.
+            <T>{'No job matches “'}</T>
+            {query}”.
           </li>
         ) : (
           matches.map((job) => (
@@ -97,7 +100,10 @@ export function JobPicker({ jobs, selected }: { jobs: PickableJob[]; selected: s
 
       {jobs.length > matches.length ? (
         <p className="text-muted-foreground border-t px-3 py-2 text-xs">
-          Showing {matches.length} of {jobs.length}. Narrow the search to see the rest.
+          <T>{'Showing '}</T>
+          {matches.length} <T>{' of '}</T>
+          {jobs.length}
+          <T>{'. Narrow the search to see the rest. '}</T>
         </p>
       ) : null}
     </div>

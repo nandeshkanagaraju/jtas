@@ -1,8 +1,10 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, FileText, Image as ImageIcon, Paperclip, Trash2, Upload } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -225,8 +227,8 @@ export function AttachmentPanel({
         </div>
       ) : items.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Nothing attached yet.
-          {canUpload ? ' Drop the drawing or the purchase order below.' : ''}
+          <T>{'Nothing attached yet. '}</T>
+          {canUpload ? <T>{' Drop the drawing or the purchase order below.'}</T> : ''}
         </p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
@@ -311,7 +313,8 @@ export function AttachmentPanel({
           {uploading ? (
             <div className="space-y-2">
               <p className="truncate text-sm">
-                Uploading {uploading.name} — {uploading.percent}%
+                <T>{'Uploading '}</T>
+                {uploading.name} — {uploading.percent}%
               </p>
               <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
                 <div
@@ -340,11 +343,11 @@ export function AttachmentPanel({
 
               <Button variant="outline" size="sm" onClick={() => input.current?.click()}>
                 <Upload className="size-4" />
-                Choose a file
+                <T>{'Choose a file '}</T>
               </Button>
 
               <p className="text-muted-foreground mt-2 text-xs">
-                or drop one here. PDF, images, DWG, DXF, STEP, Excel and Word, up to{' '}
+                <T>{'or drop one here. PDF, images, DWG, DXF, STEP, Excel and Word, up to'}</T>{' '}
                 {formatBytes(MAX_ATTACHMENT_BYTES)}.
               </p>
             </>

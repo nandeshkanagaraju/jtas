@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Clock, TriangleAlert } from 'lucide-react';
 
@@ -70,7 +71,7 @@ export function PriorityCallout({
     <div className="border-ok-edge bg-ok-soft text-ok flex items-center gap-3 rounded-lg border px-4 py-3.5">
       <CheckCircle2 className="size-[18px] shrink-0" strokeWidth={1.75} />
       <p className="text-sm font-medium">
-        Nothing is waiting on you — no open problem and no deadline past due.
+        <T>{'Nothing is waiting on you — no open problem and no deadline past due. '}</T>
       </p>
     </div>
   );
@@ -110,12 +111,16 @@ function Callout({
             </span>
             <span className="bg-border h-3 w-px" aria-hidden />
             <span className="font-mono text-sm font-medium">{code}</span>
-            <Badge variant={badge.tone === 'neutral' ? 'neutral' : badge.tone}>{badge.label}</Badge>
+            <Badge variant={badge.tone === 'neutral' ? 'neutral' : badge.tone}>
+              <T>{badge.label}</T>
+            </Badge>
           </div>
 
           <div className="mt-2.5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
             <div className="min-w-0">
-              <p className="font-display text-base font-semibold">{title}</p>
+              <p className="font-display text-base font-semibold">
+                <T>{title}</T>
+              </p>
               {detail ? (
                 <p className="text-foreground/80 mt-1 line-clamp-2 text-sm">{detail}</p>
               ) : null}
@@ -127,7 +132,7 @@ function Callout({
               data-touch-target
               className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md px-3.5 text-sm font-medium transition-colors"
             >
-              {action.label}
+              <T>{action.label}</T>
               <ArrowRight className="size-4" />
             </Link>
           </div>

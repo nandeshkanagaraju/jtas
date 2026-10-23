@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Button } from '@/components/ui/button';
 import type { SubtaskDto } from '@/lib/api/subtasks-client';
 import { formatDuration } from '@/lib/utils/duration';
@@ -31,34 +33,34 @@ export function SubtaskActions({
       {subtask.status === 'AWAITING_APPROVAL' ? (
         <>
           <Button size="sm" disabled={busy} onClick={onApprove}>
-            Approve
+            <T>{'Approve '}</T>
           </Button>
           <Button size="sm" variant="outline" disabled={busy} onClick={() => onPanel('reject')}>
-            Send back
+            <T>{'Send back '}</T>
           </Button>
         </>
       ) : null}
 
       {subtask.status === 'PROBLEM' ? (
         <Button size="sm" disabled={busy} onClick={() => onPanel('hold')}>
-          Resolve problem
+          <T>{'Resolve problem '}</T>
         </Button>
       ) : null}
 
       <Button size="sm" variant="outline" disabled={busy} onClick={() => onPanel('deadline')}>
-        Change deadline
+        <T>{'Change deadline '}</T>
       </Button>
       <Button size="sm" variant="outline" disabled={busy} onClick={() => onPanel('reassign')}>
-        Reassign
+        <T>{'Reassign '}</T>
       </Button>
 
       {subtask.status === 'ON_HOLD' ? (
         <Button size="sm" variant="outline" disabled={busy} onClick={onUnhold}>
-          Resume
+          <T>{'Resume '}</T>
         </Button>
       ) : (
         <Button size="sm" variant="outline" disabled={busy} onClick={() => onPanel('hold')}>
-          Put on hold
+          <T>{'Put on hold '}</T>
         </Button>
       )}
 
@@ -69,7 +71,7 @@ export function SubtaskActions({
         disabled={busy}
         onClick={() => onPanel('cancel')}
       >
-        Cancel subtask
+        <T>{'Cancel subtask '}</T>
       </Button>
     </div>
   );
@@ -80,31 +82,43 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
   return (
     <dl className="grid grid-cols-2 gap-3 text-sm">
       <div>
-        <dt className="field-label">Deadline</dt>
+        <dt className="field-label">
+          <T>{'Deadline'}</T>
+        </dt>
         <dd className="code font-medium">
-          {subtask.deadline
-            ? new Intl.DateTimeFormat('en-IN', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-                timeZone: 'Asia/Kolkata',
-              }).format(new Date(subtask.deadline))
-            : subtask.commitmentDueAt
-              ? 'Awaiting commitment'
-              : 'Not their turn'}
+          {subtask.deadline ? (
+            new Intl.DateTimeFormat('en-IN', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+              timeZone: 'Asia/Kolkata',
+            }).format(new Date(subtask.deadline))
+          ) : subtask.commitmentDueAt ? (
+            <T>{'Awaiting commitment'}</T>
+          ) : (
+            <T>{'Not their turn'}</T>
+          )}
           {subtask.isOverdue ? (
-            <span className="text-late block text-xs font-medium">Overdue</span>
+            <span className="text-late block text-xs font-medium">
+              <T>{'Overdue'}</T>
+            </span>
           ) : null}
         </dd>
       </div>
 
       <div>
-        <dt className="field-label">Reminder</dt>
-        <dd className="font-medium">{formatDuration(subtask.reminderLeadMinutes)} before</dd>
+        <dt className="field-label">
+          <T>{'Reminder'}</T>
+        </dt>
+        <dd className="font-medium">
+          {formatDuration(subtask.reminderLeadMinutes)} <T>{' before'}</T>
+        </dd>
       </div>
 
       {subtask.dependsOn ? (
         <div className="col-span-2">
-          <dt className="field-label">Waits for</dt>
+          <dt className="field-label">
+            <T>{'Waits for'}</T>
+          </dt>
           <dd className="font-medium">
             {subtask.dependsOn.title}{' '}
             <span className="text-muted-foreground text-xs">
@@ -116,7 +130,9 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
 
       {subtask.completionNote ? (
         <div className="col-span-2">
-          <dt className="field-label">Completion note</dt>
+          <dt className="field-label">
+            <T>{'Completion note'}</T>
+          </dt>
           <dd>{subtask.completionNote}</dd>
         </div>
       ) : null}

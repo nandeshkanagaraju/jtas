@@ -74,7 +74,7 @@ interface DueRow {
   id: string;
   userId: string;
   type: NotifType;
-  channel: 'EMAIL' | 'IN_APP' | 'WHATSAPP' | 'SMS' | 'TELEGRAM';
+  channel: 'EMAIL' | 'IN_APP' | 'WHATSAPP' | 'SMS' | 'TELEGRAM' | 'PUSH';
   entityType: string;
   entityId: string;
   attemptCount: number;
@@ -115,6 +115,7 @@ export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> 
   const { allowlist, cap } = mailGuardConfig();
   const quota = await quotaStatus(prisma, cap, now);
   let sentThisPass = 0;
+  let providerQuotaHeld = false;
 
   /*
    * Claim a batch. FOR UPDATE SKIP LOCKED means a second worker takes the next
@@ -158,7 +159,10 @@ export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> 
      * unattempted, so the pass after midnight picks it up untouched. Only
      * mail counts against it — an in-app row costs nothing to deliver.
      */
-    if (row.channel === 'EMAIL' && quota.sentToday + sentThisPass >= quota.cap) {
+    if (
+      row.channel === 'EMAIL' &&
+      (providerQuotaHeld || quota.sentToday + sentThisPass >= quota.cap)
+    ) {
       result.quotaHeld++;
       continue;
     }
@@ -168,18 +172,16 @@ export async function dispatchDue(now: Date = new Date()): Promise<SweepResult> 
     /*
      * The provider says its own allowance is gone. Same posture as our cap —
      * the row stays PENDING, untouched — but we only learn it by being told,
-     * so the remainder of the batch is held rather than asked one at a time.
+     * so the remaining email rows are held. Other channels continue independently.
      */
     if (outcome === 'providerQuota') {
       result.quotaHeld++;
       log.warn(
         { notificationId: row.id },
-        'the mail provider reported its daily quota is exhausted; holding the rest of this pass',
+        'the mail provider reported its daily quota is exhausted; holding email while other channels continue',
       );
-      for (const remaining of claimed.slice(claimed.indexOf(row) + 1)) {
-        if (remaining.channel === 'EMAIL') result.quotaHeld++;
-      }
-      break;
+      providerQuotaHeld = true;
+      continue;
     }
 
     result[outcome]++;

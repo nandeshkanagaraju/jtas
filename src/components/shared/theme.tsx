@@ -1,5 +1,8 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { useLanguage } from '@/lib/i18n/provider';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { ThemeProvider as NextThemeProvider, useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
@@ -59,6 +62,7 @@ export function ThemeToggle({
   className?: string;
   compact?: boolean;
 }) {
+  const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -85,9 +89,10 @@ export function ThemeToggle({
   }
 
   return (
-    <div
+    <LocalizedElement
+      as="div"
       role="radiogroup"
-      aria-label="Colour theme"
+      aria-label={t('Colour theme')}
       className={cn(
         'border-border bg-card inline-flex items-center gap-0.5 rounded-md border p-0.5',
         className,
@@ -102,8 +107,8 @@ export function ThemeToggle({
             type="button"
             role="radio"
             aria-checked={active}
-            aria-label={choice.label}
-            title={choice.label}
+            aria-label={t(choice.label)}
+            title={t(choice.label)}
             tabIndex={!mounted || active ? 0 : -1}
             onKeyDown={(event) => {
               const direction =
@@ -140,6 +145,6 @@ export function ThemeToggle({
           </button>
         );
       })}
-    </div>
+    </LocalizedElement>
   );
 }

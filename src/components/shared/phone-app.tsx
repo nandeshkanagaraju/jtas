@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { ChevronDown } from 'lucide-react';
 import { Children, createContext, useContext, useState, useSyncExternalStore } from 'react';
 
@@ -63,8 +65,14 @@ export function PhoneDisclosure({
     <details className="phone-disclosure">
       <summary>
         <span className="min-w-0">
-          <span className="block font-medium">{title}</span>
-          {hint ? <span className="text-muted-foreground mt-0.5 block text-xs">{hint}</span> : null}
+          <span className="block font-medium">
+            <T>{title}</T>
+          </span>
+          {hint ? (
+            <span className="text-muted-foreground mt-0.5 block text-xs">
+              <T>{hint}</T>
+            </span>
+          ) : null}
         </span>
         <ChevronDown className="size-4 shrink-0" aria-hidden />
       </summary>
@@ -89,7 +97,11 @@ export function PhoneQueue({ children }: { children: React.ReactNode }) {
             aria-expanded={expanded}
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? 'Show fewer items' : `Show all ${rows.length} items`}
+            {expanded ? (
+              <T>{'Show fewer items'}</T>
+            ) : (
+              <T values={{ count: rows.length }}>{'Show all {{count}} items'}</T>
+            )}
           </Button>
         </div>
       ) : null}

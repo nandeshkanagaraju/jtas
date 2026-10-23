@@ -1,4 +1,6 @@
 'use client';
+import { useLanguage } from '@/lib/i18n/provider';
+import { ta, hi, enUS } from 'date-fns/locale';
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
@@ -19,10 +21,13 @@ function Calendar({
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>['variant'];
 }) {
+  const { locale } = useLanguage();
+  const calendarLocale = locale === 'ta' ? ta : locale === 'hi' ? hi : enUS;
   const defaultClassNames = getDefaultClassNames();
 
   return (
     <DayPicker
+      locale={calendarLocale}
       showOutsideDays={showOutsideDays}
       className={cn(
         'group/calendar bg-background p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent',

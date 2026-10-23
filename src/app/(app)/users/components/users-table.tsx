@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { KeyRound, Pencil, Undo2, Users, UserX } from 'lucide-react';
 
 import { Panel } from '@/components/shared/panel';
@@ -70,12 +72,24 @@ export function UsersTable({
       <Table>
         <TableHeader>
           <TableRow className="border-rule hover:bg-transparent">
-            <TableHead className="pl-4">Name</TableHead>
-            <TableHead className="hidden sm:table-cell">Role</TableHead>
-            <TableHead className="hidden md:table-cell">Department</TableHead>
-            <TableHead className="hidden lg:table-cell">Last login</TableHead>
-            <TableHead className="hidden sm:table-cell">Status</TableHead>
-            <TableHead className="pr-4 text-right">Actions</TableHead>
+            <TableHead className="pl-4">
+              <T>{'Name'}</T>
+            </TableHead>
+            <TableHead className="hidden sm:table-cell">
+              <T>{'Role'}</T>
+            </TableHead>
+            <TableHead className="hidden md:table-cell">
+              <T>{'Department'}</T>
+            </TableHead>
+            <TableHead className="hidden lg:table-cell">
+              <T>{'Last login'}</T>
+            </TableHead>
+            <TableHead className="hidden sm:table-cell">
+              <T>{'Status'}</T>
+            </TableHead>
+            <TableHead className="pr-4 text-right">
+              <T>{'Actions'}</T>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -94,12 +108,12 @@ export function UsersTable({
                   />
                   {user.isActive && (user.openSubtaskCount ?? 0) > 0 ? (
                     <span className="text-muted-foreground ml-1 text-xs">
-                      {user.openSubtaskCount} open
+                      {user.openSubtaskCount} <T>{' open '}</T>
                     </span>
                   ) : null}
                 </div>
                 <div className="text-muted-foreground mt-1 max-w-[8.5rem] truncate text-xs sm:hidden">
-                  {ROLE_LABELS[user.role]}
+                  <T>{ROLE_LABELS[user.role]}</T>
                   {user.departmentName ? ` · ${user.departmentName}` : ''}
                 </div>
               </TableCell>
@@ -113,7 +127,7 @@ export function UsersTable({
               </TableCell>
 
               <TableCell className="code text-muted-foreground hidden text-sm lg:table-cell">
-                {user.lastLoginAt ? formatIST(new Date(user.lastLoginAt)) : 'Never'}
+                {user.lastLoginAt ? formatIST(new Date(user.lastLoginAt)) : <T>{'Never'}</T>}
               </TableCell>
 
               <TableCell className="hidden sm:table-cell">
@@ -124,7 +138,7 @@ export function UsersTable({
                 />
                 {user.isActive && (user.openSubtaskCount ?? 0) > 0 ? (
                   <div className="text-muted-foreground mt-1 text-xs">
-                    <span className="code">{user.openSubtaskCount}</span> open
+                    <span className="code">{user.openSubtaskCount}</span> <T>{' open '}</T>
                   </div>
                 ) : null}
               </TableCell>

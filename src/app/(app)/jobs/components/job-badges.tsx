@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { JobStatus, Priority } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,7 @@ const STATUS_LABELS: Record<JobStatus, string> = {
 export function JobStatusBadge({ status }: { status: JobStatus }) {
   return (
     <Badge variant={jobStatusTone(status)} className="whitespace-nowrap">
-      {STATUS_LABELS[status]}
+      <T>{STATUS_LABELS[status]}</T>
     </Badge>
   );
 }
@@ -41,13 +42,17 @@ export function PriorityBadge({ priority }: { priority: Priority }) {
   // Low and Normal are the common case and deliberately quiet — if everything
   // is highlighted, nothing is.
   if (priority === 'LOW' || priority === 'NORMAL') {
-    return <span className="text-muted-foreground text-xs">{PRIORITY_STYLES[priority].label}</span>;
+    return (
+      <span className="text-muted-foreground text-xs">
+        <T>{PRIORITY_STYLES[priority].label}</T>
+      </span>
+    );
   }
 
   const { label, tone } = PRIORITY_STYLES[priority];
   return (
     <Badge variant={tone} className="whitespace-nowrap">
-      {label}
+      <T>{label}</T>
     </Badge>
   );
 }
@@ -88,7 +93,11 @@ export function DepartmentChain({
   departments: Array<{ id: string; name: string; code: string }>;
 }) {
   if (departments.length === 0) {
-    return <span className="text-muted-foreground text-xs">Not planned yet</span>;
+    return (
+      <span className="text-muted-foreground text-xs">
+        <T>{'Not planned yet'}</T>
+      </span>
+    );
   }
 
   return (
@@ -145,7 +154,9 @@ export function DeadlineCell({
     return (
       <div className={cn('flex items-center gap-1.5 text-xs', className)}>
         <span className="code text-muted-foreground">{formatIST(date, 'dd MMM, hh:mm a')}</span>
-        <span className={TONE_CLASS[label.tone]}>· {label.text}</span>
+        <span className={TONE_CLASS[label.tone]}>
+          · <T>{label.text}</T>
+        </span>
       </div>
     );
   }
@@ -153,7 +164,9 @@ export function DeadlineCell({
   return (
     <div className={cn('space-y-0.5', className)}>
       <div className="code text-sm whitespace-nowrap">{formatIST(date)}</div>
-      <div className={cn('text-xs', TONE_CLASS[label.tone])}>{label.text}</div>
+      <div className={cn('text-xs', TONE_CLASS[label.tone])}>
+        <T>{label.text}</T>
+      </div>
     </div>
   );
 }
@@ -165,7 +178,11 @@ export function JobProgress({
   progress: { completed: number; total: number; percent: number };
 }) {
   if (progress.total === 0) {
-    return <span className="text-muted-foreground text-xs">No subtasks yet</span>;
+    return (
+      <span className="text-muted-foreground text-xs">
+        <T>{'No subtasks yet'}</T>
+      </span>
+    );
   }
 
   return (
@@ -174,7 +191,7 @@ export function JobProgress({
         <span className="code text-foreground font-medium">
           {progress.completed}/{progress.total}
         </span>{' '}
-        done
+        <T>{'done '}</T>
       </p>
       <div
         role="progressbar"

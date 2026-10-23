@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import {
   Bar,
   BarChart,
@@ -47,7 +49,7 @@ export function ScorecardChart({ rows }: { rows: DepartmentScorecard[] }) {
   return (
     <Panel
       id="scorecard-chart"
-      title="On-time completion by department"
+      title={<T>{'On-time completion by department'}</T>}
       description={
         silent.length > 0
           ? `${silent.map((row) => row.name).join(', ')} completed nothing in this range.`
@@ -58,7 +60,7 @@ export function ScorecardChart({ rows }: { rows: DepartmentScorecard[] }) {
       <div className="p-2 sm:p-4">
         {data.length === 0 ? (
           <p className="text-muted-foreground py-10 text-center text-sm">
-            No completed work in this range.
+            <T>{'No completed work in this range. '}</T>
           </p>
         ) : (
           <div className="h-72 w-full">

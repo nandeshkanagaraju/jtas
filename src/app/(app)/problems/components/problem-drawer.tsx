@@ -1,5 +1,9 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import { Loader2, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -158,7 +162,7 @@ export function ProblemDrawer({
             <span className="code text-sm">{problem.subtask.job.jobCode}</span>
           </SheetTitle>
           <SheetDescription>
-            {problem.subtask.department.name} · {problem.subtask.assignee.name} · raised{' '}
+            {problem.subtask.department.name} · {problem.subtask.assignee.name} <T>{' · raised'}</T>{' '}
             <span className="code">{formatIST(new Date(problem.createdAt))}</span>
           </SheetDescription>
         </SheetHeader>
@@ -167,7 +171,9 @@ export function ProblemDrawer({
           {onNext ? (
             <div className="border-border bg-muted/40 flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
               <span className="text-muted-foreground font-mono text-xs">
-                Report {queuePosition} of {queueTotal}
+                <T>{'Report '}</T>
+                {queuePosition} <T>{' of '}</T>
+                {queueTotal}
               </span>
               <Button
                 variant="ghost"
@@ -182,7 +188,7 @@ export function ProblemDrawer({
                 }
                 onClick={onNext}
               >
-                Next report →
+                <T>{'Next report → '}</T>
               </Button>
             </div>
           ) : null}
@@ -190,8 +196,8 @@ export function ProblemDrawer({
             <Alert variant="destructive">
               <TriangleAlert className="size-4" />
               <AlertDescription>
-                This has been waiting <ProblemAge ageHours={problem.ageHours} isStale /> for a
-                decision.
+                <T>{'This has been waiting '}</T>
+                <ProblemAge ageHours={problem.ageHours} isStale /> <T>{' for a decision. '}</T>
               </AlertDescription>
             </Alert>
           ) : null}
@@ -204,7 +210,10 @@ export function ProblemDrawer({
 
           {/* The member's words, verbatim (SDD section 5.4). */}
           <div className="space-y-1.5">
-            <p className="field-label">What {problem.raisedBy?.name ?? 'the member'} reported</p>
+            <p className="field-label">
+              <T>{'What '}</T>
+              {problem.raisedBy?.name ?? 'the member'} <T>{' reported'}</T>
+            </p>
             {/* The member's words, verbatim and unedited (SDD section 5.4). */}
             <blockquote className="border-primary/30 bg-primary/5 rounded-xl border border-l-[3px] px-4 py-4 text-base leading-relaxed whitespace-pre-wrap">
               {problem.description}
@@ -213,19 +222,27 @@ export function ProblemDrawer({
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <dt className="field-label">Task</dt>
+              <dt className="field-label">
+                <T>{'Task'}</T>
+              </dt>
               <dd className="font-medium">{problem.subtask.title}</dd>
             </div>
             <div>
-              <dt className="field-label">Current deadline</dt>
+              <dt className="field-label">
+                <T>{'Current deadline'}</T>
+              </dt>
               <dd className="code font-medium">
-                {problem.subtask.deadline
-                  ? formatIST(new Date(problem.subtask.deadline))
-                  : 'No date yet'}
+                {problem.subtask.deadline ? (
+                  formatIST(new Date(problem.subtask.deadline))
+                ) : (
+                  <T>{'No date yet'}</T>
+                )}
               </dd>
             </div>
             <div className="col-span-2">
-              <dt className="field-label">Job</dt>
+              <dt className="field-label">
+                <T>{'Job'}</T>
+              </dt>
               <dd>
                 <Link
                   href={`/jobs/${problem.subtask.job.id}`}
@@ -256,7 +273,7 @@ export function ProblemDrawer({
                 )
               }
             >
-              Mark as seen
+              <T>{'Mark as seen '}</T>
             </Button>
           ) : null}
 
@@ -264,7 +281,8 @@ export function ProblemDrawer({
           {closed ? (
             <div className="border-border bg-muted/50 space-y-2 rounded-lg border p-4">
               <p className="section-title">
-                Recorded decision · {problem.status === 'RESOLVED' ? 'Resolved' : 'Rejected'}
+                <T>{'Recorded decision · '}</T>
+                {problem.status === 'RESOLVED' ? <T>{'Resolved'}</T> : <T>{'Rejected'}</T>}
               </p>
               <p className="whitespace-pre-wrap">
                 {problem.mdActionNote ?? 'No decision note recorded.'}
@@ -282,7 +300,8 @@ export function ProblemDrawer({
             anyone reading the page by role, and `aria-pressed` carries which
             one is chosen.
           */}
-              <div
+              <LocalizedElement
+                as="div"
                 role="group"
                 aria-label="What to do with this report"
                 className="border-border bg-muted inline-flex rounded-md border p-0.5"
@@ -301,10 +320,10 @@ export function ProblemDrawer({
                         : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    {value === 'resolve' ? 'Resolve it' : 'Not a problem'}
+                    {value === 'resolve' ? <T>{'Resolve it'}</T> : <T>{'Not a problem'}</T>}
                   </button>
                 ))}
-              </div>
+              </LocalizedElement>
 
               {mode === 'resolve' ? (
                 <>
@@ -324,8 +343,11 @@ export function ProblemDrawer({
                   {overrideField ? (
                     <div className="border-risk-edge bg-risk-soft space-y-1.5 rounded-lg border p-3">
                       <Label className="text-risk text-xs font-medium">
-                        Confirm the exception <span aria-hidden>*</span>
-                        <span className="sr-only">(required)</span>
+                        <T>{'Confirm the exception '}</T>
+                        <span aria-hidden>*</span>
+                        <span className="sr-only">
+                          <T>{'(required)'}</T>
+                        </span>
                       </Label>
                       <Textarea
                         value={overrideReason}
@@ -348,7 +370,7 @@ export function ProblemDrawer({
                     onClick={() => resolveCurrent()}
                   >
                     {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Resolve
+                    <T>{'Resolve '}</T>
                   </Button>
                   {onNext ? (
                     <Button
@@ -361,7 +383,7 @@ export function ProblemDrawer({
                       }
                       onClick={() => resolveCurrent(true)}
                     >
-                      Resolve and next
+                      <T>{'Resolve and next '}</T>
                     </Button>
                   ) : null}
                 </>
@@ -369,7 +391,8 @@ export function ProblemDrawer({
                 <>
                   <div className="space-y-1.5">
                     <Label className="text-xs">
-                      Why is this not a problem? <span className="text-destructive">*</span>
+                      <T>{'Why is this not a problem? '}</T>
+                      <span className="text-destructive">*</span>
                     </Label>
                     <Textarea
                       value={rejectNote}
@@ -393,7 +416,7 @@ export function ProblemDrawer({
                     }
                   >
                     {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Send it back
+                    <T>{'Send it back '}</T>
                   </Button>
                 </>
               )}

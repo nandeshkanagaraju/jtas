@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -113,7 +115,9 @@ export function JobForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Job title</FormLabel>
+              <FormLabel>
+                <T>{'Job title'}</T>
+              </FormLabel>
               <FormControl>
                 <Input
                   {...field}
@@ -133,7 +137,10 @@ export function JobForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Customer <span className="text-muted-foreground font-normal">(optional)</span>
+                  <T>{'Customer '}</T>
+                  <span className="text-muted-foreground font-normal">
+                    <T>{'(optional)'}</T>
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -153,7 +160,10 @@ export function JobForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Quantity <span className="text-muted-foreground font-normal">(optional)</span>
+                  <T>{'Quantity '}</T>
+                  <span className="text-muted-foreground font-normal">
+                    <T>{'(optional)'}</T>
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -176,7 +186,10 @@ export function JobForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Part number <span className="text-muted-foreground font-normal">(optional)</span>
+                  <T>{'Part number '}</T>
+                  <span className="text-muted-foreground font-normal">
+                    <T>{'(optional)'}</T>
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -197,8 +210,10 @@ export function JobForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Drawing number{' '}
-                  <span className="text-muted-foreground font-normal">(optional)</span>
+                  <T>{'Drawing number'}</T>{' '}
+                  <span className="text-muted-foreground font-normal">
+                    <T>{'(optional)'}</T>
+                  </span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -220,7 +235,9 @@ export function JobForm({
             name="priority"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Priority</FormLabel>
+                <FormLabel>
+                  <T>{'Priority'}</T>
+                </FormLabel>
                 <Select
                   value={field.value}
                   onValueChange={field.onChange}
@@ -234,7 +251,7 @@ export function JobForm({
                   <SelectContent>
                     {PRIORITIES.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        <T>{option.label}</T>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -249,7 +266,9 @@ export function JobForm({
             name="overallDeadline"
             render={({ field }) => (
               <FormItem>
-                <FormLabel htmlFor="overallDeadline">Overall deadline</FormLabel>
+                <FormLabel htmlFor="overallDeadline">
+                  <T>{'Overall deadline'}</T>
+                </FormLabel>
                 <FormControl>
                   <IstDateTimePicker
                     id="overallDeadline"
@@ -259,7 +278,7 @@ export function JobForm({
                   />
                 </FormControl>
                 <FormDescription>
-                  India Standard Time. Every subtask deadline sits before this.
+                  <T>{'India Standard Time. Every subtask deadline sits before this. '}</T>
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -273,7 +292,10 @@ export function JobForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Description <span className="text-muted-foreground font-normal">(optional)</span>
+                <T>{'Description '}</T>
+                <span className="text-muted-foreground font-normal">
+                  <T>{'(optional)'}</T>
+                </span>
               </FormLabel>
               <FormControl>
                 <Textarea
@@ -292,7 +314,7 @@ export function JobForm({
         <div className="flex justify-end gap-2">
           {onCancel ? (
             <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
-              Cancel
+              <T>{'Cancel '}</T>
             </Button>
           ) : null}
           <Button type="submit" disabled={isSubmitting}>

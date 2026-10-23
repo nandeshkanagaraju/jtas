@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import type { Role } from '@prisma/client';
 import { UserPlus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -145,8 +147,8 @@ export function UsersScreen({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Administration / People"
-        title="People & access"
+        eyebrow={<T>{'Administration / People'}</T>}
+        title={<T>{'People & access'}</T>}
         lead={`${total} ${total === 1 ? 'account' : 'accounts'}. Accounts are never deleted — a departed colleague stays visible on the jobs they worked on.`}
         actions={
           <Button
@@ -156,7 +158,7 @@ export function UsersScreen({
             }}
           >
             <UserPlus className="size-4" />
-            Add user
+            <T>{'Add user '}</T>
           </Button>
         }
       >

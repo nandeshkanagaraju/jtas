@@ -1,7 +1,10 @@
+'use client';
+import { useLanguage } from '@/lib/i18n/provider';
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
+  const { t } = useLanguage();
   return (
     <input
       type={type}
@@ -13,6 +16,8 @@ function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
         className,
       )}
       {...props}
+      placeholder={props.placeholder ? t(props.placeholder) : undefined}
+      aria-label={props['aria-label'] ? t(props['aria-label']) : undefined}
     />
   );
 }

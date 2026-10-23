@@ -6,6 +6,8 @@
  */
 import type { NotifChannel } from '@prisma/client';
 
+import { pushChannel } from './push';
+
 import { brevoChannel } from './brevo';
 import { emailChannel } from './email';
 import { inAppChannel } from './in-app';
@@ -14,6 +16,7 @@ import type { NotificationChannel } from './types';
 
 const registry: Partial<Record<NotifChannel, NotificationChannel>> = {
   IN_APP: inAppChannel,
+  PUSH: pushChannel,
   TELEGRAM: telegramChannel,
   // EMAIL is resolved on first use from MAIL_PROVIDER — see below.
   // WHATSAPP and SMS land in Phase 3; a row addressed to one before then is

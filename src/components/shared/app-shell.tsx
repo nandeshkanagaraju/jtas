@@ -1,10 +1,17 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import { ArrowLeft, ArrowUpRight, Bell, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
+import { LanguageSelector } from '@/lib/i18n/provider';
+
+import { PushLanguageSync } from '@/components/shared/push-language-sync';
 import { AccountMenu } from '@/components/shared/account-menu';
 import { Brand } from '@/components/shared/brand';
 import { usePhoneApp } from '@/components/shared/phone-app';
@@ -78,11 +85,16 @@ export function AppShell({
         className={cn(mobile ? 'mobile-nav-link' : 'top-nav-link', active && 'is-active')}
       >
         <Icon className="size-4 shrink-0" strokeWidth={1.7} aria-hidden />
-        <span>{NAV_LABELS[item.href] ?? item.label}</span>
+        <span>
+          <T>{NAV_LABELS[item.href] ?? item.label}</T>
+        </span>
         {item.badge && item.badge > 0 ? (
           <span className={cn('nav-count', item.badgeUrgent && 'is-urgent')}>
             {item.badge}
-            <span className="sr-only"> open problems</span>
+            <span className="sr-only">
+              {' '}
+              <T>{' open problems'}</T>
+            </span>
           </span>
         ) : null}
       </Link>
@@ -91,8 +103,9 @@ export function AppShell({
 
   return (
     <div className="app-canvas min-h-dvh" data-phone-app={phone ? 'true' : undefined}>
+      <PushLanguageSync />
       <a href="#content" className="skip-link">
-        Skip to content
+        <T>{'Skip to content '}</T>
       </a>
       {phone ? (
         <header className="phone-app-header sticky top-0 z-30">
@@ -107,9 +120,11 @@ export function AppShell({
               </Link>
             )}
             <span className="truncate text-sm font-semibold">
-              {pathname.startsWith('/tasks/')
-                ? 'Task'
-                : (NAV_LABELS[`/${pathname.split('/')[1]}`] ?? 'Jaraa')}
+              <T>
+                {pathname.startsWith('/tasks/')
+                  ? 'Task'
+                  : (NAV_LABELS[`/${pathname.split('/')[1]}`] ?? 'Jaraa')}
+              </T>
             </span>
           </div>
           <NotificationBell initialUnread={unreadNotifications} />
@@ -123,29 +138,32 @@ export function AppShell({
                 <Brand />
               </Link>
               <span className="text-muted-foreground hidden border-l pl-7 text-xs lg:block">
-                Engineering operations
+                <T>{'Engineering operations '}</T>
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
               <QuickNavigation items={nav} />
+              <LanguageSelector compact />
               <span className="bg-border mx-1 hidden h-5 w-px sm:block" aria-hidden />
               <ThemeToggle compact />
               <NotificationBell initialUnread={unreadNotifications} />
               <div className="size-11">
                 <AccountMenu name={name} email={email} role={role} collapsed />
               </div>
-              <button
+              <LocalizedElement
+                as="button"
                 type="button"
                 aria-label="Menu"
                 onClick={() => setDrawer(true)}
                 className="header-icon lg:hidden"
               >
                 <Menu className="size-5" />
-              </button>
+              </LocalizedElement>
             </div>
           </header>
           <div className="border-border/60 border-t">
-            <nav
+            <LocalizedElement
+              as="nav"
               aria-label="Main"
               className="shell-width hidden min-h-[54px] items-stretch justify-between gap-4 lg:flex"
             >
@@ -157,13 +175,13 @@ export function AppShell({
                   {admin.map((item) => navLink(item))}
                 </div>
               ) : null}
-            </nav>
+            </LocalizedElement>
             <div className="shell-width flex min-h-11 items-center justify-between gap-3 lg:hidden">
               <span className="text-sm font-medium">
-                {NAV_LABELS[`/${pathname.split('/')[1]}`] ?? 'Workspace'}
+                <T>{NAV_LABELS[`/${pathname.split('/')[1]}`] ?? 'Workspace'}</T>
               </span>
               <span className="text-muted-foreground font-mono text-[11px]">
-                Jaraa Global / JTAS
+                <T>{'Jaraa Global / JTAS '}</T>
               </span>
             </div>
           </div>
@@ -179,13 +197,16 @@ export function AppShell({
         </div>
       </main>
       <footer className="web-app-footer shell-width text-muted-foreground flex flex-wrap items-center justify-between gap-3 border-t py-6 text-xs">
-        <span>Jaraa Global Engineering</span>
+        <span>
+          <T>{'Jaraa Global Engineering'}</T>
+        </span>
         <span className="inline-flex items-center gap-1.5">
-          Task & accountability system <ArrowUpRight className="size-3" aria-hidden />
+          <T>{'Task & accountability system '}</T>
+          <ArrowUpRight className="size-3" aria-hidden />
         </span>
       </footer>
       {phone ? (
-        <nav aria-label="App navigation" className="phone-app-tabs">
+        <LocalizedElement as="nav" aria-label="App navigation" className="phone-app-tabs">
           {phoneTabs.map((item) => {
             const Icon = NAV_ICONS[item.icon];
             return (
@@ -199,12 +220,15 @@ export function AppShell({
                   {item.badge && item.badge > 0 ? (
                     <span className="phone-tab-badge">
                       {item.badge}
-                      <span className="sr-only"> open problems</span>
+                      <span className="sr-only">
+                        {' '}
+                        <T>{' open problems'}</T>
+                      </span>
                     </span>
                   ) : null}
                 </span>
                 <span>
-                  {item.href === '/jobs' ? 'Jobs' : (NAV_LABELS[item.href] ?? item.label)}
+                  <T>{item.href === '/jobs' ? 'Jobs' : (NAV_LABELS[item.href] ?? item.label)}</T>
                 </span>
               </Link>
             );
@@ -215,19 +239,24 @@ export function AppShell({
               aria-current={pathname === '/notifications' ? 'page' : undefined}
             >
               <Bell className="size-5" aria-hidden />
-              <span>Alerts</span>
+              <span>
+                <T>{'Alerts'}</T>
+              </span>
             </Link>
           ) : null}
-          <button
+          <LocalizedElement
+            as="button"
             type="button"
             onClick={() => setDrawer(true)}
             aria-label="More"
             aria-expanded={drawer}
           >
             <Menu className="size-5" aria-hidden />
-            <span>More</span>
-          </button>
-        </nav>
+            <span>
+              <T>{'More'}</T>
+            </span>
+          </LocalizedElement>
+        </LocalizedElement>
       ) : null}
       <Sheet open={drawer} onOpenChange={setDrawer}>
         <SheetContent
@@ -235,9 +264,11 @@ export function AppShell({
           showCloseButton={false}
           className="w-[min(100%,22rem)] gap-0 p-0"
         >
-          <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
+          <SheetTitle className="sr-only">
+            <T>{'Workspace navigation'}</T>
+          </SheetTitle>
           <SheetDescription className="sr-only">
-            Navigate between your work, decisions and administration.
+            <T>{'Navigate between your work, decisions and administration. '}</T>
           </SheetDescription>
           <div className="flex items-center justify-between border-b p-5">
             <Brand />
@@ -245,7 +276,11 @@ export function AppShell({
               <X className="size-5" />
             </SheetClose>
           </div>
-          <nav aria-label="Mobile navigation" className="flex-1 space-y-1 overflow-y-auto p-4">
+          <LocalizedElement
+            as="nav"
+            aria-label="Mobile navigation"
+            className="flex-1 space-y-1 overflow-y-auto p-4"
+          >
             {phone ? (
               <div className="mb-3">
                 <QuickNavigation items={nav} mobile onNavigate={() => setDrawer(false)} />
@@ -257,8 +292,9 @@ export function AppShell({
                 {admin.map((item) => navLink(item, true))}
               </div>
             ) : null}
-          </nav>
+          </LocalizedElement>
           <div className="space-y-4 border-t p-5">
+            <LanguageSelector />
             <ThemeToggle />
             <AccountMenu name={name} email={email} role={role} />
           </div>

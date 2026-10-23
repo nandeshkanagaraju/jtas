@@ -1,8 +1,10 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Clock, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
 import { Badge } from '@/components/ui/badge';
@@ -71,18 +73,18 @@ export function ExtensionPanel({
       title={
         <span className="flex items-center gap-2">
           <Clock className="size-4" aria-hidden />
-          More time
+          <T>{'More time '}</T>
         </span>
       }
       id="extension-panel"
-      description="You cannot move your own deadline, but you can ask. The MD decides."
+      description={<T>{'You cannot move your own deadline, but you can ask. The MD decides.'}</T>}
       bodyClassName="p-4 space-y-3"
     >
       {latest ? (
         <div className="bg-card flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
           <div className="space-y-0.5">
             <p className="text-sm">
-              Asked for{' '}
+              <T>{'Asked for'}</T>{' '}
               <span className="code font-medium">
                 {formatIST(new Date(latest.requestedDeadline))}
               </span>
@@ -90,24 +92,27 @@ export function ExtensionPanel({
             <p className="text-muted-foreground text-xs">{latest.reason}</p>
           </div>
           <Badge className={cn('whitespace-nowrap', STATUS_STYLES[latest.status])}>
-            {latest.status === 'PENDING'
-              ? 'Waiting for the MD'
-              : latest.status === 'APPROVED'
-                ? 'Approved'
-                : 'Not approved'}
+            {latest.status === 'PENDING' ? (
+              <T>{'Waiting for the MD'}</T>
+            ) : latest.status === 'APPROVED' ? (
+              <T>{'Approved'}</T>
+            ) : (
+              <T>{'Not approved'}</T>
+            )}
           </Badge>
         </div>
       ) : null}
 
       {pending ? (
         <p className="text-muted-foreground text-xs">
-          One request at a time — the MD has this one.
+          <T>{'One request at a time — the MD has this one. '}</T>
         </p>
       ) : open ? (
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="extension-new-deadline" className="text-xs">
-              New deadline you need (currently {formatIST(new Date(currentDeadline))})
+              <T>{'New deadline you need (currently '}</T>
+              {formatIST(new Date(currentDeadline))})
             </Label>
             <IstDateTimePicker
               id="extension-new-deadline"
@@ -118,7 +123,9 @@ export function ExtensionPanel({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Why?</Label>
+            <Label className="text-xs">
+              <T>{'Why?'}</T>
+            </Label>
             <Textarea
               value={reason}
               onChange={(event) => setReason(event.target.value)}
@@ -141,7 +148,7 @@ export function ExtensionPanel({
               onClick={submit}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-              Ask the MD
+              <T>{'Ask the MD '}</T>
             </Button>
             <Button
               variant="ghost"
@@ -149,13 +156,13 @@ export function ExtensionPanel({
               onClick={() => setOpen(false)}
               disabled={busy}
             >
-              Cancel
+              <T>{'Cancel '}</T>
             </Button>
           </div>
         </div>
       ) : (
         <Button variant="outline" className="min-h-11" onClick={() => setOpen(true)}>
-          Request more time
+          <T>{'Request more time '}</T>
         </Button>
       )}
     </Panel>

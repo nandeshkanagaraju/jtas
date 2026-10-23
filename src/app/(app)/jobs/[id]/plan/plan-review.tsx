@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { ArrowDown, Lock } from 'lucide-react';
 
 import type { SubtaskRowDraft } from '@/app/(app)/jobs/components/subtask-builder';
@@ -42,7 +44,8 @@ export function PlanReview({
             {waitsFor !== undefined ? (
               <div className="text-muted-foreground flex items-center gap-1.5 pl-4 text-xs">
                 <ArrowDown className="size-3" />
-                waits for {waitsFor + 1}. {rows[waitsFor].title || 'Untitled'}
+                <T>{'waits for '}</T>
+                {waitsFor + 1}. {rows[waitsFor].title || 'Untitled'}
               </div>
             ) : null}
 
@@ -60,24 +63,24 @@ export function PlanReview({
                   {row.requiresApproval ? (
                     <Badge variant="outline" className="gap-1 text-xs">
                       <Lock className="size-3" />
-                      Needs approval
+                      <T>{'Needs approval '}</T>
                     </Badge>
                   ) : null}
                   {waitsFor !== undefined ? (
                     <Badge variant="outline" className="text-xs">
-                      Starts blocked
+                      <T>{'Starts blocked '}</T>
                     </Badge>
                   ) : null}
                 </div>
                 <p className="truncate font-medium">{row.title || 'Untitled'}</p>
                 <p className="text-muted-foreground text-xs">
-                  {assignee?.name ?? 'Unassigned'} · remind{' '}
-                  {formatDuration(row.reminderLeadMinutes)} before
+                  {assignee?.name ?? 'Unassigned'} <T>{' · remind'}</T>{' '}
+                  {formatDuration(row.reminderLeadMinutes)} <T>{' before '}</T>
                 </p>
               </div>
 
               <p className="tabular shrink-0 text-sm">
-                {row.deadline ? formatIST(fromISTInput(row.deadline)) : 'No deadline'}
+                {row.deadline ? formatIST(fromISTInput(row.deadline)) : <T>{'No deadline'}</T>}
               </p>
             </div>
           </li>

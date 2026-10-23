@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Loader2, Send, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -184,7 +186,9 @@ export function PlanWizard({
 
       {error ? (
         <Alert variant="destructive" role="alert">
-          <AlertTitle>That did not work</AlertTitle>
+          <AlertTitle>
+            <T>{'That did not work'}</T>
+          </AlertTitle>
           <AlertDescription>
             {errorFocusId ? (
               <button
@@ -207,8 +211,14 @@ export function PlanWizard({
       {step === 2 ? (
         <>
           <Panel
-            title="Department subtasks"
-            description="One step per department, in shop-flow order. Each deadline is measured backwards from the job’s."
+            title={<T>{'Department subtasks'}</T>}
+            description={
+              <T>
+                {
+                  'One step per department, in shop-flow order. Each deadline is measured backwards from the job’s.'
+                }
+              </T>
+            }
           >
             <SubtaskBuilder
               rows={rows}
@@ -223,7 +233,7 @@ export function PlanWizard({
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => router.push(`/jobs/${job.id}`)}>
-              Save and finish later
+              <T>{'Save and finish later '}</T>
             </Button>
             <Button
               disabled={!canContinue}
@@ -234,15 +244,20 @@ export function PlanWizard({
                 setStep(3);
               }}
             >
-              Review ({rows.length})
+              <T>{'Review ('}</T>
+              {rows.length})
             </Button>
           </div>
         </>
       ) : (
         <>
           <Panel
-            title="Review the chain"
-            description="This is what publishing will start. Everything with a predecessor waits for it."
+            title={<T>{'Review the chain'}</T>}
+            description={
+              <T>
+                {'This is what publishing will start. Everything with a predecessor waits for it.'}
+              </T>
+            }
           >
             <PlanReview rows={rows} departments={departments} users={users} />
           </Panel>
@@ -251,17 +266,18 @@ export function PlanWizard({
             <Alert variant="destructive">
               <TriangleAlert className="size-4" />
               <AlertTitle>
-                {late.length} {late.length === 1 ? 'subtask runs' : 'subtasks run'} past the job
-                deadline
+                {late.length}{' '}
+                {late.length === 1 ? <T>{'subtask runs'}</T> : <T>{'subtasks run'}</T>}{' '}
+                <T>{' past the job deadline '}</T>
               </AlertTitle>
               <AlertDescription className="space-y-2">
                 <p>
-                  {late.map((row) => row.title || 'Untitled').join(', ')} finish after the job is
-                  due. Say why, and it goes on the record.
+                  {late.map((row) => row.title || 'Untitled').join(', ')}{' '}
+                  <T>{' finish after the job is due. Say why, and it goes on the record. '}</T>
                 </p>
                 <div className="w-full space-y-1.5">
                   <Label htmlFor="override" className="text-xs">
-                    Reason
+                    <T>{'Reason '}</T>
                   </Label>
                   <Textarea
                     id="override"
@@ -277,14 +293,14 @@ export function PlanWizard({
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setStep(2)} disabled={busy}>
-              Back
+              <T>{'Back '}</T>
             </Button>
             <Button
               onClick={saveAndPublish}
               disabled={busy || (late.length > 0 && overrideReason.trim().length < 5)}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Publish job
+              <T>{'Publish job '}</T>
             </Button>
           </div>
         </>

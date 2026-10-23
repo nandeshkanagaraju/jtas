@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import { Hammer } from 'lucide-react';
 
 import { PageHeader } from '@/components/shared/page-header';
@@ -19,7 +20,7 @@ export function PlaceholderPage({
 }) {
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Not built yet" title={title} lead={description} />
+      <PageHeader eyebrow={<T>{'Not built yet'}</T>} title={title} lead={description} />
 
       <Panel flush>
         <EmptyState

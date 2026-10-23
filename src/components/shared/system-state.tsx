@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { LucideIcon } from 'lucide-react';
 import { Brand } from '@/components/shared/brand';
 
@@ -22,8 +23,12 @@ export function SystemState({
           <Icon className="size-7" strokeWidth={1.5} aria-hidden />
         </span>
         <p className="eyebrow mt-7">{code}</p>
-        <h1 className="page-title mt-3 text-balance">{title}</h1>
-        <div className="text-muted-foreground mt-4 text-sm leading-relaxed">{description}</div>
+        <h1 className="page-title mt-3 text-balance">
+          <T>{title}</T>
+        </h1>
+        <div className="text-muted-foreground mt-4 text-sm leading-relaxed">
+          <T>{description}</T>
+        </div>
         {children ? (
           <div className="mt-7 flex flex-wrap justify-center gap-3">{children}</div>
         ) : null}

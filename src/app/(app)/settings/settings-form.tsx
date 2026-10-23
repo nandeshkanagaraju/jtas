@@ -1,9 +1,11 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, Save, Send } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { Panel } from '@/components/shared/panel';
 import { ReminderLeadField } from '@/components/shared/reminder-lead-field';
@@ -124,7 +126,9 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
         it is the only feedback on this screen that is live.
       */}
       <div className="instrument-hero border-border rounded-lg border p-5">
-        <p className="eyebrow text-info">With these values</p>
+        <p className="eyebrow text-info">
+          <T>{'With these values'}</T>
+        </p>
         <p className="text-foreground mt-1.5 text-sm">{preview.sentence}</p>
       </div>
 
@@ -156,7 +160,7 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
           }
         >
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          Save changes
+          <T>{'Save changes '}</T>
         </Button>
 
         {dirty ? (
@@ -168,14 +172,16 @@ export function SettingsForm({ initial }: { initial: SettingView[] }) {
             }}
             disabled={saving}
           >
-            Discard
+            <T>{'Discard '}</T>
           </Button>
         ) : null}
 
         <p className="text-muted-foreground text-xs">
-          {dirty
-            ? `${Object.keys(draft).length} unsaved change${Object.keys(draft).length > 1 ? 's' : ''}.`
-            : 'Everything is saved.'}
+          {dirty ? (
+            `${Object.keys(draft).length} unsaved change${Object.keys(draft).length > 1 ? 's' : ''}.`
+          ) : (
+            <T>{'Everything is saved.'}</T>
+          )}
         </p>
       </div>
     </div>
@@ -239,7 +245,7 @@ function Field({
     return (
       <div className="space-y-2 px-4 py-3">
         <Label htmlFor={id} className="text-sm font-medium">
-          {row.label}
+          <T>{row.label}</T>
         </Label>
         <p className="text-muted-foreground text-xs">{row.help}</p>
         {row.caution ? (
@@ -270,7 +276,7 @@ function Field({
     <div className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_16rem] sm:items-start sm:gap-4">
       <div>
         <Label htmlFor={id} className="text-sm font-medium">
-          {row.label}
+          <T>{row.label}</T>
         </Label>
         <p className="text-muted-foreground mt-0.5 text-xs">{row.help}</p>
 
@@ -331,7 +337,7 @@ function Control({
                 onChange([...next].sort((a, b) => a - b));
               }}
             >
-              {day.label}
+              <T>{day.label}</T>
             </Button>
           );
         })}
@@ -374,7 +380,7 @@ function Control({
         className="w-24"
         onClick={() => onChange(!on)}
       >
-        {on ? 'On' : 'Off'}
+        {on ? <T>{'On'}</T> : <T>{'Off'}</T>}
       </Button>
     );
   }
@@ -446,10 +452,12 @@ function TestEmail() {
     <div className="bg-muted/40 border-border flex flex-wrap items-end gap-2 border-t px-4 py-3">
       <div className="min-w-56 flex-1">
         <Label htmlFor="test-email" className="text-sm font-medium">
-          Send a test email
+          <T>{'Send a test email '}</T>
         </Label>
         <p className="text-muted-foreground mt-0.5 mb-1.5 text-xs">
-          Find out that mail is misconfigured now, not the next time a deadline is missed.
+          <T>
+            {'Find out that mail is misconfigured now, not the next time a deadline is missed. '}
+          </T>
         </p>
         <Input
           id="test-email"
@@ -462,7 +470,7 @@ function TestEmail() {
 
       <Button variant="outline" onClick={send} disabled={!to.includes('@') || sending}>
         {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-        Send
+        <T>{'Send '}</T>
       </Button>
     </div>
   );

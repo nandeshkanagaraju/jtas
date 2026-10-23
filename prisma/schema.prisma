@@ -109,6 +109,7 @@ enum DeadlineOrigin {
 }
 
 enum NotifChannel {
+  PUSH
   EMAIL
   IN_APP
   WHATSAPP
@@ -172,13 +173,14 @@ model User {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  createdJobs        Job[]               @relation("JobCreator")
-  assignedSubtasks   Subtask[]           @relation("SubtaskAssignee")
-  notifications      Notification[]
-  auditLogs          AuditLog[]
-  refreshTokens      RefreshToken[]
-  telegramLinkCodes  TelegramLinkCode[]
-  telegramPendings   TelegramPending[]
+  createdJobs       Job[]              @relation("JobCreator")
+  assignedSubtasks  Subtask[]          @relation("SubtaskAssignee")
+  pushSubscriptions PushSubscription[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  refreshTokens     RefreshToken[]
+  telegramLinkCodes TelegramLinkCode[]
+  telegramPendings  TelegramPending[]
 
   @@index([role, isActive])
 }
@@ -226,11 +228,11 @@ model Job {
   /// by construction — without this flag the sweeper would chase every row of
   /// it, which is thousands of real emails the moment SMTP points at a relay.
   /// The sweeper and the digest both exclude it.
-  isDemo          Boolean   @default(false)
-  createdById     String
-  createdBy       User      @relation("JobCreator", fields: [createdById], references: [id])
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  isDemo      Boolean  @default(false)
+  createdById String
+  createdBy   User     @relation("JobCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   subtasks    Subtask[]
   attachments Attachment[]
@@ -257,26 +259,26 @@ model Subtask {
   assigneeId   String
   assignee     User       @relation("SubtaskAssignee", fields: [assigneeId], references: [id])
 
-  title               String
-  description         String?
+  title                     String
+  description               String?
   /// Null until the department commits a date, or the MD sets one.
   /// A row that already had a date when this became optional stays committed.
-  deadline            DateTime?
+  deadline                  DateTime?
   /// DEPARTMENT when the assignee committed it, MD when he set or moved it.
   /// Null while there is no date. Existing dates are backfilled as DEPARTMENT.
-  deadlineOrigin      DeadlineOrigin?
+  deadlineOrigin            DeadlineOrigin?
   /// When the 24-hour commitment window closes. Null until their turn arrives,
   /// and left in place afterwards as the record of when they were asked.
-  commitmentDueAt     DateTime?
+  commitmentDueAt           DateTime?
   /// Separate from the work-overdue clock, so a missed commitment does not
   /// burn the escalations a later real deadline is entitled to.
-  commitmentEscalationCount   Int       @default(0)
-  commitmentLastEscalatedAt   DateTime?
-  reminderLeadMinutes Int       @default(360) // 6 hours
-  requiresApproval    Boolean   @default(false)
-  dependsOnId         String?
-  dependsOn           Subtask?  @relation("Dep", fields: [dependsOnId], references: [id])
-  dependents          Subtask[] @relation("Dep")
+  commitmentEscalationCount Int             @default(0)
+  commitmentLastEscalatedAt DateTime?
+  reminderLeadMinutes       Int             @default(360) // 6 hours
+  requiresApproval          Boolean         @default(false)
+  dependsOnId               String?
+  dependsOn                 Subtask?        @relation("Dep", fields: [dependsOnId], references: [id])
+  dependents                Subtask[]       @relation("Dep")
 
   status          SubtaskStatus @default(PENDING)
   startedAt       DateTime?
@@ -318,15 +320,15 @@ model Problem {
 }
 
 model DeadlineChange {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   subtaskId   String
-  subtask     Subtask  @relation(fields: [subtaskId], references: [id])
+  subtask     Subtask   @relation(fields: [subtaskId], references: [id])
   /// Null when the MD set the first date on a task that had none.
   oldDeadline DateTime?
   newDeadline DateTime
   reason      String
   changedById String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([subtaskId])
 }
@@ -380,8 +382,8 @@ model Attachment {
   /// Additive to SDD section 3.3. A drawing removed from a job is part of why
   /// the job was built the way it was; the row and the object both stay, and
   /// every query filters on this instead.
-  deletedAt    DateTime?
-  deletedById  String?
+  deletedAt   DateTime?
+  deletedById String?
 
   @@index([jobId])
   @@index([subtaskId])
@@ -393,32 +395,62 @@ model Attachment {
 // ---------------------------------------------------------------------------
 
 model Notification {
-  id           String       @id @default(cuid())
-  userId       String
-  user         User         @relation(fields: [userId], references: [id])
-  type         NotifType
-  channel      NotifChannel
-  subject      String
-  body         String
-  entityType   String // 'SUBTASK' | 'JOB' | 'PROBLEM'
-  entityId     String
-  dedupeKey    String       @unique // idempotency guarantee
-  scheduledFor DateTime
-  sentAt       DateTime?
+  pushDeliveries PushDelivery[]
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id])
+  type           NotifType
+  channel        NotifChannel
+  subject        String
+  body           String
+  entityType     String // 'SUBTASK' | 'JOB' | 'PROBLEM'
+  entityId       String
+  dedupeKey      String         @unique // idempotency guarantee
+  scheduledFor   DateTime
+  sentAt         DateTime?
   // When the sweeper gave up, not when it last retried. The health check counts
   // these over the last hour (M11.4): a rate, so that a handful of dead
   // addresses from last year does not read as an outage today.
-  failedAt     DateTime?
-  status       NotifStatus  @default(PENDING)
-  attemptCount Int          @default(0)
-  lastError    String?
-  readAt       DateTime?
-  createdAt    DateTime     @default(now())
+  failedAt       DateTime?
+  status         NotifStatus    @default(PENDING)
+  attemptCount   Int            @default(0)
+  lastError      String?
+  readAt         DateTime?
+  createdAt      DateTime       @default(now())
 
   @@index([status, scheduledFor])
   @@index([userId, readAt])
   @@index([entityType, entityId])
   @@index([status, failedAt])
+}
+
+model PushSubscription {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint        String         @unique
+  p256dh          String
+  auth            String
+  sessionFamilyId String
+  locale          String         @default("en")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deliveries      PushDelivery[]
+
+  @@index([userId])
+  @@index([sessionFamilyId])
+}
+
+// Successful devices are skipped when another device needs a retry.
+model PushDelivery {
+  id             String           @id @default(cuid())
+  notificationId String
+  notification   Notification     @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   PushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  sentAt         DateTime         @default(now())
+
+  @@unique([notificationId, subscriptionId])
 }
 
 model AuditLog {

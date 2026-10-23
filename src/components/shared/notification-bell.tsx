@@ -1,5 +1,6 @@
 'use client';
 
+import { useLanguage } from '@/lib/i18n/provider';
 import { Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -22,6 +23,7 @@ const POLL_MS = 60_000;
  * Seeded from the server so the first paint already carries the right number.
  */
 export function NotificationBell({ initialUnread }: { initialUnread: number }) {
+  const { t } = useLanguage();
   const [unread, setUnread] = useState(initialUnread);
 
   useEffect(() => {
@@ -53,7 +55,9 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   return (
     <Link
       href="/notifications"
-      aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+      aria-label={
+        unread > 0 ? t('Notifications, {{count}} unread', { count: unread }) : t('Notifications')
+      }
       className={cn(
         'text-muted-foreground hover:bg-muted hover:text-foreground relative flex min-h-11 min-w-11 items-center justify-center rounded-md transition-colors',
       )}

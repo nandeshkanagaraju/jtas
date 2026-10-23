@@ -24,7 +24,7 @@ test('account provides a phone installation flow without claiming push is enable
   await signIn(page, ACCOUNTS.md);
   await page.goto('/account#install');
   await expect(page.getByRole('heading', { name: 'Jaraa on your phone' })).toBeVisible();
-  await expect(page.getByText(/Installation does not enable phone push/)).toBeVisible();
+  await expect(page.getByText(/Enable push notifications in your account/)).toBeVisible();
   await page.evaluate(() => {
     const event = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
       prompt: async () => {},

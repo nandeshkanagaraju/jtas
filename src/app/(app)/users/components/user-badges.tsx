@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { Role } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 export function RoleBadge({ role }: { role: Role }) {
   return (
     <Badge variant={role === 'MEMBER' ? 'outline' : 'secondary'} className="whitespace-nowrap">
-      {ROLE_LABELS[role]}
+      <T>{ROLE_LABELS[role]}</T>
     </Badge>
   );
 }
@@ -35,17 +36,33 @@ export function StatusBadge({
   mustChangePassword: boolean;
 }) {
   if (!isActive) {
-    return <Badge variant="neutral">Deactivated</Badge>;
+    return (
+      <Badge variant="neutral">
+        <T>{'Deactivated'}</T>
+      </Badge>
+    );
   }
 
   const locked = lockedUntil !== null && new Date(lockedUntil) > new Date();
   if (locked) {
-    return <Badge variant="late">Locked</Badge>;
+    return (
+      <Badge variant="late">
+        <T>{'Locked'}</T>
+      </Badge>
+    );
   }
 
   if (mustChangePassword) {
-    return <Badge variant="risk">Password pending</Badge>;
+    return (
+      <Badge variant="risk">
+        <T>{'Password pending'}</T>
+      </Badge>
+    );
   }
 
-  return <Badge variant="neutral">Active</Badge>;
+  return (
+    <Badge variant="neutral">
+      <T>{'Active'}</T>
+    </Badge>
+  );
 }

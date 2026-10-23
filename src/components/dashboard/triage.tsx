@@ -1,3 +1,6 @@
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -62,21 +65,23 @@ export function Triage({
             </span>
             <div>
               <h2 id="action-register-heading" className="section-title">
-                Action register
+                <T>{'Action register '}</T>
               </h2>
               <p className="text-muted-foreground mt-0.5 text-xs">
-                Open reports, missed deadlines and delivery risks
+                <T>{'Open reports, missed deadlines and delivery risks '}</T>
               </p>
             </div>
           </div>
           <span className="rounded-full border px-3 py-1 font-mono text-xs">
-            {rest.length} queued
+            {rest.length} <T>{' queued '}</T>
           </span>
         </div>
         {rest.length === 0 ? (
           <div className="flex items-center gap-3 px-6 py-10">
             <Check className="text-ok size-5" />
-            <p className="text-muted-foreground">No additional items in the queue.</p>
+            <p className="text-muted-foreground">
+              <T>{'No additional items in the queue.'}</T>
+            </p>
           </div>
         ) : (
           <PhoneQueue>
@@ -115,17 +120,22 @@ function Clear() {
         <Check className="size-6" />
       </span>
       <div>
-        <p className="font-mono text-xs text-[#bec5b6]">Priority review</p>
-        <h2 className="mt-2 text-2xl tracking-tight">A clear runway.</h2>
+        <p className="font-mono text-xs text-[#bec5b6]">
+          <T>{'Priority review'}</T>
+        </p>
+        <h2 className="mt-2 text-2xl tracking-tight">
+          <T>{'A clear runway.'}</T>
+        </h2>
         <p className="mt-2 text-sm text-[#bec5b6]">
-          No unresolved reports or missed deadlines require a decision.
+          <T>{'No unresolved reports or missed deadlines require a decision. '}</T>
         </p>
       </div>
       <Link
         href="/jobs"
         className="mt-2 inline-flex items-center gap-2 text-sm font-medium sm:ml-auto"
       >
-        Explore production <ArrowRight className="size-4" />
+        <T>{'Explore production '}</T>
+        <ArrowRight className="size-4" />
       </Link>
     </section>
   );
@@ -134,12 +144,16 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
   const action = actionFor(item);
   const complete = stations.filter((station) => station.done).length;
   return (
-    <section className="decision-hero phone-priority overflow-hidden" aria-label="Priority review">
+    <LocalizedElement
+      as="section"
+      className="decision-hero phone-priority overflow-hidden"
+      aria-label="Priority review"
+    >
       <div className="grid lg:grid-cols-[1.5fr_1fr]">
         <div className="flex min-w-0 flex-col p-6 sm:p-8 lg:p-9">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="inline-flex items-center gap-2 font-mono text-[11px] tracking-wide text-[#d6cbb6]">
-              <span className="size-1.5 rounded-full bg-[#efb48b]" /> Priority review
+              <span className="size-1.5 rounded-full bg-[#efb48b]" /> <T>{' Priority review '}</T>
             </p>
             <span className="rounded-md border border-[#58634f] px-2 py-1 font-mono text-[10px] text-[#d2d8c9]">
               {action.code}
@@ -168,10 +182,12 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
             hint={`${complete}/${stations.length} complete`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-[#c4cebd]">Department handoff</p>
+              <p className="text-xs text-[#c4cebd]">
+                <T>{'Department handoff'}</T>
+              </p>
               {stations.length > 0 ? (
                 <span className="font-mono text-[11px] text-[#c4cebd]">
-                  {complete}/{stations.length} complete
+                  {complete}/{stations.length} <T>{' complete '}</T>
                 </span>
               ) : null}
             </div>
@@ -186,7 +202,7 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
               href={action.href}
               className="inline-flex min-h-11 w-full items-center justify-between gap-4 rounded-lg bg-[#efc4a7] px-4 py-3 text-sm font-semibold text-[#292b23] transition-colors hover:bg-[#f9dcc7]"
             >
-              {action.label}
+              <T>{action.label}</T>
               <ArrowUpRight className="size-4" />
             </Link>
           </div>
@@ -194,25 +210,33 @@ function Hero({ item, stations }: { item: Item; stations: RelayStation[] }) {
       </div>
       <dl className="phone-priority-facts grid grid-cols-1 gap-4 border-t border-[#45513f] px-6 py-5 text-xs sm:grid-cols-3 sm:px-8 lg:px-9">
         <div>
-          <dt className="text-[#bec5b6]">Accountable owner</dt>
+          <dt className="text-[#bec5b6]">
+            <T>{'Accountable owner'}</T>
+          </dt>
           <dd className="mt-1 text-sm">{action.who}</dd>
         </div>
         <div>
-          <dt className="text-[#bec5b6]">Department</dt>
+          <dt className="text-[#bec5b6]">
+            <T>{'Department'}</T>
+          </dt>
           <dd className="mt-1 text-sm">{action.where}</dd>
         </div>
         <div>
-          <dt className="text-[#bec5b6]">Next step</dt>
+          <dt className="text-[#bec5b6]">
+            <T>{'Next step'}</T>
+          </dt>
           <dd className="mt-1 text-sm">
-            {item.kind === 'problem'
-              ? 'Review the report and record a decision'
-              : item.kind === 'late'
-                ? 'Review the task and recovery plan'
-                : 'Check the remaining department handoffs'}
+            {item.kind === 'problem' ? (
+              <T>{'Review the report and record a decision'}</T>
+            ) : item.kind === 'late' ? (
+              <T>{'Review the task and recovery plan'}</T>
+            ) : (
+              <T>{'Check the remaining department handoffs'}</T>
+            )}
           </dd>
         </div>
       </dl>
-    </section>
+    </LocalizedElement>
   );
 }
 function QueueRow({ item, index }: { item: Item; index: number }) {
@@ -231,7 +255,10 @@ function QueueRow({ item, index }: { item: Item; index: number }) {
         )}
       >
         <Icon className="size-4" />
-        <span className="sr-only">Item {index + 1}</span>
+        <span className="sr-only">
+          <T>{'Item '}</T>
+          {index + 1}
+        </span>
       </span>
       <div className="min-w-0">
         <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -248,7 +275,11 @@ function QueueRow({ item, index }: { item: Item; index: number }) {
         className={cn('queue-timing text-xs', action.late ? 'text-late' : 'text-muted-foreground')}
       >
         {action.elapsed}
-        {action.late ? <p className="mt-1 text-[11px]">Overdue</p> : null}
+        {action.late ? (
+          <p className="mt-1 text-[11px]">
+            <T>{'Overdue'}</T>
+          </p>
+        ) : null}
       </div>
       <ArrowUpRight
         className="queue-arrow text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"

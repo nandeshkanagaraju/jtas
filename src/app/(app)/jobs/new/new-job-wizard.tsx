@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useRouter } from 'next/navigation';
 
 import { JobForm } from '@/app/(app)/jobs/components/job-form';
@@ -29,16 +31,22 @@ export function NewJobWizard() {
     <div className="w-full space-y-5">
       <PageHeader
         back={{ href: '/jobs', label: 'All jobs' }}
-        eyebrow="Step 1 of 3"
-        title="New job"
-        lead="The job is saved as a draft. Nobody is notified until you publish it."
+        eyebrow={<T>{'Step 1 of 3'}</T>}
+        title={<T>{'New job'}</T>}
+        lead={<T>{'The job is saved as a draft. Nobody is notified until you publish it.'}</T>}
       >
         <WorkflowSteps current={1} />
       </PageHeader>
 
       <Panel
-        title="Job details"
-        description="Only the title and the overall deadline are required — the rest can be filled in while the job is still a draft."
+        title={<T>{'Job details'}</T>}
+        description={
+          <T>
+            {
+              'Only the title and the overall deadline are required — the rest can be filled in while the job is still a draft.'
+            }
+          </T>
+        }
       >
         <JobForm
           submitLabel="Save draft and continue"

@@ -50,3 +50,40 @@ self.addEventListener('fetch', (event) => {
     }),
   );
 });
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch {
+    /* Show a useful fallback. */
+  }
+  const destination = new URL(data.url || '/notifications', self.location.origin);
+  const url = destination.origin === self.location.origin ? destination.href : '/notifications';
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Jaraa', {
+      body: data.body || 'Open Jaraa to view your work update.',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: data.tag || 'jaraa-update',
+      data: { url },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || '/notifications', self.location.origin);
+  if (url.origin !== self.location.origin) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
+      for (const client of clients) {
+        if (new URL(client.url).origin === self.location.origin && 'navigate' in client) {
+          await client.navigate(url.href);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url.href);
+    }),
+  );
+});

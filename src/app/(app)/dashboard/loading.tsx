@@ -1,9 +1,12 @@
+import { T } from '@/lib/i18n/provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardLoading() {
   return (
     <div className="space-y-8" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading production overview</span>
+      <span className="sr-only">
+        <T>{'Loading production overview'}</T>
+      </span>
       <div className="space-y-3">
         <Skeleton className="h-3 w-48" />
         <Skeleton className="h-14 w-full max-w-xl" />

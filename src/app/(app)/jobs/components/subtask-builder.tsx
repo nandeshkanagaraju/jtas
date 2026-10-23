@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Plus, Sparkles, Trash2, TriangleAlert } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -118,10 +120,15 @@ export function SubtaskBuilder({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="space-y-0.5">
-          <h2 className="font-medium">Department subtasks</h2>
+          <h2 className="font-medium">
+            <T>{'Department subtasks'}</T>
+          </h2>
           <p className="text-muted-foreground text-sm">
-            One row per piece of work. Each needs an owner. Leave the date empty — the department
-            commits it when its turn arrives. A date you fill in here is set by you and stays fixed.
+            <T>
+              {
+                'One row per piece of work. Each needs an owner. Leave the date empty — the department commits it when its turn arrives. A date you fill in here is set by you and stays fixed. '
+              }
+            </T>
           </p>
         </div>
 
@@ -129,23 +136,28 @@ export function SubtaskBuilder({
           {templateName ? (
             <Button type="button" variant="outline" onClick={onApplyTemplate}>
               <Sparkles className="size-4" />
-              Apply “{templateName}”
+              <T>{'Apply “'}</T>
+              {templateName}”
             </Button>
           ) : null}
           <Button type="button" variant="outline" onClick={add}>
             <Plus className="size-4" />
-            Add row
+            <T>{'Add row '}</T>
           </Button>
         </div>
       </div>
 
       {rows.length === 0 ? (
         <Alert>
-          <AlertTitle>No subtasks yet</AlertTitle>
+          <AlertTitle>
+            <T>{'No subtasks yet'}</T>
+          </AlertTitle>
           <AlertDescription>
-            {templateName
-              ? `Apply “${templateName}” to start from the standard CNC chain, then edit anything that differs.`
-              : 'Add a row for each department that has work to do.'}
+            {templateName ? (
+              `Apply “${templateName}” to start from the standard CNC chain, then edit anything that differs.`
+            ) : (
+              <T>{'Add a row for each department that has work to do.'}</T>
+            )}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -171,7 +183,9 @@ export function SubtaskBuilder({
             >
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Department</Label>
+                  <Label className="text-xs">
+                    <T>{'Department'}</T>
+                  </Label>
                   <Select
                     value={row.departmentId || undefined}
                     onValueChange={(value) =>
@@ -194,7 +208,9 @@ export function SubtaskBuilder({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Assignee</Label>
+                  <Label className="text-xs">
+                    <T>{'Assignee'}</T>
+                  </Label>
                   <Select
                     value={row.assigneeId || undefined}
                     onValueChange={(value) => update(index, { assigneeId: value })}
@@ -218,7 +234,9 @@ export function SubtaskBuilder({
                 </div>
 
                 <div className="space-y-1.5 lg:col-span-2">
-                  <Label className="text-xs">Title</Label>
+                  <Label className="text-xs">
+                    <T>{'Title'}</T>
+                  </Label>
                   <Input
                     value={row.title}
                     onChange={(event) => update(index, { title: event.target.value })}
@@ -230,7 +248,7 @@ export function SubtaskBuilder({
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1.5 lg:col-span-2">
                   <Label htmlFor={`subtask-deadline-${index}`} className="text-xs">
-                    Deadline (IST)
+                    <T>{'Deadline (IST) '}</T>
                   </Label>
                   <IstDateTimePicker
                     id={`subtask-deadline-${index}`}
@@ -251,7 +269,9 @@ export function SubtaskBuilder({
                 />
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Depends on</Label>
+                  <Label className="text-xs">
+                    <T>{'Depends on'}</T>
+                  </Label>
                   <Select
                     value={row.dependsOnKey ?? NO_DEPENDENCY}
                     onValueChange={(value) =>
@@ -263,7 +283,9 @@ export function SubtaskBuilder({
                       <SelectValue placeholder="Nothing" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={NO_DEPENDENCY}>Nothing</SelectItem>
+                      <SelectItem value={NO_DEPENDENCY}>
+                        <T>{'Nothing'}</T>
+                      </SelectItem>
                       {earlier.map((candidate, position) => (
                         <SelectItem key={candidate.key} value={candidate.key}>
                           {position + 1}. {candidate.title || 'Untitled'}
@@ -282,7 +304,7 @@ export function SubtaskBuilder({
                     checked={row.requiresApproval}
                     onChange={(event) => update(index, { requiresApproval: event.target.checked })}
                   />
-                  Needs MD approval to count as done
+                  <T>{'Needs MD approval to count as done '}</T>
                 </label>
 
                 <Button
@@ -293,7 +315,7 @@ export function SubtaskBuilder({
                   aria-label={`Remove row ${index + 1}`}
                 >
                   <Trash2 className="size-4" />
-                  Remove
+                  <T>{'Remove '}</T>
                 </Button>
               </div>
 
@@ -304,7 +326,7 @@ export function SubtaskBuilder({
               {late ? (
                 <p className="text-risk flex items-center gap-1 text-xs">
                   <TriangleAlert className="size-3" />
-                  This is after the job deadline. You will be asked to confirm why.
+                  <T>{'This is after the job deadline. You will be asked to confirm why. '}</T>
                 </p>
               ) : null}
             </div>

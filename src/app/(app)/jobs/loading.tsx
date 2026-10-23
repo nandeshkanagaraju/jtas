@@ -1,10 +1,13 @@
+import { T } from '@/lib/i18n/provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /** Shaped like the job list, so the page does not jump when the rows arrive. */
 export default function JobsLoading() {
   return (
     <div className="space-y-5" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading jobs</span>
+      <span className="sr-only">
+        <T>{'Loading jobs'}</T>
+      </span>
       <div className="space-y-2">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-8 w-24" />

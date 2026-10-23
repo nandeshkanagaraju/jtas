@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { ListTodo } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -68,11 +70,13 @@ export function SubtaskPanel({
       title={
         <span className="flex items-center gap-2">
           <ListTodo className="size-4" aria-hidden />
-          Department route
+          <T>{'Department route '}</T>
         </span>
       }
       id="subtask-timeline"
-      description="The production sequence, with accountable owners and agreed deadlines."
+      description={
+        <T>{'The production sequence, with accountable owners and agreed deadlines.'}</T>
+      }
       action={
         notice ? (
           <span className="text-ok text-xs font-medium" role="status">

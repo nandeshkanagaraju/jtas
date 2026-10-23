@@ -1,12 +1,15 @@
 'use client';
 
+import { T, useLanguage } from '@/lib/i18n/provider';
+
 import { BellOff, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { PageHeader } from '@/components/shared/page-header';
+import { PushSettings } from '@/components/shared/push-settings';
 import { Panel } from '@/components/shared/panel';
 import { EmptyState } from '@/components/shared/states';
 import { Button } from '@/components/ui/button';
@@ -55,6 +58,7 @@ export function NotificationsScreen({
 }: {
   initial: { data: NotificationDto[]; unreadCount: number };
 }) {
+  const { t } = useLanguage();
   const router = useRouter();
   const [inbox, setInbox] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -105,18 +109,31 @@ export function NotificationsScreen({
   return (
     <div className="w-full space-y-5">
       <PageHeader
-        eyebrow="Your inbox"
-        title="Notifications"
-        lead={lead(inbox.unreadCount, withheld)}
+        eyebrow={<T>{'Your inbox'}</T>}
+        title={<T>{'Notifications'}</T>}
+        lead={
+          <>
+            {inbox.unreadCount
+              ? t('{{count}} unread notifications', { count: inbox.unreadCount })
+              : t('Nothing unread')}
+            {withheld
+              ? ` · ${t('{{count}} emails withheld; see each row for the reason.', { count: withheld })}`
+              : ''}
+          </>
+        }
         actions={
           inbox.unreadCount > 0 ? (
             <Button variant="outline" size="sm" onClick={markAll} disabled={busy}>
               <CheckCheck className="size-4" />
-              Mark all read
+              <T>{'Mark all read '}</T>
             </Button>
           ) : null
         }
       />
+
+      <Panel title={<T>Push notifications</T>}>
+        <PushSettings />
+      </Panel>
 
       {inbox.data.length === 0 ? (
         <Panel flush>
@@ -149,13 +166,15 @@ export function NotificationsScreen({
                         item.readAt ? 'text-muted-foreground' : 'text-info font-medium',
                       )}
                     >
-                      {TYPE_LABELS[item.type] ?? item.type}
+                      <T>{TYPE_LABELS[item.type] ?? item.type}</T>
                     </span>
                     <span className="code text-muted-foreground text-xs">
                       · {formatIST(new Date(item.sentAt ?? item.createdAt))}
                     </span>
                     {!item.readAt ? (
-                      <span className="text-info text-xs font-medium">· Unread</span>
+                      <span className="text-info text-xs font-medium">
+                        <T>{'· Unread'}</T>
+                      </span>
                     ) : null}
                   </div>
                   <p className={cn('mt-1', item.readAt ? 'font-medium' : 'font-semibold')}>
@@ -166,7 +185,8 @@ export function NotificationsScreen({
                   </p>
                   {item.suppressedReason ? (
                     <p className="text-late border-late-edge bg-late-soft mt-2 rounded-md border px-2.5 py-1.5 text-xs">
-                      Not emailed — {item.suppressedReason}
+                      <T>{'Not emailed — '}</T>
+                      {item.suppressedReason}
                     </p>
                   ) : null}
                 </Link>
@@ -177,16 +197,4 @@ export function NotificationsScreen({
       )}
     </div>
   );
-}
-
-/** One sentence of state: unread first, withheld mail if any. */
-function lead(unread: number, withheld: number): string {
-  const parts: string[] = [];
-  parts.push(unread === 0 ? 'Nothing unread' : `${unread} unread`);
-  if (withheld > 0) {
-    parts.push(
-      `${withheld} ${withheld === 1 ? 'email was' : 'emails were'} withheld — the reason is on the row`,
-    );
-  }
-  return `${parts.join(', ')}. Email is still the delivery; this is the record.`;
 }

@@ -183,6 +183,8 @@ export async function revokeFamily(
       data: { revokedAt: new Date() },
     });
 
+    await tx.pushSubscription.deleteMany({ where: { userId, sessionFamilyId: familyId } });
+
     await writeAudit(tx, {
       actorId: userId,
       action,

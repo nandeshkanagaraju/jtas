@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { ChevronDown, Download, Loader2, ScrollText, X } from 'lucide-react';
@@ -100,14 +102,14 @@ export function AuditViewer({
               {active > 0 ? (
                 <Button variant="ghost" size="sm" onClick={() => apply(EMPTY)}>
                   <X className="size-3.5" />
-                  Clear
+                  <T>{'Clear '}</T>
                 </Button>
               ) : null}
 
               <Button asChild variant="outline" size="sm">
                 <a href={exportHref} download>
                   <Download className="size-3.5" />
-                  Export CSV
+                  <T>{'Export CSV '}</T>
                 </a>
               </Button>
             </div>
@@ -166,11 +168,13 @@ export function AuditViewer({
 
       <div className="flex items-center gap-3">
         <p className="text-muted-foreground tabular text-xs">
-          {initial.total === 0
-            ? 'Nothing matches'
-            : traceMode
-              ? `${initial.total} recorded actions`
-              : `${entries.length} of ${initial.total}`}
+          {initial.total === 0 ? (
+            <T>{'Nothing matches'}</T>
+          ) : traceMode ? (
+            `${initial.total} recorded actions`
+          ) : (
+            `${entries.length} of ${initial.total}`
+          )}
         </p>
         {pending ? <Spinner label="Filtering" /> : null}
       </div>
@@ -188,7 +192,7 @@ export function AuditViewer({
             action={
               active > 0 ? (
                 <Button variant="outline" size="sm" onClick={() => apply(EMPTY)}>
-                  Clear filters
+                  <T>{'Clear filters '}</T>
                 </Button>
               ) : null
             }
@@ -210,10 +214,12 @@ export function AuditViewer({
       {cursor ? (
         <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="w-full">
           {loadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
-          Load more
+          <T>{'Load more '}</T>
         </Button>
       ) : entries.length > 0 ? (
-        <p className="text-muted-foreground py-2 text-center text-xs">That is the whole log.</p>
+        <p className="text-muted-foreground py-2 text-center text-xs">
+          <T>{'That is the whole log.'}</T>
+        </p>
       ) : null}
     </div>
   );
@@ -261,7 +267,11 @@ function Row({
                 actor, and an empty cell reads as missing data. */}
             {entry.actor?.name ?? 'system'}
             {entry.onBehalfOf ? (
-              <span className="text-muted-foreground"> on behalf of {entry.onBehalfOf}</span>
+              <span className="text-muted-foreground">
+                {' '}
+                <T>{' on behalf of '}</T>
+                {entry.onBehalfOf}
+              </span>
             ) : null}
             {entry.diff.length > 0 ? (
               <span className="text-muted-foreground">
@@ -290,9 +300,15 @@ function Row({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-muted-foreground text-left text-xs">
-                  <th className="py-1 font-medium">Field</th>
-                  <th className="py-1 font-medium">Before</th>
-                  <th className="py-1 font-medium">After</th>
+                  <th className="py-1 font-medium">
+                    <T>{'Field'}</T>
+                  </th>
+                  <th className="py-1 font-medium">
+                    <T>{'Before'}</T>
+                  </th>
+                  <th className="py-1 font-medium">
+                    <T>{'After'}</T>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -309,23 +325,29 @@ function Row({
             </table>
           ) : (
             <p className="text-muted-foreground text-sm">
-              No field changes recorded — the action is the whole event.
+              <T>{'No field changes recorded — the action is the whole event. '}</T>
             </p>
           )}
 
           <dl className="text-muted-foreground grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
             <div>
-              <dt className="inline font-medium">Actor: </dt>
+              <dt className="inline font-medium">
+                <T>{'Actor: '}</T>
+              </dt>
               <dd className="inline">{entry.actor?.email ?? 'system (the scheduler)'}</dd>
             </div>
             <div>
-              <dt className="inline font-medium">IP: </dt>
+              <dt className="inline font-medium">
+                <T>{'IP: '}</T>
+              </dt>
               <dd className="code inline">{entry.ipAddress ?? '—'}</dd>
             </div>
             <div>
-              <dt className="inline font-medium">Source: </dt>
+              <dt className="inline font-medium">
+                <T>{'Source: '}</T>
+              </dt>
               <dd className="inline">
-                {entry.source === 'TELEGRAM' ? 'Telegram' : 'Signed-in session'}
+                {entry.source === 'TELEGRAM' ? <T>{'Telegram'}</T> : <T>{'Signed-in session'}</T>}
               </dd>
             </div>
           </dl>
@@ -351,7 +373,7 @@ function Select({
   return (
     <div>
       <Label htmlFor={id} className="field-label">
-        {label}
+        <T>{label}</T>
       </Label>
       <select
         id={id}
@@ -361,7 +383,7 @@ function Select({
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
-            {option.label}
+            <T>{option.label}</T>
           </option>
         ))}
       </select>
@@ -388,7 +410,7 @@ function Field({
   return (
     <div>
       <Label htmlFor={id} className="field-label">
-        {label}
+        <T>{label}</T>
       </Label>
       <Input
         id={id}

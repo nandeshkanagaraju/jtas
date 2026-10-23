@@ -1,9 +1,11 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Check, Lock, Play, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { ProblemForm, type Severity } from '@/app/(app)/my-tasks/components/problem-form';
 import { Countdown } from '@/components/shared/countdown';
@@ -139,7 +141,11 @@ export function TaskDetail({
               Overdue sits beside the state rather than replacing it: a task can
               be in progress and late at once, and the member needs both.
             */}
-            {subtask.isOverdue ? <Badge variant="late">Overdue</Badge> : null}
+            {subtask.isOverdue ? (
+              <Badge variant="late">
+                <T>{'Overdue'}</T>
+              </Badge>
+            ) : null}
           </div>
         }
       />
@@ -150,15 +156,21 @@ export function TaskDetail({
       >
         <dl className="grid gap-4 border-y py-4 text-sm sm:grid-cols-3">
           <div>
-            <dt className="field-label">Assigned to</dt>
+            <dt className="field-label">
+              <T>{'Assigned to'}</T>
+            </dt>
             <dd className="mt-1 font-medium">{subtask.assignee.name}</dd>
           </div>
           <div>
-            <dt className="field-label">Department</dt>
+            <dt className="field-label">
+              <T>{'Department'}</T>
+            </dt>
             <dd className="mt-1">{subtask.department.name}</dd>
           </div>
           <div>
-            <dt className="field-label">Job reference</dt>
+            <dt className="field-label">
+              <T>{'Job reference'}</T>
+            </dt>
             <dd className="code mt-1">
               {subtask.jobCode}
               {subtask.partNumber ? ` / ${subtask.partNumber}` : ''}
@@ -184,17 +196,25 @@ export function TaskDetail({
           <Panel bodyClassName="p-4 space-y-4">
             <div>
               <p className="field-label">
-                {subtask.deadline ? 'Your deadline' : owesCommitment ? 'Commit a date' : 'Deadline'}
+                {subtask.deadline ? (
+                  <T>{'Your deadline'}</T>
+                ) : owesCommitment ? (
+                  <T>{'Commit a date'}</T>
+                ) : (
+                  <T>{'Deadline'}</T>
+                )}
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span
                   className={cn('code text-lg font-semibold', subtask.isOverdue && 'text-late')}
                 >
-                  {subtask.deadline
-                    ? formatIST(new Date(subtask.deadline))
-                    : owesCommitment
-                      ? 'Awaiting your commitment'
-                      : 'No date yet'}
+                  {subtask.deadline ? (
+                    formatIST(new Date(subtask.deadline))
+                  ) : owesCommitment ? (
+                    <T>{'Awaiting your commitment'}</T>
+                  ) : (
+                    <T>{'No date yet'}</T>
+                  )}
                 </span>
                 {subtask.deadline ? (
                   <Countdown deadline={subtask.deadline} className="text-sm" />
@@ -202,7 +222,7 @@ export function TaskDetail({
                 {subtask.requiresApproval ? (
                   <Badge variant="outline" className="gap-1">
                     <Lock className="size-3" aria-hidden />
-                    MD approves
+                    <T>{'MD approves '}</T>
                   </Badge>
                 ) : null}
               </div>
@@ -229,8 +249,10 @@ export function TaskDetail({
                   <div className="space-y-3">
                     <div className="space-y-1.5">
                       <p className="text-sm font-medium">
-                        Anything worth recording?{' '}
-                        <span className="text-muted-foreground font-normal">(optional)</span>
+                        <T>{'Anything worth recording?'}</T>{' '}
+                        <span className="text-muted-foreground font-normal">
+                          <T>{'(optional)'}</T>
+                        </span>
                       </p>
                       <Textarea
                         ref={completeRef}
@@ -249,7 +271,11 @@ export function TaskDetail({
                         onClick={() => act('COMPLETE')}
                       >
                         <Check className="size-5" />
-                        {subtask.requiresApproval ? 'Send for approval' : 'Mark completed'}
+                        {subtask.requiresApproval ? (
+                          <T>{'Send for approval'}</T>
+                        ) : (
+                          <T>{'Mark completed'}</T>
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
@@ -257,7 +283,7 @@ export function TaskDetail({
                         onClick={() => setCompleting(false)}
                         disabled={busy}
                       >
-                        Cancel
+                        <T>{'Cancel '}</T>
                       </Button>
                     </div>
                   </div>
@@ -276,7 +302,7 @@ export function TaskDetail({
                       onClick={() => act('START')}
                     >
                       <Play className="size-5" />
-                      Start work
+                      <T>{'Start work '}</T>
                     </Button>
 
                     <Button
@@ -288,7 +314,7 @@ export function TaskDetail({
                       onClick={() => setCompleting(true)}
                     >
                       <Check className="size-5" />
-                      Mark completed
+                      <T>{'Mark completed '}</T>
                     </Button>
 
                     <Button
@@ -305,7 +331,7 @@ export function TaskDetail({
                       onClick={() => setReporting(true)}
                     >
                       <TriangleAlert className="size-5" />
-                      Report problem
+                      <T>{'Report problem '}</T>
                     </Button>
                   </div>
                 )}
@@ -314,8 +340,9 @@ export function TaskDetail({
 
             {blocked && permissions.updateStatus ? (
               <p className="text-muted-foreground text-xs">
-                These stay unavailable until{' '}
-                {subtask.dependsOn ? `“${subtask.dependsOn.title}”` : 'the task above'} is finished.
+                <T>{'These stay unavailable until'}</T>{' '}
+                {subtask.dependsOn ? `“${subtask.dependsOn.title}”` : <T>{'the task above'}</T>}{' '}
+                <T>{' is finished. '}</T>
               </p>
             ) : null}
           </Panel>
@@ -332,8 +359,10 @@ export function TaskDetail({
         <div className="min-w-0 space-y-5">
           <PhoneDisclosure title="Files and discussion" hint="Drawings, uploads and comments">
             <Panel
-              title="Comments and files"
-              description="Drawings, inspection reports and the back-and-forth on this task."
+              title={<T>{'Comments and files'}</T>}
+              description={
+                <T>{'Drawings, inspection reports and the back-and-forth on this task.'}</T>
+              }
               bodyClassName="p-4 space-y-6"
             >
               <AttachmentPanel

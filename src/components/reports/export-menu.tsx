@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -39,14 +40,14 @@ export function ListExports({ params }: { params: ExportParams }) {
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="text-muted-foreground mr-0.5 flex items-center gap-1 text-xs">
         <Download className="size-3.5" />
-        Export
+        <T>{'Export '}</T>
       </span>
 
       {lists.map(([type, label]) => (
         <Button key={type} asChild size="sm" variant="outline" className="h-7 px-2.5 text-xs">
           <a href={href(type, 'xlsx', params)} download>
             <FileSpreadsheet className="size-3.5" />
-            {label}
+            <T>{label}</T>
           </a>
         </Button>
       ))}
@@ -61,14 +62,14 @@ export function JobReportExports({ params }: { params: ExportParams }) {
       <Button asChild size="sm" variant="outline" className="h-7 px-2.5 text-xs">
         <a href={href('job-report', 'pdf', params)} download>
           <FileText className="size-3.5" />
-          PDF
+          <T>{'PDF '}</T>
         </a>
       </Button>
 
       <Button asChild size="sm" variant="outline" className="h-7 px-2.5 text-xs">
         <a href={href('job-report', 'xlsx', params)} download>
           <FileSpreadsheet className="size-3.5" />
-          Excel
+          <T>{'Excel '}</T>
         </a>
       </Button>
     </div>

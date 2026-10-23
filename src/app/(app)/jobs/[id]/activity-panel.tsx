@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import Link from 'next/link';
 import { History } from 'lucide-react';
 
@@ -32,17 +34,19 @@ export function ActivityPanel({
       title={
         <span className="flex items-center gap-2">
           <History className="size-4" aria-hidden />
-          Activity
+          <T>{'Activity '}</T>
         </span>
       }
-      description="Comments, status changes, deadlines, problems and files — newest first."
+      description={
+        <T>{'Comments, status changes, deadlines, problems and files — newest first.'}</T>
+      }
       action={
         canViewAudit ? (
           <Link
             href={`/audit?job=${jobId}`}
             className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline-offset-4 hover:underline"
           >
-            Forensic view
+            <T>{'Forensic view '}</T>
           </Link>
         ) : null
       }

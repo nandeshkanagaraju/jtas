@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
 import { AppInstallProvider } from '@/components/shared/app-install';
 import { PhoneAppProvider } from '@/components/shared/phone-app';
 import { ThemeProvider } from '@/components/shared/theme';
+
+import { LanguageProvider } from '@/lib/i18n/provider';
+import { LOCALE_COOKIE, validLocale } from '@/lib/i18n/locale';
 
 import './globals.css';
 
@@ -66,15 +69,18 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
    * the middleware minted for this request, or the theme flashes to light on
    * every navigation and the console fills with CSP violations.
    */
+  const locale = validLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   const nonce = (await headers()).get('x-nonce') ?? undefined;
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider nonce={nonce}>
-          <AppInstallProvider>
-            <PhoneAppProvider>{children}</PhoneAppProvider>
-          </AppInstallProvider>
+          <LanguageProvider initialLocale={locale}>
+            <AppInstallProvider>
+              <PhoneAppProvider>{children}</PhoneAppProvider>
+            </AppInstallProvider>
+          </LanguageProvider>
           <ServiceWorkerRegistration />
         </ThemeProvider>
       </body>

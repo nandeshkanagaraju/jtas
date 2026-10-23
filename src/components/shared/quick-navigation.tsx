@@ -1,5 +1,9 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T, useLanguage } from '@/lib/i18n/provider';
+
 import { ArrowUpRight, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -18,6 +22,7 @@ export function QuickNavigation({
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -32,11 +37,14 @@ export function QuickNavigation({
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const matches = items.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
+  const matches = items.filter((item) =>
+    `${item.label} ${t(item.label)}`.toLowerCase().includes(query.toLowerCase()),
+  );
 
   return (
     <>
-      <button
+      <LocalizedElement
+        as="button"
         type="button"
         onClick={() => {
           setQuery('');
@@ -51,18 +59,20 @@ export function QuickNavigation({
       >
         <Search className="size-4" />
         <span className={mobile ? undefined : 'hidden xl:inline'}>
-          {mobile ? 'Find a page' : 'Jump to'}
+          {mobile ? <T>{'Find a page'}</T> : <T>{'Jump to'}</T>}
         </span>
         <kbd className="border-border hidden rounded border px-1.5 py-0.5 font-mono text-[10px] xl:inline">
-          ⌘ / Ctrl K
+          <T>{'⌘ / Ctrl K '}</T>
         </kbd>
-      </button>
+      </LocalizedElement>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="gap-0 p-0 sm:max-w-lg">
           <div className="border-border space-y-2 border-b p-5 pr-12">
-            <DialogTitle>Jump to a destination</DialogTitle>
+            <DialogTitle>
+              <T>{'Jump to a destination'}</T>
+            </DialogTitle>
             <DialogDescription>
-              Search pages, then tab to a result and press Enter.
+              <T>{'Search pages, then tab to a result and press Enter. '}</T>
             </DialogDescription>
           </div>
           <div className="p-3">
@@ -72,7 +82,7 @@ export function QuickNavigation({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            <nav aria-label="Quick navigation" className="mt-2 space-y-1">
+            <LocalizedElement as="nav" aria-label="Quick navigation" className="mt-2 space-y-1">
               {matches.map((item) => {
                 const Icon = NAV_ICONS[item.icon];
                 return (
@@ -86,17 +96,21 @@ export function QuickNavigation({
                     className="hover:bg-muted flex min-h-12 items-center gap-3 rounded-lg px-3"
                   >
                     <Icon className="text-muted-foreground size-4" />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1">
+                      <T>{item.label}</T>
+                    </span>
                     <ArrowUpRight className="text-muted-foreground size-4" />
                   </Link>
                 );
               })}
               {matches.length === 0 ? (
                 <p className="text-muted-foreground px-3 py-8 text-center">
-                  No page matches “{query}”. Try another name.
+                  <T>{'No page matches “'}</T>
+                  {query}
+                  <T>{'”. Try another name. '}</T>
                 </p>
               ) : null}
-            </nav>
+            </LocalizedElement>
           </div>
         </DialogContent>
       </Dialog>

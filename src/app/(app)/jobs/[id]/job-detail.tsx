@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -81,7 +83,9 @@ export function JobDetail({
     <div className="space-y-6">
       {error ? (
         <Alert variant="destructive" role="alert">
-          <AlertTitle>That did not work</AlertTitle>
+          <AlertTitle>
+            <T>{'That did not work'}</T>
+          </AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
@@ -99,17 +103,22 @@ export function JobDetail({
 
       {isDraft ? (
         <Alert>
-          <AlertTitle>This job is still a draft</AlertTitle>
+          <AlertTitle>
+            <T>{'This job is still a draft'}</T>
+          </AlertTitle>
           <AlertDescription className="space-y-3">
             <p>
-              Nobody has been notified. Add at least one department subtask, then publish — that is
-              what starts the deadlines and the reminders.
+              <T>
+                {
+                  'Nobody has been notified. Add at least one department subtask, then publish — that is what starts the deadlines and the reminders. '
+                }
+              </T>
             </p>
             {permissions.edit ? (
               <Button asChild size="sm">
                 <Link href={`/jobs/${job.id}/plan`}>
                   <ListTodo className="size-4" />
-                  Plan the subtasks
+                  <T>{'Plan the subtasks '}</T>
                 </Link>
               </Button>
             ) : null}
@@ -119,7 +128,7 @@ export function JobDetail({
 
       {editing ? (
         <Panel
-          title="Edit job"
+          title={<T>{'Edit job'}</T>}
           description={
             isDraft
               ? 'Everything can still be changed while the job is a draft.'
@@ -157,8 +166,8 @@ export function JobDetail({
       {/* The customer drawing and the PO belong to the job, not to any one
           department's step (build spec M10.4). */}
       <Panel
-        title="Job files"
-        description="The drawing, the purchase order, anything the whole job needs."
+        title={<T>{'Job files'}</T>}
+        description={<T>{'The drawing, the purchase order, anything the whole job needs.'}</T>}
       >
         <AttachmentPanel
           jobId={job.id}

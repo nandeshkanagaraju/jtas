@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useState } from 'react';
 
 import { IstDateTimePicker } from '@/components/shared/ist-datetime-picker';
@@ -72,7 +74,9 @@ export function ResolutionForm({
   return (
     <div className="space-y-4">
       <fieldset className="space-y-2">
-        <legend className="section-title mb-2">What are you doing about it?</legend>
+        <legend className="section-title mb-2">
+          <T>{'What are you doing about it?'}</T>
+        </legend>
         {ACTIONS.map((option) => (
           <label
             key={option.value}
@@ -93,7 +97,9 @@ export function ResolutionForm({
               disabled={busy}
             />
             <span className="space-y-0.5">
-              <span className="block text-sm font-medium">{option.label}</span>
+              <span className="block text-sm font-medium">
+                <T>{option.label}</T>
+              </span>
               <span className="text-muted-foreground block text-xs">{option.help}</span>
             </span>
           </label>
@@ -103,7 +109,8 @@ export function ResolutionForm({
       {draft.action === 'EXTEND' ? (
         <div className="space-y-1.5">
           <Label htmlFor="resolution-new-deadline" className="field-label">
-            New deadline (currently {currentDeadline})
+            <T>{'New deadline (currently '}</T>
+            {currentDeadline})
           </Label>
           <IstDateTimePicker
             id="resolution-new-deadline"
@@ -116,7 +123,9 @@ export function ResolutionForm({
 
       {draft.action === 'REASSIGN' ? (
         <div className="space-y-1.5">
-          <Label className="field-label">Who takes it over</Label>
+          <Label className="field-label">
+            <T>{'Who takes it over'}</T>
+          </Label>
           <Select
             value={draft.assigneeId}
             onValueChange={(value) => set({ assigneeId: value })}
@@ -139,11 +148,15 @@ export function ResolutionForm({
 
       {draft.action === 'ESCALATE_TO_DEPARTMENT' ? (
         <div className="border-border bg-muted/40 space-y-3 rounded-lg border p-3">
-          <p className="section-title">The task for the other department</p>
+          <p className="section-title">
+            <T>{'The task for the other department'}</T>
+          </p>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="field-label">Department</Label>
+              <Label className="field-label">
+                <T>{'Department'}</T>
+              </Label>
               <Select
                 value={escalationDept || undefined}
                 onValueChange={(value) => {
@@ -178,7 +191,9 @@ export function ResolutionForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="field-label">Who does it</Label>
+              <Label className="field-label">
+                <T>{'Who does it'}</T>
+              </Label>
               <Select
                 value={draft.escalation?.assigneeId || undefined}
                 onValueChange={(value) =>
@@ -203,7 +218,9 @@ export function ResolutionForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="field-label">What they have to do</Label>
+            <Label className="field-label">
+              <T>{'What they have to do'}</T>
+            </Label>
             <Input
               value={draft.escalation?.title ?? ''}
               onChange={(event) =>
@@ -216,7 +233,7 @@ export function ResolutionForm({
 
           <div className="space-y-1.5">
             <Label htmlFor="resolution-escalation-deadline" className="text-xs">
-              By when
+              <T>{'By when '}</T>
             </Label>
             <IstDateTimePicker
               id="resolution-escalation-deadline"
@@ -238,14 +255,15 @@ export function ResolutionForm({
               }
               disabled={busy}
             />
-            This task waits for the new one
+            <T>{'This task waits for the new one '}</T>
           </label>
         </div>
       ) : null}
 
       <div className="space-y-1.5">
         <Label className="field-label">
-          What you decided <span className="text-destructive">*</span>
+          <T>{'What you decided '}</T>
+          <span className="text-destructive">*</span>
         </Label>
         <Textarea
           value={draft.mdActionNote}

@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { ProblemSeverity, ProblemStatus } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +32,7 @@ export function ProblemStatusBadge({ status }: { status: ProblemStatus }) {
   const { label, tone } = STATUS_STYLES[status];
   return (
     <Badge variant={tone} className="whitespace-nowrap">
-      {label}
+      <T>{label}</T>
     </Badge>
   );
 }
@@ -47,8 +48,14 @@ export function ProblemAge({ ageHours, isStale }: { ageHours: number; isStale: b
 
   return (
     <span className={cn('text-sm', isStale ? 'text-late font-semibold' : 'text-muted-foreground')}>
-      <span className="code block">{label}</span>
-      {isStale ? <span className="mt-0.5 block text-[11px] font-medium">over a day</span> : null}
+      <span className="code block">
+        <T>{label}</T>
+      </span>
+      {isStale ? (
+        <span className="mt-0.5 block text-[11px] font-medium">
+          <T>{'over a day'}</T>
+        </span>
+      ) : null}
     </span>
   );
 }

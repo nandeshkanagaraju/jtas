@@ -1,4 +1,5 @@
 'use client';
+import { T } from '@/lib/i18n/provider';
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
@@ -135,7 +136,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
       className={cn('text-destructive text-sm', className)}
       {...props}
     >
-      {body}
+      <T>{body}</T>
     </p>
   );
 }

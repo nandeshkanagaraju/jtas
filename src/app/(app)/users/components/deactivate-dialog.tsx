@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Loader2, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -92,10 +94,18 @@ export function DeactivateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Deactivate {user.name}?</DialogTitle>
+          <DialogTitle>
+            <T>{'Deactivate '}</T>
+            {user.name}?
+          </DialogTitle>
           <DialogDescription>
-            The account is switched off, not deleted — {user.name} stays visible on every job they
-            worked on. Any signed-in device is signed out immediately.
+            <T>{'The account is switched off, not deleted — '}</T>
+            {user.name}{' '}
+            <T>
+              {
+                ' stays visible on every job they worked on. Any signed-in device is signed out immediately. '
+              }
+            </T>
           </DialogDescription>
         </DialogHeader>
 
@@ -103,7 +113,9 @@ export function DeactivateDialog({
           {error ? (
             <Alert variant="destructive" role="alert">
               <TriangleAlert className="size-4" />
-              <AlertTitle>Cannot deactivate yet</AlertTitle>
+              <AlertTitle>
+                <T>{'Cannot deactivate yet'}</T>
+              </AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
@@ -111,7 +123,9 @@ export function DeactivateDialog({
           {needsReassignment ? (
             <div className="space-y-2">
               <p className="text-sm font-medium">
-                Open work ({blocking.length}) that must move to somebody else
+                <T>{'Open work ('}</T>
+                {blocking.length}
+                <T>{') that must move to somebody else '}</T>
               </p>
               <ul className="max-h-56 space-y-2 overflow-y-auto rounded-md border p-2">
                 {blocking.map((subtask) => (
@@ -123,9 +137,13 @@ export function DeactivateDialog({
                       </Badge>
                     </div>
                     <p className="text-muted-foreground text-xs">
-                      {subtask.jobCode} · {subtask.departmentName} · due{' '}
+                      {subtask.jobCode} · {subtask.departmentName} <T>{' · due'}</T>{' '}
                       <span className="tabular">
-                        {subtask.deadline ? formatIST(new Date(subtask.deadline)) : 'no date yet'}
+                        {subtask.deadline ? (
+                          formatIST(new Date(subtask.deadline))
+                        ) : (
+                          <T>{'no date yet'}</T>
+                        )}
                       </span>
                     </p>
                   </li>
@@ -136,12 +154,17 @@ export function DeactivateDialog({
 
           {needsReassignment ? (
             <div className="space-y-2">
-              <Label htmlFor="reassignTo">Hand the work over to</Label>
+              <Label htmlFor="reassignTo">
+                <T>{'Hand the work over to'}</T>
+              </Label>
               {candidates.length === 0 ? (
                 <Alert>
                   <AlertDescription>
-                    Nobody else is active in this department. Add or reactivate somebody first, or
-                    move the subtasks by hand.
+                    <T>
+                      {
+                        'Nobody else is active in this department. Add or reactivate somebody first, or move the subtasks by hand. '
+                      }
+                    </T>
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -164,7 +187,10 @@ export function DeactivateDialog({
 
           <div className="space-y-2">
             <Label htmlFor="reason">
-              Reason <span className="text-muted-foreground font-normal">(optional)</span>
+              <T>{'Reason '}</T>
+              <span className="text-muted-foreground font-normal">
+                <T>{'(optional)'}</T>
+              </span>
             </Label>
             <Textarea
               id="reason"
@@ -180,7 +206,7 @@ export function DeactivateDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
-            Cancel
+            <T>{'Cancel '}</T>
           </Button>
           <Button
             variant="destructive"
@@ -188,7 +214,7 @@ export function DeactivateDialog({
             disabled={busy || (needsReassignment && !reassignTo)}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-            {needsReassignment ? 'Reassign and deactivate' : 'Deactivate'}
+            {needsReassignment ? <T>{'Reassign and deactivate'}</T> : <T>{'Deactivate'}</T>}
           </Button>
         </DialogFooter>
       </DialogContent>

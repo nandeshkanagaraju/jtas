@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 
 import { Empty, Section } from '@/components/dashboard/section';
@@ -32,7 +33,9 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
       }
     >
       {jobs.length === 0 ? (
-        <Empty>Every live job is on track.</Empty>
+        <Empty>
+          <T>{'Every live job is on track.'}</T>
+        </Empty>
       ) : (
         <ul>
           {jobs.map((job) => (
@@ -46,7 +49,7 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
                     {job.jobCode}
                   </span>
                   <Badge variant={jobStatusTone(job.status)} className="shrink-0">
-                    {job.status === 'DELAYED' ? 'Delayed' : 'At risk'}
+                    {job.status === 'DELAYED' ? <T>{'Delayed'}</T> : <T>{'At risk'}</T>}
                   </Badge>
                 </div>
                 <p className="mt-1.5 truncate text-sm font-medium" title={job.title}>
@@ -56,7 +59,8 @@ export function AtRiskTable({ jobs, total }: { jobs: JobAtRisk[]; total: number 
                   {holding(job)}
                 </p>
                 <p className="text-muted-foreground mt-1.5 text-xs tabular-nums">
-                  Due {formatIST(new Date(job.overallDeadline), 'd MMM')}
+                  <T>{'Due '}</T>
+                  {formatIST(new Date(job.overallDeadline), 'd MMM')}
                 </p>
               </Link>
             </li>

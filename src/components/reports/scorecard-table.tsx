@@ -1,5 +1,9 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
@@ -107,14 +111,21 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
 
   return (
     <Panel
-      title="Department scorecards"
-      description="On-time rate first. A department that completed nothing in the range shows a dash rather than a zero."
+      title={<T>{'Department scorecards'}</T>}
+      description={
+        <T>
+          {
+            'On-time rate first. A department that completed nothing in the range shows a dash rather than a zero.'
+          }
+        </T>
+      }
       flush
     >
       <div className="p-4 xl:hidden">
         <label className="text-muted-foreground mb-4 flex flex-wrap items-center gap-2 text-xs">
-          Sort scorecards
-          <select
+          <T>{'Sort scorecards '}</T>
+          <LocalizedElement
+            as="select"
             aria-label="Sort scorecards"
             value={sort.key}
             onChange={(event) =>
@@ -124,16 +135,16 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
           >
             {COLUMNS.map((column) => (
               <option key={column.key} value={column.key}>
-                {column.label}
+                <T>{column.label}</T>
               </option>
             ))}
-          </select>
+          </LocalizedElement>
           <button
             type="button"
             onClick={() => toggle(sort.key)}
             className="border-input text-foreground min-h-10 rounded-lg border px-3 text-sm"
           >
-            {sort.desc ? 'Highest first ↓' : 'Lowest first ↑'}
+            {sort.desc ? <T>{'Highest first ↓'}</T> : <T>{'Lowest first ↑'}</T>}
           </button>
         </label>
         <ul className="grid gap-4 md:grid-cols-2">
@@ -146,7 +157,9 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
                 <h3 className="text-base font-semibold">{row.name}</h3>
                 <span className={cn('font-mono text-xl font-medium', rateTone(row.onTimePercent))}>
                   {row.onTimePercent === null ? '—' : `${row.onTimePercent}%`}
-                  <span className="text-muted-foreground ml-1.5 font-sans text-xs">on time</span>
+                  <span className="text-muted-foreground ml-1.5 font-sans text-xs">
+                    <T>{'on time'}</T>
+                  </span>
                 </span>
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -154,7 +167,9 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
                   (column) => column.key !== 'name' && column.key !== 'onTimePercent',
                 ).map((column) => (
                   <div key={column.key}>
-                    <dt className="text-muted-foreground text-xs">{column.label}</dt>
+                    <dt className="text-muted-foreground text-xs">
+                      <T>{column.label}</T>
+                    </dt>
                     <dd className="mt-1 font-mono text-sm">
                       {column.key === 'averageDelayHours'
                         ? row.subtasksCompleted === 0
@@ -198,7 +213,9 @@ export function ScorecardTable({ rows }: { rows: DepartmentScorecard[] }) {
                       )}
                     >
                       <Icon className="size-3" />
-                      <span className="hidden sm:inline">{column.label}</span>
+                      <span className="hidden sm:inline">
+                        <T>{column.label}</T>
+                      </span>
                       <span className="sm:hidden">{column.short ?? column.label}</span>
                     </button>
                   </th>

@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 import { CalendarDays, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,9 +55,12 @@ export default async function DashboardPage({
     <div className="production-overview space-y-8">
       <header className="overview-heading flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="eyebrow">Jaraa Global / Production control</p>
+          <p className="eyebrow">
+            <T>{'Jaraa Global / Production control'}</T>
+          </p>
           <h1 className="overview-title mt-3">
-            Production overview<span className="text-action">.</span>
+            <T>{'Production overview'}</T>
+            <span className="text-action">.</span>
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -68,7 +72,7 @@ export default async function DashboardPage({
             <Button asChild>
               <Link href="/jobs/new">
                 <Plus className="size-4" />
-                New job
+                <T>{'New job '}</T>
               </Link>
             </Button>
           ) : null}
@@ -92,8 +96,12 @@ export default async function DashboardPage({
         <div className="space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="eyebrow">Performance review</p>
-              <h2 className="section-title mt-1">Delivery, measured.</h2>
+              <p className="eyebrow">
+                <T>{'Performance review'}</T>
+              </p>
+              <h2 className="section-title mt-1">
+                <T>{'Delivery, measured.'}</T>
+              </h2>
             </div>
             <Suspense fallback={<Skeleton className="h-14 w-72" />}>
               <RangePicker from={data.range.from} to={data.range.to} plain />

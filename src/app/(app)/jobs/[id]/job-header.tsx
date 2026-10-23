@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import Link from 'next/link';
 
 import { Ban, ChevronDown, Pause, Pencil, Play, ScrollText, Send } from 'lucide-react';
@@ -48,7 +50,9 @@ function Fact({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="field-label">{label}</dt>
+      <dt className="field-label">
+        <T>{label}</T>
+      </dt>
       <dd className={cn('text-foreground mt-0.5 text-sm break-words', machine && 'code')}>
         {value ?? <span className="text-muted-foreground">—</span>}
       </dd>
@@ -115,7 +119,9 @@ export function JobHeader({
             <Button asChild variant="outline">
               <Link href={`/audit?job=${job.id}`}>
                 <ScrollText className="size-4" />
-                <span className="">Full history</span>
+                <span className="">
+                  <T>{'Full history'}</T>
+                </span>
               </Link>
             </Button>
           ) : null}
@@ -124,27 +130,27 @@ export function JobHeader({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={busy}>
-                  Actions
+                  <T>{'Actions '}</T>
                   <ChevronDown className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuItem onSelect={onToggleEdit}>
                   <Pencil className="size-4" />
-                  {editing ? 'Stop editing' : 'Edit details'}
+                  {editing ? <T>{'Stop editing'}</T> : <T>{'Edit details'}</T>}
                 </DropdownMenuItem>
 
                 {isDraft && permissions.publish ? (
                   <DropdownMenuItem onSelect={onPublish}>
                     <Send className="size-4" />
-                    Publish job
+                    <T>{'Publish job '}</T>
                   </DropdownMenuItem>
                 ) : null}
 
                 {!isDraft && permissions.hold ? (
                   <DropdownMenuItem onSelect={onToggleHold}>
                     {isOnHold ? <Play className="size-4" /> : <Pause className="size-4" />}
-                    {isOnHold ? 'Resume job' : 'Put on hold'}
+                    {isOnHold ? <T>{'Resume job'}</T> : <T>{'Put on hold'}</T>}
                   </DropdownMenuItem>
                 ) : null}
 
@@ -153,7 +159,7 @@ export function JobHeader({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onSelect={onCancel}>
                       <Ban className="size-4" />
-                      Cancel job
+                      <T>{'Cancel job '}</T>
                     </DropdownMenuItem>
                   </>
                 ) : null}
@@ -170,13 +176,17 @@ export function JobHeader({
       */}
       <div className="instrument-hero border-border bg-card grid gap-5 rounded-lg border p-5 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sm:col-span-2 lg:col-span-1">
-          <p className="field-label">Overall deadline</p>
+          <p className="field-label">
+            <T>{'Overall deadline'}</T>
+          </p>
           <p className="code text-foreground mt-0.5 text-base font-medium">{formatIST(deadline)}</p>
           <p className={cn('mt-0.5 text-sm', whenClass)}>{when.text}</p>
         </div>
 
         <div className="sm:col-span-2 lg:col-span-1">
-          <p className="field-label">Progress</p>
+          <p className="field-label">
+            <T>{'Progress'}</T>
+          </p>
           <div className="mt-1.5">
             <JobProgress progress={job.progress} />
           </div>
@@ -193,7 +203,9 @@ export function JobHeader({
               job.publishedAt ? (
                 formatIST(new Date(job.publishedAt), 'dd MMM yyyy')
               ) : (
-                <span className="text-muted-foreground">Not yet</span>
+                <span className="text-muted-foreground">
+                  <T>{'Not yet'}</T>
+                </span>
               )
             }
           />
@@ -205,7 +217,8 @@ export function JobHeader({
       ) : null}
 
       <p className="text-muted-foreground text-xs">
-        Raised by {job.createdBy.name} on{' '}
+        <T>{'Raised by '}</T>
+        {job.createdBy.name} <T>{' on'}</T>{' '}
         <span className="code">{formatIST(new Date(job.createdAt), 'dd MMM yyyy, hh:mm a')}</span>
       </p>
     </PageHeader>

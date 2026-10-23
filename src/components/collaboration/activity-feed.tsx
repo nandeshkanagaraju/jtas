@@ -16,7 +16,7 @@ import { EmptyState, ErrorState, ListSkeleton } from '@/components/shared/states
 import { openAttachment } from '@/components/collaboration/attachment-panel';
 import { CommentBody } from '@/components/collaboration/comment-body';
 import { apiFetch } from '@/lib/api/client';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 import type { ActivityItem } from '@/lib/services/activity-feed';
 import type { MentionCandidate } from '@/lib/domain/mentions';
 import { cn } from '@/lib/utils';

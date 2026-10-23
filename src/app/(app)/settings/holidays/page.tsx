@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 
@@ -26,9 +27,15 @@ export default async function HolidaysPage() {
   return (
     <div className="w-full space-y-5">
       <PageHeader
-        eyebrow="How the system chases work"
-        title="Holiday calendar"
-        lead="Days the shop is shut. A reminder that would land on one moves to the next working morning; overdue mail is not held."
+        eyebrow={<T>{'How the system chases work'}</T>}
+        title={<T>{'Holiday calendar'}</T>}
+        lead={
+          <T>
+            {
+              'Days the shop is shut. A reminder that would land on one moves to the next working morning; overdue mail is not held.'
+            }
+          </T>
+        }
       >
         <SettingsNav current="holidays" />
       </PageHeader>

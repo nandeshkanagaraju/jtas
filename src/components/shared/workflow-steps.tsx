@@ -1,3 +1,6 @@
+import { T } from '@/lib/i18n/provider';
+
+import { LocalizedElement } from '@/lib/i18n/provider';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -5,7 +8,7 @@ const STEPS = ['Job details', 'Department plan', 'Review & publish'];
 
 export function WorkflowSteps({ current }: { current: number }) {
   return (
-    <ol aria-label="Job creation progress" className="workflow-steps">
+    <LocalizedElement as="ol" aria-label="Job creation progress" className="workflow-steps">
       {STEPS.map((label, index) => {
         const number = index + 1;
         return (
@@ -38,11 +41,11 @@ export function WorkflowSteps({ current }: { current: number }) {
                   `0${number}`
                 )}
               </span>
-              {label}
+              <T>{label}</T>
             </span>
           </li>
         );
       })}
-    </ol>
+    </LocalizedElement>
   );
 }

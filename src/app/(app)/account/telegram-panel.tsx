@@ -1,7 +1,9 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { Button } from '@/components/ui/button';
 import { apiFetch, apiPost } from '@/lib/api/client';
@@ -59,40 +61,53 @@ export function TelegramPanel({
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">
-        {isLinked
-          ? 'This account is linked. Messages arrive here and by email. Email still arrives if the phone is off.'
-          : 'Not linked. Email is how you are reached until you link a chat.'}
+        {isLinked ? (
+          <T>
+            {
+              'This account is linked. Messages arrive here and by email. Email still arrives if the phone is off.'
+            }
+          </T>
+        ) : (
+          <T>{'Not linked. Email is how you are reached until you link a chat.'}</T>
+        )}
       </p>
 
       {code ? (
         <div className="bg-muted space-y-3 rounded-md px-3 py-3">
-          <p className="text-sm">Open the bot. The link sends this code for you:</p>
+          <p className="text-sm">
+            <T>{'Open the bot. The link sends this code for you:'}</T>
+          </p>
           <a
             href={openUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-flex min-h-11 items-center text-base font-medium underline"
           >
-            t.me/{botName}
+            <T>{'t.me/'}</T>
+            {botName}
           </a>
-          <p className="font-mono text-base font-medium">/start {code}</p>
+          <p className="font-mono text-base font-medium">
+            <T>{'/start '}</T>
+            {code}
+          </p>
           <p className="text-muted-foreground text-xs">
-            The code works once, for 15 minutes. Come back here if it expires.
+            <T>{'The code works once, for 15 minutes. Come back here if it expires. '}</T>
           </p>
         </div>
       ) : (
         <p className="text-sm">
-          The bot is{' '}
+          <T>{'The bot is'}</T>{' '}
           <a href={inviteUrl} target="_blank" rel="noreferrer" className="font-medium underline">
-            t.me/{botName}
+            <T>{'t.me/'}</T>
+            {botName}
           </a>
-          . Get a code, then open that link.
+          <T>{'. Get a code, then open that link. '}</T>
         </p>
       )}
 
       <div className="flex flex-wrap gap-2">
         <Button type="button" className="min-h-11" disabled={busy} onClick={issue}>
-          {isLinked ? 'Link a different chat' : 'Get a link code'}
+          {isLinked ? <T>{'Link a different chat'}</T> : <T>{'Get a link code'}</T>}
         </Button>
         {isLinked ? (
           <Button
@@ -102,7 +117,7 @@ export function TelegramPanel({
             disabled={busy}
             onClick={unlink}
           >
-            Unlink
+            <T>{'Unlink '}</T>
           </Button>
         ) : null}
       </div>

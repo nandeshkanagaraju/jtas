@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Loader2, RotateCw, type LucideIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -46,9 +48,13 @@ export function EmptyState({
         </span>
       ) : null}
       <div className="space-y-1">
-        <p className="font-display font-semibold">{title}</p>
+        <p className="font-display font-semibold">
+          <T>{title}</T>
+        </p>
         {description ? (
-          <p className="text-muted-foreground mx-auto max-w-sm text-sm">{description}</p>
+          <p className="text-muted-foreground mx-auto max-w-sm text-sm">
+            <T>{description}</T>
+          </p>
         ) : null}
       </div>
       {action}
@@ -80,13 +86,17 @@ export function ErrorState({
       className={cn('flex flex-col items-center gap-4 px-6 py-16 text-center', className)}
     >
       <div className="space-y-1">
-        <p className="font-display text-late font-semibold">{title}</p>
-        <p className="text-muted-foreground mx-auto max-w-sm text-sm">{message}</p>
+        <p className="font-display text-late font-semibold">
+          <T>{title}</T>
+        </p>
+        <p className="text-muted-foreground mx-auto max-w-sm text-sm">
+          <T>{message}</T>
+        </p>
       </div>
       {onRetry ? (
         <Button variant="outline" size="sm" onClick={onRetry}>
           <RotateCw className="size-4" />
-          Try again
+          <T>{'Try again '}</T>
         </Button>
       ) : null}
     </div>
@@ -140,7 +150,9 @@ export function Spinner({ label, className }: { label: string; className?: strin
   return (
     <span className={cn('text-muted-foreground inline-flex items-center gap-2 text-xs', className)}>
       <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
-      <span className="sr-only sm:not-sr-only">{label}</span>
+      <span className="sr-only sm:not-sr-only">
+        <T>{label}</T>
+      </span>
     </span>
   );
 }

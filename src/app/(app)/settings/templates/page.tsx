@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 
@@ -24,9 +25,15 @@ export default async function TemplatesPage() {
   return (
     <div className="w-full space-y-5">
       <PageHeader
-        eyebrow="How the system chases work"
-        title="Job templates"
-        lead="The standard chain, with each step’s deadline measured backwards from the job’s. One template serves a rush job and a long one — the whole chain compresses with the due date."
+        eyebrow={<T>{'How the system chases work'}</T>}
+        title={<T>{'Job templates'}</T>}
+        lead={
+          <T>
+            {
+              'The standard chain, with each step’s deadline measured backwards from the job’s. One template serves a rush job and a long one — the whole chain compresses with the due date.'
+            }
+          </T>
+        }
       >
         <SettingsNav current="templates" />
       </PageHeader>

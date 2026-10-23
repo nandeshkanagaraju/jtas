@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -48,14 +50,18 @@ export function ActionPanel({
   return (
     <div className="border-border bg-muted/40 space-y-3 rounded-lg border p-3">
       <div className="space-y-0.5">
-        <p className="section-title">{title}</p>
+        <p className="section-title">
+          <T>{title}</T>
+        </p>
         <p className="text-muted-foreground text-xs">{note}</p>
       </div>
 
       {children}
 
       <div className="space-y-1.5">
-        <Label className="field-label">Reason</Label>
+        <Label className="field-label">
+          <T>{'Reason'}</T>
+        </Label>
         <Textarea
           value={reason}
           onChange={(event) => onReason(event.target.value)}
@@ -68,7 +74,10 @@ export function ActionPanel({
       {onOverride ? (
         <div className="space-y-1.5">
           <Label className="field-label">
-            Confirmation <span className="text-muted-foreground">(only if asked)</span>
+            <T>{'Confirmation '}</T>
+            <span className="text-muted-foreground">
+              <T>{'(only if asked)'}</T>
+            </span>
           </Label>
           <Textarea
             value={override ?? ''}
@@ -83,7 +92,7 @@ export function ActionPanel({
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
-          Cancel
+          <T>{'Cancel '}</T>
         </Button>
         <Button
           type="button"
@@ -93,7 +102,7 @@ export function ActionPanel({
           disabled={busy || disabled || reason.trim().length < 5}
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-          Confirm
+          <T>{'Confirm '}</T>
         </Button>
       </div>
     </div>

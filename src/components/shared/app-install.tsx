@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { CheckCircle2, Download, Smartphone } from 'lucide-react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
@@ -104,8 +106,8 @@ export function AppInstallPanel() {
   return (
     <div id="install" className="scroll-mt-40">
       <Panel
-        title="Jaraa on your phone"
-        description="Your workspace, one tap from the home screen."
+        title={<T>{'Jaraa on your phone'}</T>}
+        description={<T>{'Your workspace, one tap from the home screen.'}</T>}
       >
         <div className="flex items-start gap-4">
           <span className="bg-primary/10 text-action flex size-12 shrink-0 items-center justify-center rounded-lg">
@@ -113,39 +115,54 @@ export function AppInstallPanel() {
           </span>
           <div className="min-w-0 space-y-3 text-sm">
             {installed ? (
-              <p>Jaraa is installed or running as an app on this device.</p>
+              <p>
+                <T>{'Jaraa is installed or running as an app on this device.'}</T>
+              </p>
             ) : (
               <>
                 <p>
-                  Open your tasks, drawings and reports in a dedicated app window. No Play Store
-                  download is needed.
+                  <T>
+                    {
+                      'Open your tasks, drawings and reports in a dedicated app window. No Play Store download is needed. '
+                    }
+                  </T>
                 </p>
                 {!secure ? (
                   <p className="text-destructive">
-                    Open the secure HTTPS address to install on your phone. A local HTTP network
-                    address cannot offer app installation.
+                    <T>
+                      {
+                        'Open the secure HTTPS address to install on your phone. A local HTTP network address cannot offer app installation. '
+                      }
+                    </T>
                   </p>
                 ) : ready ? (
                   <Button onClick={install} disabled={busy}>
-                    <Download aria-hidden /> Install Jaraa
+                    <Download aria-hidden /> <T>{' Install Jaraa '}</T>
                   </Button>
                 ) : ios ? (
-                  <p>In Safari, open Share, choose Add to Home Screen, then confirm Add.</p>
+                  <p>
+                    <T>{'In Safari, open Share, choose Add to Home Screen, then confirm Add.'}</T>
+                  </p>
                 ) : (
                   <p>
-                    On Android, open this site in Chrome. Open the browser menu and choose Install
-                    app or Add to Home screen. On desktop, look for the install icon in the address
-                    bar.
+                    <T>
+                      {
+                        'On Android, open this site in Chrome. Open the browser menu and choose Install app or Add to Home screen. On desktop, look for the install icon in the address bar. '
+                      }
+                    </T>
                   </p>
                 )}
               </>
             )}
             <p role="status" aria-live="polite">
-              {busy ? 'Opening installation…' : message}
+              {busy ? <T>{'Opening installation…'}</T> : message}
             </p>
             <p className="text-muted-foreground text-xs">
-              An internet connection is required to load current work and save updates. Installation
-              does not enable phone push notifications; existing email and Telegram alerts continue.
+              <T>
+                {
+                  'An internet connection is required to load current work and save updates. Enable push notifications in your account after installation. Email and Telegram alerts continue. '
+                }
+              </T>
             </p>
           </div>
         </div>

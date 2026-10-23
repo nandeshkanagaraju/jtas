@@ -1,5 +1,9 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import { useEffect, useState } from 'react';
 
 import { Input } from '@/components/ui/input';
@@ -77,7 +81,7 @@ export function ReminderLeadField({
     <div className="space-y-1.5">
       {hideLabel ? null : (
         <Label htmlFor={id} className="text-xs">
-          Reminder
+          <T>{'Reminder '}</T>
         </Label>
       )}
       <div className="flex gap-2">
@@ -94,7 +98,8 @@ export function ReminderLeadField({
             publish(event.target.value, unit);
           }}
         />
-        <select
+        <LocalizedElement
+          as="select"
           aria-label="Reminder unit"
           value={unit}
           onChange={(event) => {
@@ -104,10 +109,16 @@ export function ReminderLeadField({
           }}
           className="border-input bg-card hover:bg-muted h-9 rounded-md border px-2 text-sm transition-colors"
         >
-          <option value="minutes">Minutes</option>
-          <option value="hours">Hours</option>
-          <option value="days">Days</option>
-        </select>
+          <option value="minutes">
+            <T>{'Minutes'}</T>
+          </option>
+          <option value="hours">
+            <T>{'Hours'}</T>
+          </option>
+          <option value="days">
+            <T>{'Days'}</T>
+          </option>
+        </LocalizedElement>
       </div>
       {problem ? (
         <p id={`${id}-hint`} className="text-destructive text-xs">

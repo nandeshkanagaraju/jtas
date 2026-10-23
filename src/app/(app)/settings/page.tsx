@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 
@@ -31,18 +32,27 @@ export default async function SettingsPage() {
   return (
     <div className="w-full space-y-5">
       <PageHeader
-        eyebrow="Administration / Configuration"
-        title="Settings"
-        lead="A change takes effect from the next notification the system schedules; anything already queued keeps the time it was given."
+        eyebrow={<T>{'Administration / Configuration'}</T>}
+        title={<T>{'Settings'}</T>}
+        lead={
+          <T>
+            {
+              'A change takes effect from the next notification the system schedules; anything already queued keeps the time it was given.'
+            }
+          </T>
+        }
       >
         <SettingsNav current="general" />
       </PageHeader>
 
       {readOnly ? (
-        <Panel title="Read only">
+        <Panel title={<T>{'Read only'}</T>}>
           <p className="text-muted-foreground text-sm">
-            You can see these values but not change them. Ask the Managing Director or an
-            administrator to make a change.
+            <T>
+              {
+                'You can see these values but not change them. Ask the Managing Director or an administrator to make a change. '
+              }
+            </T>
           </p>
         </Panel>
       ) : (

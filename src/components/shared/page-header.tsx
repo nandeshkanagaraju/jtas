@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -36,7 +37,7 @@ export function PageHeader({
           className="text-muted-foreground hover:text-foreground -ml-1 inline-flex min-h-9 items-center gap-1.5 text-sm font-medium transition-colors"
         >
           <ArrowLeft className="size-4" />
-          {back.label}
+          <T>{back.label}</T>
         </Link>
       ) : null}
 

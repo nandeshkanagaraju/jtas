@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 import { ScanSearch } from 'lucide-react';
 import { SystemState } from '@/components/shared/system-state';
@@ -12,10 +13,14 @@ export default function NotFound() {
       description="The link may be out of date, or the job may have been cancelled. If somebody sent you this link, ask them for the job code and search for it."
     >
       <Button asChild>
-        <Link href="/">Go to my home page</Link>
+        <Link href="/">
+          <T>{'Go to my home page'}</T>
+        </Link>
       </Button>
       <Button asChild variant="outline">
-        <Link href="/jobs">Search the jobs</Link>
+        <Link href="/jobs">
+          <T>{'Search the jobs'}</T>
+        </Link>
       </Button>
     </SystemState>
   );

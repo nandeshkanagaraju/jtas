@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Check, CircleAlert, Clock, TriangleAlert } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -43,8 +45,13 @@ export function TaskStatusAlerts({
       {readOnly ? (
         <Alert>
           <AlertDescription>
-            This is {subtask.assignee.name}&rsquo;s task. You can see it because you are on the same
-            job — it is read-only for you.
+            <T>{'This is '}</T>
+            {subtask.assignee.name}
+            <T>
+              {
+                '’s task. You can see it because you are on the same job — it is read-only for you. '
+              }
+            </T>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -52,14 +59,18 @@ export function TaskStatusAlerts({
       {subtask.status === 'BLOCKED' && subtask.dependsOn ? (
         <Alert>
           <CircleAlert className="size-4" />
-          <AlertTitle>Waiting on somebody else</AlertTitle>
+          <AlertTitle>
+            <T>{'Waiting on somebody else'}</T>
+          </AlertTitle>
           <AlertDescription>
             <span className="font-medium">{subtask.dependsOn.title}</span>{' '}
             {PREDECESSOR_STATE[subtask.dependsOn.status] ?? 'is not finished'}
-            {subtask.dependsOn.deadline
-              ? `, due ${formatIST(new Date(subtask.dependsOn.deadline))}`
-              : ', and has not committed a date yet'}
-            . You can start once it is done.
+            {subtask.dependsOn.deadline ? (
+              `, due ${formatIST(new Date(subtask.dependsOn.deadline))}`
+            ) : (
+              <T>{', and has not committed a date yet'}</T>
+            )}
+            <T>{'. You can start once it is done. '}</T>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -67,10 +78,15 @@ export function TaskStatusAlerts({
       {subtask.status === 'PROBLEM' ? (
         <Alert>
           <TriangleAlert className="size-4" />
-          <AlertTitle>Problem reported</AlertTitle>
+          <AlertTitle>
+            <T>{'Problem reported'}</T>
+          </AlertTitle>
           <AlertDescription>
-            The MD has this. You are not being chased for it while it is open — you will see the
-            task move once they decide.
+            <T>
+              {
+                'The MD has this. You are not being chased for it while it is open — you will see the task move once they decide. '
+              }
+            </T>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -78,9 +94,11 @@ export function TaskStatusAlerts({
       {subtask.status === 'AWAITING_APPROVAL' ? (
         <Alert>
           <Clock className="size-4" />
-          <AlertTitle>With the MD</AlertTitle>
+          <AlertTitle>
+            <T>{'With the MD'}</T>
+          </AlertTitle>
           <AlertDescription>
-            You marked this done. It counts as complete once the MD approves it.
+            <T>{'You marked this done. It counts as complete once the MD approves it. '}</T>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -88,9 +106,12 @@ export function TaskStatusAlerts({
       {subtask.status === 'COMPLETED' ? (
         <Alert>
           <Check className="size-4" />
-          <AlertTitle>Done</AlertTitle>
+          <AlertTitle>
+            <T>{'Done'}</T>
+          </AlertTitle>
           <AlertDescription>
-            Completed {subtask.completedAt ? formatIST(new Date(subtask.completedAt)) : ''}.
+            <T>{'Completed '}</T>
+            {subtask.completedAt ? formatIST(new Date(subtask.completedAt)) : ''}.
             {subtask.completionNote ? ` “${subtask.completionNote}”` : ''}
           </AlertDescription>
         </Alert>

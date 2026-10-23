@@ -1,9 +1,11 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Plus, Trash2, Upload } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,7 +157,7 @@ export function HolidayCalendar({
       <section className="product-panel border-border bg-card rounded-lg border">
         <header className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="section-title">
-            {MONTHS[month]} {year}
+            <T>{MONTHS[month]}</T> {year}
           </h2>
           <div className="flex gap-1">
             <Button variant="ghost" size="sm" onClick={() => step(-1)} aria-label="Previous month">
@@ -216,7 +218,8 @@ export function HolidayCalendar({
           <div className="flex flex-wrap items-end gap-2 border-t px-4 py-3">
             <div className="min-w-48 flex-1">
               <Label htmlFor="holiday-name" className="text-sm">
-                Name for {pending}
+                <T>{'Name for '}</T>
+                {pending}
               </Label>
               <Input
                 id="holiday-name"
@@ -237,10 +240,10 @@ export function HolidayCalendar({
               disabled={name.trim().length < 2 || busy}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-              Add
+              <T>{'Add '}</T>
             </Button>
             <Button variant="ghost" onClick={() => setPending(null)}>
-              Cancel
+              <T>{'Cancel '}</T>
             </Button>
           </div>
         ) : null}
@@ -249,14 +252,15 @@ export function HolidayCalendar({
       <section className="product-panel border-border bg-card rounded-lg border">
         <header className="border-border border-b px-4 py-3">
           <h2 className="section-title">
-            {MONTHS[month]} holidays ({inMonth.length})
+            <T>{MONTHS[month]}</T> <T>{' holidays ('}</T>
+            {inMonth.length})
           </h2>
         </header>
 
         {inMonth.length === 0 ? (
           <p className="text-muted-foreground px-4 py-6 text-center text-sm">
-            No holidays this month.
-            {canManage ? ' Click a day above to add one.' : ''}
+            <T>{'No holidays this month. '}</T>
+            {canManage ? <T>{' Click a day above to add one.'}</T> : ''}
           </p>
         ) : (
           <ul className="divide-border divide-y">
@@ -285,11 +289,21 @@ export function HolidayCalendar({
       {canManage ? (
         <section className="product-panel border-border bg-card rounded-lg border">
           <header className="border-border border-b px-4 py-3">
-            <h2 className="section-title">Import the annual list</h2>
+            <h2 className="section-title">
+              <T>{'Import the annual list'}</T>
+            </h2>
             <p className="text-muted-foreground mt-0.5 text-xs">
-              One holiday per line, <code className="code">2027-01-26,Republic Day</code>. A header
-              row and anything after a <code>#</code> are ignored, and a date already in the
-              calendar is skipped rather than duplicated.
+              <T>{'One holiday per line, '}</T>
+              <code className="code">
+                <T>{'2027-01-26,Republic Day'}</T>
+              </code>
+              <T>{'. A header row and anything after a '}</T>
+              <code>#</code>{' '}
+              <T>
+                {
+                  ' are ignored, and a date already in the calendar is skipped rather than duplicated. '
+                }
+              </T>
             </p>
           </header>
 
@@ -310,7 +324,7 @@ export function HolidayCalendar({
               disabled={csv.trim().length === 0 || busy}
             >
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              Import
+              <T>{'Import '}</T>
             </Button>
           </div>
         </section>

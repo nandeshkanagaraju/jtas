@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { CalendarIcon } from 'lucide-react';
 import { useId, useMemo } from 'react';
 
@@ -97,13 +99,15 @@ export function IstDateTimePicker({
             className={cn('flex-1 justify-start font-normal', !date && 'text-muted-foreground')}
           >
             <CalendarIcon className="size-4" />
-            {selected
-              ? selected.toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : 'Choose a date'}
+            {selected ? (
+              selected.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            ) : (
+              <T>{'Choose a date'}</T>
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

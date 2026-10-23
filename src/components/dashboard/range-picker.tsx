@@ -1,5 +1,9 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -98,7 +102,8 @@ export function RangePicker({
   }
 
   const control = (
-    <div
+    <LocalizedElement
+      as="div"
       role="group"
       aria-label="Date range"
       className="border-input bg-card inline-flex items-center gap-0.5 rounded-md border p-0.5"
@@ -124,12 +129,14 @@ export function RangePicker({
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent',
             )}
           >
-            <span className="hidden sm:inline">{preset.label}</span>
+            <span className="hidden sm:inline">
+              <T>{preset.label}</T>
+            </span>
             <span className="sm:hidden">{preset.short}</span>
           </button>
         );
       })}
-    </div>
+    </LocalizedElement>
   );
 
   if (!plain) return control;
@@ -142,7 +149,11 @@ export function RangePicker({
           <Loader2 className="size-3 animate-spin motion-reduce:animate-none" aria-hidden />
         ) : null}
         {from} → {to}
-        {pending ? <span className="sr-only">, updating</span> : null}
+        {pending ? (
+          <span className="sr-only">
+            <T>{', updating'}</T>
+          </span>
+        ) : null}
       </p>
     </div>
   );

@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Ban, Lock, TriangleAlert } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -72,7 +74,7 @@ export function SubtaskStatusBadge({ status }: { status: string }) {
   const style = STATUS_STYLES[status] ?? STATUS_STYLES.PENDING;
   return (
     <Badge variant={style.tone} className="whitespace-nowrap">
-      {style.label}
+      <T>{style.label}</T>
     </Badge>
   );
 }
@@ -172,7 +174,11 @@ export function SubtaskTimeline({
                 <span className="text-muted-foreground block text-xs">
                   {subtask.assignee.name}
                   {subtask.dependsOn ? (
-                    <span className="hidden sm:inline"> · waits for {subtask.dependsOn.title}</span>
+                    <span className="hidden sm:inline">
+                      {' '}
+                      <T>{' · waits for '}</T>
+                      {subtask.dependsOn.title}
+                    </span>
                   ) : null}
                 </span>
               </span>
@@ -199,7 +205,7 @@ export function SubtaskTimeline({
                   */}
                   {subtask.isOverdue ? (
                     <Badge variant="late" className="whitespace-nowrap">
-                      Overdue
+                      <T>{'Overdue '}</T>
                     </Badge>
                   ) : null}
                 </span>

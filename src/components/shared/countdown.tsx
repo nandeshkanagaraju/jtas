@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -33,5 +35,9 @@ export function Countdown({ deadline, className }: { deadline: string; className
 
   const label = deadlineLabel(new Date(deadline));
 
-  return <span className={cn(TONE_CLASS[label.tone], className)}>{label.text}</span>;
+  return (
+    <span className={cn(TONE_CLASS[label.tone], className)}>
+      <T>{label.text}</T>
+    </span>
+  );
 }

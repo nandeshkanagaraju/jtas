@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 
@@ -72,9 +73,15 @@ export default async function AuditPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Governance / Audit trail"
-        title="Activity log"
-        lead="Every state-changing action, with who did it and what changed. Nothing here can be edited or removed, which is what makes it evidence."
+        eyebrow={<T>{'Governance / Audit trail'}</T>}
+        title={<T>{'Activity log'}</T>}
+        lead={
+          <T>
+            {
+              'Every state-changing action, with who did it and what changed. Nothing here can be edited or removed, which is what makes it evidence.'
+            }
+          </T>
+        }
       />
 
       <AuditViewer initial={page} facets={facets} filters={filters} />

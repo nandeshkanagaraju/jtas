@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
@@ -52,7 +53,9 @@ export function SummaryStrip({ kpis }: { kpis: KpiCounts }) {
       {cells.map((cell) => (
         <Link key={cell.href} href={cell.href} className="pulse-cell">
           <p className="flex items-baseline gap-1.5">
-            <span className="text-muted-foreground text-xs">{cell.label}</span>
+            <span className="text-muted-foreground text-xs">
+              <T>{cell.label}</T>
+            </span>
             {cell.scope ? (
               <span className="text-muted-foreground shrink-0 text-[10px]">{cell.scope}</span>
             ) : null}

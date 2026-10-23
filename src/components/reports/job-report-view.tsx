@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { JobReport } from '@/lib/services/reports';
@@ -69,7 +70,8 @@ export function JobReportView({ report }: { report: JobReport }) {
       <section className="product-panel bg-card rounded-lg border" aria-labelledby="chain">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
           <h3 id="chain" className="text-sm font-semibold">
-            Subtask chain ({report.subtasks.length})
+            <T>{'Subtask chain ('}</T>
+            {report.subtasks.length})
           </h3>
           <p className="text-muted-foreground text-xs">{verdict}</p>
         </header>
@@ -111,12 +113,24 @@ export function JobReportView({ report }: { report: JobReport }) {
           <table className="w-full min-w-[48rem] text-sm">
             <thead>
               <tr className="text-muted-foreground border-b text-left text-xs">
-                <th className="px-4 py-2 font-medium">Department</th>
-                <th className="px-4 py-2 font-medium">Subtask</th>
-                <th className="px-4 py-2 font-medium">Assignee</th>
-                <th className="px-4 py-2 font-medium">Planned</th>
-                <th className="px-4 py-2 font-medium">Actual</th>
-                <th className="px-4 py-2 text-right font-medium">Delay</th>
+                <th className="px-4 py-2 font-medium">
+                  <T>{'Department'}</T>
+                </th>
+                <th className="px-4 py-2 font-medium">
+                  <T>{'Subtask'}</T>
+                </th>
+                <th className="px-4 py-2 font-medium">
+                  <T>{'Assignee'}</T>
+                </th>
+                <th className="px-4 py-2 font-medium">
+                  <T>{'Planned'}</T>
+                </th>
+                <th className="px-4 py-2 font-medium">
+                  <T>{'Actual'}</T>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <T>{'Delay'}</T>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -129,7 +143,8 @@ export function JobReportView({ report }: { report: JobReport }) {
                       // Shown inline: a step that met a deadline it moved twice
                       // is not the same as one that met the original.
                       <span className="text-muted-foreground ml-2 text-xs">
-                        · {subtask.extensions} extension{subtask.extensions > 1 ? 's' : ''}
+                        · {subtask.extensions} <T>{' extension'}</T>
+                        {subtask.extensions > 1 ? 's' : ''}
                       </span>
                     ) : null}
                   </td>
@@ -160,13 +175,14 @@ export function JobReportView({ report }: { report: JobReport }) {
       <section className="product-panel bg-card rounded-lg border" aria-labelledby="job-problems">
         <header className="border-b px-4 py-3">
           <h3 id="job-problems" className="text-sm font-semibold">
-            Problems ({report.problems.length})
+            <T>{'Problems ('}</T>
+            {report.problems.length})
           </h3>
         </header>
 
         {report.problems.length === 0 ? (
           <p className="text-muted-foreground px-4 py-8 text-center text-sm">
-            No problems were raised on this job.
+            <T>{'No problems were raised on this job. '}</T>
           </p>
         ) : (
           <ul className="divide-y">
@@ -192,11 +208,16 @@ export function JobReportView({ report }: { report: JobReport }) {
 
                 {problem.resolution ? (
                   <p className="text-muted-foreground mt-1 border-l-2 pl-3 text-sm">
-                    <span className="font-medium">Resolved {ist(problem.resolvedAt)}:</span>{' '}
+                    <span className="font-medium">
+                      <T>{'Resolved '}</T>
+                      {ist(problem.resolvedAt)}:
+                    </span>{' '}
                     {problem.resolution}
                   </p>
                 ) : (
-                  <p className="text-risk mt-1 text-xs">Still open.</p>
+                  <p className="text-risk mt-1 text-xs">
+                    <T>{'Still open.'}</T>
+                  </p>
                 )}
               </li>
             ))}
@@ -210,7 +231,9 @@ export function JobReportView({ report }: { report: JobReport }) {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dt className="text-muted-foreground text-xs">
+        <T>{label}</T>
+      </dt>
       <dd className="font-medium">{value}</dd>
     </div>
   );

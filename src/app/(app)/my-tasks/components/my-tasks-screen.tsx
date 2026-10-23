@@ -1,8 +1,10 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/i18n/toast';
 
 import { ApiError } from '@/lib/api/client';
 import { changeSubtaskStatusRequest } from '@/lib/api/subtasks-client';
@@ -143,7 +145,9 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
     <div className="member-workspace w-full space-y-6">
       <header className="page-heading">
         <p className="eyebrow">{today}</p>
-        <h1 className="page-title mt-1">My work</h1>
+        <h1 className="page-title mt-1">
+          <T>{'My work'}</T>
+        </h1>
         <p className="mt-2 text-base font-medium">{standing(data.summary)}</p>
       </header>
 
@@ -158,7 +162,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
             onClick={() => void reload()}
             className="border-late-edge text-late min-h-11 rounded-md border px-3 text-sm font-medium"
           >
-            Retry
+            <T>{'Retry '}</T>
           </button>
         </div>
       ) : null}
@@ -206,7 +210,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
                       )}
                       aria-hidden
                     />
-                    {GROUP_LABELS[name]} {tasks.length}
+                    <T>{GROUP_LABELS[name]}</T> {tasks.length}
                   </span>
                 </button>
               </h2>
@@ -273,7 +277,9 @@ function Group({
         id={`tasks-${name}`}
         className="border-border flex items-center justify-between gap-4 border-b px-4 py-3 text-base font-medium"
       >
-        <span>{GROUP_LABELS[name]}</span>
+        <span>
+          <T>{GROUP_LABELS[name]}</T>
+        </span>
         <span className={cn('font-mono font-medium tabular-nums', countTone)}>{tasks.length}</span>
       </h2>
       <div className="px-4">
@@ -307,7 +313,11 @@ function TaskList({
   ) => void;
 }) {
   if (tasks.length === 0) {
-    return <p className="text-muted-foreground py-5 text-base">{EMPTY_STATES[name]}</p>;
+    return (
+      <p className="text-muted-foreground py-5 text-base">
+        <T>{EMPTY_STATES[name]}</T>
+      </p>
+    );
   }
 
   return (

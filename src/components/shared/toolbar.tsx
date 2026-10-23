@@ -1,5 +1,9 @@
 'use client';
 
+import { LocalizedElement } from '@/lib/i18n/provider';
+
+import { T } from '@/lib/i18n/provider';
+
 import { Search, X } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
@@ -67,14 +71,15 @@ export function SearchField({
         className="pl-9"
       />
       {value ? (
-        <button
+        <LocalizedElement
+          as="button"
           type="button"
           onClick={() => onChange('')}
           aria-label="Clear search"
           className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md transition-colors"
         >
           <X className="size-3.5" />
-        </button>
+        </LocalizedElement>
       ) : null}
     </div>
   );
@@ -127,7 +132,7 @@ export function FilterSelect({
         <SelectItem value={allValue}>{allLabel}</SelectItem>
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
-            {option.label}
+            <T>{option.label}</T>
           </SelectItem>
         ))}
       </SelectContent>
@@ -167,9 +172,11 @@ export function ActiveFilters({
           onClick={filter.onClear}
           className="border-border bg-muted text-foreground hover:bg-accent inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-medium transition-colors"
         >
-          {filter.label}
+          <T>{filter.label}</T>
           <X className="text-muted-foreground size-3" aria-hidden />
-          <span className="sr-only">, remove filter</span>
+          <span className="sr-only">
+            <T>{', remove filter'}</T>
+          </span>
         </button>
       ))}
       {filters.length > 0 ? (
@@ -178,7 +185,7 @@ export function ActiveFilters({
           onClick={onClearAll}
           className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
         >
-          Clear all
+          <T>{'Clear all '}</T>
         </button>
       ) : null}
     </div>

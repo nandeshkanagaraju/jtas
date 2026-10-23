@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { RotateCw, Unplug } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect } from 'react';
@@ -24,19 +26,29 @@ export default function AppError({
       description={
         <>
           <p>
-            Try again. If it keeps happening, share the reference below with the administrator. If
-            you were saving a change, check its status before submitting again.
+            <T>
+              {
+                'Try again. If it keeps happening, share the reference below with the administrator. If you were saving a change, check its status before submitting again. '
+              }
+            </T>
           </p>
-          {error.digest ? <p className="code mt-3 text-xs">Reference {error.digest}</p> : null}
+          {error.digest ? (
+            <p className="code mt-3 text-xs">
+              <T>{'Reference '}</T>
+              {error.digest}
+            </p>
+          ) : null}
         </>
       }
     >
       <Button onClick={reset}>
         <RotateCw className="size-4" />
-        Try again
+        <T>{'Try again '}</T>
       </Button>
       <Button asChild variant="outline">
-        <Link href="/">Go to my home page</Link>
+        <Link href="/">
+          <T>{'Go to my home page'}</T>
+        </Link>
       </Button>
     </SystemState>
   );

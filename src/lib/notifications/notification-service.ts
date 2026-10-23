@@ -145,6 +145,22 @@ export async function enqueue(db: Db, input: EnqueueInput): Promise<number> {
   }
 
   if (channel === 'EMAIL') {
+    const subscribed = await db.pushSubscription.findMany({
+      where: { userId: { in: [...userIds] } },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    if (subscribed.length) {
+      await enqueue(db, {
+        ...input,
+        channel: 'PUSH',
+        userIds: subscribed.map((item) => item.userId),
+        dedupeKeyFor: (userId) => `${input.dedupeKeyFor(userId)}:PUSH`,
+      });
+    }
+  }
+
+  if (channel === 'EMAIL') {
     await mirrorToTelegram(db, input, userIds);
   }
 
@@ -436,7 +452,7 @@ export async function listNotifications(
   const where: Prisma.NotificationWhereInput = {
     userId,
     // The email row is the inbox copy. The Telegram row is delivery only.
-    channel: { not: 'TELEGRAM' },
+    channel: { notIn: ['TELEGRAM', 'PUSH'] },
     OR: INBOX_STATUSES,
     ...(options.unreadOnly ? { readAt: null } : {}),
   };
@@ -461,7 +477,7 @@ export async function listNotifications(
       },
     }),
     prisma.notification.count({
-      where: { userId, readAt: null, OR: INBOX_STATUSES },
+      where: { userId, readAt: null, channel: { notIn: ['TELEGRAM', 'PUSH'] }, OR: INBOX_STATUSES },
     }),
   ]);
 

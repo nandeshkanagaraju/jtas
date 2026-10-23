@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
 
 import { Empty, Section } from '@/components/dashboard/section';
@@ -55,7 +56,9 @@ export function ProblemList({ problems, total }: { problems: AttentionProblem[];
       }
     >
       {problems.length === 0 ? (
-        <Empty>No one is blocked. Nothing is waiting on a decision.</Empty>
+        <Empty>
+          <T>{'No one is blocked. Nothing is waiting on a decision.'}</T>
+        </Empty>
       ) : (
         <ul>
           {problems.map((problem) => (
@@ -78,7 +81,10 @@ export function ProblemList({ problems, total }: { problems: AttentionProblem[];
                 </p>
                 <p className="text-muted-foreground mt-1.5 text-xs">
                   {problem.departmentName} · {problem.assigneeName} ·{' '}
-                  <span className="text-late font-medium">waiting {waited(problem.ageHours)}</span>
+                  <span className="text-late font-medium">
+                    <T>{'waiting '}</T>
+                    {waited(problem.ageHours)}
+                  </span>
                 </p>
               </Link>
             </li>
@@ -117,16 +123,24 @@ export function SlippedDeadlines({
       }
     >
       {subtasks.length === 0 ? (
-        <Empty>No deadline has slipped.</Empty>
+        <Empty>
+          <T>{'No deadline has slipped.'}</T>
+        </Empty>
       ) : (
         <>
           {/* Desktop: five columns, sorted worst-first by the service. */}
           <table className="hidden w-full table-fixed border-collapse md:table">
             <thead>
               <tr className="border-border border-b">
-                <Th className="w-[7rem]">Job</Th>
-                <Th>Task</Th>
-                <Th className="w-[6.5rem]">Team</Th>
+                <Th className="w-[7rem]">
+                  <T>{'Job'}</T>
+                </Th>
+                <Th>
+                  <T>{'Task'}</T>
+                </Th>
+                <Th className="w-[6.5rem]">
+                  <T>{'Team'}</T>
+                </Th>
                 {/*
                   Owner is sized to hold a full name rather than ellipsize one:
                   "Production Member" measures 130px, so 11rem leaves it room
@@ -136,10 +150,16 @@ export function SlippedDeadlines({
                   any sane column width, so it relies on its tooltip either way,
                   whereas a name is short enough to be worth showing in full.
                 */}
-                <Th className="w-[11rem]">Owner</Th>
-                <Th className="w-[6rem] text-right">Late by</Th>
+                <Th className="w-[11rem]">
+                  <T>{'Owner'}</T>
+                </Th>
+                <Th className="w-[6rem] text-right">
+                  <T>{'Late by'}</T>
+                </Th>
                 {/* "Chased", not "Chasing": the longer word overflows 5rem. */}
-                <Th className="w-[5rem] text-right">Chased</Th>
+                <Th className="w-[5rem] text-right">
+                  <T>{'Chased'}</T>
+                </Th>
               </tr>
             </thead>
             <tbody>
@@ -190,7 +210,7 @@ export function SlippedDeadlines({
                   <div className="flex items-center justify-between gap-3">
                     <span className={CODE}>{subtask.jobCode}</span>
                     <span className="text-late shrink-0 text-sm font-medium tabular-nums">
-                      {waited(subtask.overdueHours)} late
+                      {waited(subtask.overdueHours)} <T>{' late '}</T>
                     </span>
                   </div>
                   <p className="mt-1.5 text-sm font-medium">{subtask.title}</p>

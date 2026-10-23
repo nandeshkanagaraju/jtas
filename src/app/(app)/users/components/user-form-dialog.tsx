@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -124,11 +126,15 @@ export function UserFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{editing ? 'Edit user' : 'Add user'}</DialogTitle>
+          <DialogTitle>{editing ? <T>{'Edit user'}</T> : <T>{'Add user'}</T>}</DialogTitle>
           <DialogDescription>
-            {editing
-              ? 'Changes are recorded in the audit log.'
-              : 'A temporary password is generated and shown once when the account is created.'}
+            {editing ? (
+              <T>{'Changes are recorded in the audit log.'}</T>
+            ) : (
+              <T>
+                {'A temporary password is generated and shown once when the account is created.'}
+              </T>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -145,7 +151,9 @@ export function UserFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full name</FormLabel>
+                  <FormLabel>
+                    <T>{'Full name'}</T>
+                  </FormLabel>
                   <FormControl>
                     <Input {...field} autoComplete="off" disabled={isSubmitting} />
                   </FormControl>
@@ -159,7 +167,9 @@ export function UserFormDialog({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Work email</FormLabel>
+                  <FormLabel>
+                    <T>{'Work email'}</T>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -182,7 +192,10 @@ export function UserFormDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Phone <span className="text-muted-foreground font-normal">(optional)</span>
+                    <T>{'Phone '}</T>
+                    <span className="text-muted-foreground font-normal">
+                      <T>{'(optional)'}</T>
+                    </span>
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -204,7 +217,9 @@ export function UserFormDialog({
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>
+                    <T>{'Role'}</T>
+                  </FormLabel>
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
@@ -218,7 +233,7 @@ export function UserFormDialog({
                     <SelectContent>
                       {ASSIGNABLE_ROLES.map((value) => (
                         <SelectItem key={value} value={value}>
-                          {ROLE_LABELS[value]}
+                          <T>{ROLE_LABELS[value]}</T>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -233,7 +248,9 @@ export function UserFormDialog({
               name="departmentId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Department</FormLabel>
+                  <FormLabel>
+                    <T>{'Department'}</T>
+                  </FormLabel>
                   <Select
                     value={field.value ?? NO_DEPARTMENT}
                     onValueChange={(value) =>
@@ -248,7 +265,9 @@ export function UserFormDialog({
                     </FormControl>
                     <SelectContent>
                       {!needsDepartment ? (
-                        <SelectItem value={NO_DEPARTMENT}>No department</SelectItem>
+                        <SelectItem value={NO_DEPARTMENT}>
+                          <T>{'No department'}</T>
+                        </SelectItem>
                       ) : null}
                       {departments.map((department) => (
                         <SelectItem key={department.id} value={department.id}>
@@ -258,9 +277,11 @@ export function UserFormDialog({
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    {needsDepartment
-                      ? 'A member belongs to exactly one department.'
-                      : 'The MD, deputy and administrator do not belong to a department.'}
+                    {needsDepartment ? (
+                      <T>{'A member belongs to exactly one department.'}</T>
+                    ) : (
+                      <T>{'The MD, deputy and administrator do not belong to a department.'}</T>
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -274,11 +295,11 @@ export function UserFormDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                Cancel
+                <T>{'Cancel '}</T>
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-                {editing ? 'Save changes' : 'Create user'}
+                {editing ? <T>{'Save changes'}</T> : <T>{'Create user'}</T>}
               </Button>
             </DialogFooter>
           </form>

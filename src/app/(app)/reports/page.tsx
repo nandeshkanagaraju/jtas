@@ -1,3 +1,4 @@
+import { T } from '@/lib/i18n/provider';
 import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 
@@ -54,9 +55,11 @@ export default async function ReportsPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="The record"
-        title="Production insights"
-        lead="How each department is holding its dates, and the full history of any one job."
+        eyebrow={<T>{'The record'}</T>}
+        title={<T>{'Production insights'}</T>}
+        lead={
+          <T>{'How each department is holding its dates, and the full history of any one job.'}</T>
+        }
         actions={<RangePicker from={range.fromKey} to={range.toKey} />}
       >
         <TabNav

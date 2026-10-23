@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import type { TrendPoint } from '@/lib/services/analytics';
@@ -48,7 +50,7 @@ export function OnTimeTrend({
     >
       <div className="border-border panel-heading flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-x-4 border-b px-6">
         <h2 id="trend" className="font-display text-sm font-semibold">
-          Completion record
+          <T>{'Completion record '}</T>
         </h2>
         <p className="flex items-center gap-3 text-xs">
           <Key color="bg-ok" label="On time" />
@@ -58,21 +60,31 @@ export function OnTimeTrend({
 
       <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[15rem_1fr]">
         <div className="flex flex-col border-b pb-6 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0">
-          <p className="eyebrow">Last 30 days</p>
+          <p className="eyebrow">
+            <T>{'Last 30 days'}</T>
+          </p>
           <p className="mt-5 font-mono text-6xl tracking-[-.08em]">{total}</p>
-          <p className="text-muted-foreground mt-2 text-sm">department tasks completed</p>
+          <p className="text-muted-foreground mt-2 text-sm">
+            <T>{'department tasks completed'}</T>
+          </p>
           <dl className="mt-6 flex gap-6 text-xs">
             <div>
-              <dt className="text-muted-foreground">On time</dt>
+              <dt className="text-muted-foreground">
+                <T>{'On time'}</T>
+              </dt>
               <dd className="text-ok mt-1 font-mono text-lg">{total - late}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Late</dt>
+              <dt className="text-muted-foreground">
+                <T>{'Late'}</T>
+              </dt>
               <dd className="text-late mt-1 font-mono text-lg">{late}</dd>
             </div>
           </dl>
           <p className="text-muted-foreground mt-6 border-t pt-4 text-xs leading-relaxed">
-            <span className="text-foreground mb-1 block font-medium">Selected period</span>
+            <span className="text-foreground mb-1 block font-medium">
+              <T>{'Selected period'}</T>
+            </span>
             {summary}
           </p>
         </div>
@@ -137,7 +149,7 @@ function Key({ color, label }: { color: string; label: string }) {
   return (
     <span className="text-muted-foreground inline-flex items-center gap-1.5">
       <span aria-hidden className={`size-2 rounded-[2px] ${color}`} />
-      {label}
+      <T>{label}</T>
     </span>
   );
 }

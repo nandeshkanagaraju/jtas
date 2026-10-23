@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -52,10 +54,14 @@ export function ProblemForm({
 
   return (
     <div className="space-y-3">
-      <p className="text-foreground text-base font-semibold">Report problem</p>
+      <p className="text-foreground text-base font-semibold">
+        <T>{'Report problem'}</T>
+      </p>
 
       <fieldset className="space-y-2" disabled={busy}>
-        <legend className="text-foreground text-base">Severity</legend>
+        <legend className="text-foreground text-base">
+          <T>{'Severity'}</T>
+        </legend>
         <div className="flex flex-wrap gap-2">
           {SEVERITIES.map((option) => {
             const selected = severity === option.value;
@@ -72,7 +78,7 @@ export function ProblemForm({
                     : 'border-border bg-card text-foreground',
                 )}
               >
-                {option.label}
+                <T>{option.label}</T>
               </button>
             );
           })}
@@ -81,7 +87,7 @@ export function ProblemForm({
 
       <div className="space-y-1.5">
         <label htmlFor="problem-note" className="text-foreground text-base">
-          What stopped the work?
+          <T>{'What stopped the work? '}</T>
         </label>
         <Textarea
           id="problem-note"
@@ -96,8 +102,9 @@ export function ProblemForm({
         />
         {short ? (
           <p className="text-foreground text-sm">
-            {remaining} more {remaining === 1 ? 'character' : 'characters'}. Say what stopped the
-            work.
+            {remaining} <T>{' more '}</T>
+            {remaining === 1 ? <T>{'character'}</T> : <T>{'characters'}</T>}
+            <T>{'. Say what stopped the work. '}</T>
           </p>
         ) : null}
       </div>
@@ -109,7 +116,7 @@ export function ProblemForm({
           disabled={busy || short}
           onClick={() => onSubmit({ note: note.trim(), severity })}
         >
-          Report problem
+          <T>{'Report problem '}</T>
         </Button>
         <Button
           type="button"
@@ -118,7 +125,7 @@ export function ProblemForm({
           onClick={onCancel}
           disabled={busy}
         >
-          Cancel
+          <T>{'Cancel '}</T>
         </Button>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { T } from '@/lib/i18n/provider';
+import { isValidElement } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -44,7 +46,14 @@ export function Panel({
   bodyClassName?: string;
   children: React.ReactNode;
 }) {
-  const headingId = id ?? (typeof title === 'string' ? slug(title) : undefined);
+  const headingText =
+    typeof title === 'string'
+      ? title
+      : isValidElement<{ children?: React.ReactNode }>(title) &&
+          typeof title.props.children === 'string'
+        ? title.props.children
+        : undefined;
+  const headingId = id ?? (headingText ? slug(headingText) : undefined);
 
   return (
     <section
@@ -91,7 +100,7 @@ export function Panel({
           href={footer.href}
           className="border-border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center gap-1.5 border-t px-4 py-2.5 text-xs font-medium transition-colors"
         >
-          {footer.label}
+          <T>{footer.label}</T>
           <ArrowRight className="size-3.5" />
         </Link>
       ) : null}

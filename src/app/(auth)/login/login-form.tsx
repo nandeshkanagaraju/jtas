@@ -1,5 +1,7 @@
 'use client';
 
+import { T } from '@/lib/i18n/provider';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -82,9 +84,11 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <div className="w-full">
       <div className="mb-6 space-y-1">
-        <h1 className="font-display text-4xl font-medium tracking-[-0.05em]">Sign in</h1>
+        <h1 className="font-display text-4xl font-medium tracking-[-0.05em]">
+          <T>{'Sign in'}</T>
+        </h1>
         <p className="text-muted-foreground text-sm">
-          Enter your work credentials to access production.
+          <T>{'Enter your work credentials to access production. '}</T>
         </p>
       </div>
 
@@ -102,7 +106,9 @@ export function LoginForm({ next }: { next?: string }) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>
+                  <T>{'Email'}</T>
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -125,7 +131,9 @@ export function LoginForm({ next }: { next?: string }) {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>
+                  <T>{'Password'}</T>
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -155,7 +163,7 @@ export function LoginForm({ next }: { next?: string }) {
                   />
                 </FormControl>
                 <FormLabel htmlFor="rememberDevice" className="text-sm font-normal">
-                  Remember this device for 30 days
+                  <T>{'Remember this device for 30 days '}</T>
                 </FormLabel>
               </FormItem>
             )}
@@ -165,18 +173,21 @@ export function LoginForm({ next }: { next?: string }) {
             {isSubmitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Signing in…
+                <T>{'Signing in… '}</T>
               </>
             ) : (
-              'Sign in'
+              <T>{'Sign in'}</T>
             )}
           </Button>
         </form>
       </Form>
 
       <p className="text-muted-foreground border-border mt-6 border-t pt-4 text-center text-xs">
-        Accounts are created by the Managing Director or the administrator. If you cannot sign in,
-        ask them to reset your password.
+        <T>
+          {
+            'Accounts are created by the Managing Director or the administrator. If you cannot sign in, ask them to reset your password. '
+          }
+        </T>
       </p>
     </div>
   );

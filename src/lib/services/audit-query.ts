@@ -154,25 +154,65 @@ export async function auditTrail(
  * where the work actually happened, and a viewer that showed three JOB rows
  * would be answering a different question from the one being asked.
  */
-export async function jobAuditTrail(jobId: string): Promise<AuditEntry[]> {
+export interface JobTrailOptions {
+  limit?: number;
+  before?: { at: Date; id: string };
+  subtaskId?: string;
+  kind?: 'all' | 'messages' | 'workflow' | 'issues' | 'files';
+  excludeActions?: string[];
+}
+export async function jobAuditTrail(
+  jobId: string,
+  options: JobTrailOptions = {},
+): Promise<AuditEntry[]> {
   const [subtasks, problems] = await Promise.all([
-    prisma.subtask.findMany({ where: { jobId }, select: { id: true } }),
-    prisma.problem.findMany({ where: { subtask: { jobId } }, select: { id: true } }),
+    prisma.subtask.findMany({
+      where: { jobId, ...(options.subtaskId ? { id: options.subtaskId } : {}) },
+      select: { id: true },
+    }),
+    prisma.problem.findMany({
+      where: { subtask: { jobId, ...(options.subtaskId ? { id: options.subtaskId } : {}) } },
+      select: { id: true },
+    }),
   ]);
 
-  const rows = await prisma.auditLog.findMany({
-    where: {
-      OR: [
-        { entityType: 'JOB', entityId: jobId },
-        { entityType: 'SUBTASK', entityId: { in: subtasks.map((row) => row.id) } },
-        { entityType: 'PROBLEM', entityId: { in: problems.map((row) => row.id) } },
+  const scope: Prisma.AuditLogWhereInput = {
+    OR: [
+      ...(!options.subtaskId ? [{ entityType: 'JOB', entityId: jobId }] : []),
+      { entityType: 'SUBTASK', entityId: { in: subtasks.map((row) => row.id) } },
+      { entityType: 'PROBLEM', entityId: { in: problems.map((row) => row.id) } },
+    ],
+  };
+  const filters: Prisma.AuditLogWhereInput[] = [scope];
+  if (options.excludeActions?.length) filters.push({ action: { notIn: options.excludeActions } });
+  if (options.kind === 'messages') filters.push({ action: 'COMMENT_ADDED' });
+  if (options.kind === 'issues') filters.push({ action: { startsWith: 'PROBLEM_' } });
+  if (options.kind === 'files') filters.push({ action: { startsWith: 'ATTACHMENT_' } });
+  if (options.kind === 'workflow')
+    filters.push({
+      NOT: [
+        { action: 'COMMENT_ADDED' },
+        { action: { startsWith: 'ATTACHMENT_' } },
+        { action: { startsWith: 'PROBLEM_' } },
       ],
-    },
+    });
+  if (options.before)
+    filters.push({
+      OR: [
+        { createdAt: { lt: options.before.at } },
+        { createdAt: options.before.at, id: { lt: options.before.id } },
+      ],
+    });
+  const direction = options.limit ? 'desc' : 'asc';
+  const rows = await prisma.auditLog.findMany({
+    where: { AND: filters },
     select: SELECT,
-    orderBy: { createdAt: 'asc' },
+    orderBy: [{ createdAt: direction }, { id: direction }],
+    ...(options.limit ? { take: options.limit } : {}),
   });
-
-  return rows.map(toEntry);
+  // The forensic reader remains oldest-first; bounded feeds read the latest
+  // window in SQL and restore this contract before shaping it.
+  return (options.limit ? rows.reverse() : rows).map(toEntry);
 }
 
 /** Distinct actions and entity types present, for the filter dropdowns. */

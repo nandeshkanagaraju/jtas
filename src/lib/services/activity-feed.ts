@@ -12,7 +12,7 @@
  * deliberately records that a comment happened rather than a second copy of it.
  */
 import { prisma } from '@/lib/db/prisma';
-import { jobAuditTrail, type AuditEntry } from '@/lib/services/audit-query';
+import { jobAuditTrail, type AuditEntry, type JobTrailOptions } from '@/lib/services/audit-query';
 
 export interface ActivityItem {
   id: string;
@@ -55,9 +55,9 @@ const NOISE = new Set(['JOB_STATUS_RECOMPUTED']);
 
 export async function jobActivityFeed(
   jobId: string,
-  options: { limit?: number } = {},
+  options: JobTrailOptions = {},
 ): Promise<ActivityItem[]> {
-  const trail = await jobAuditTrail(jobId);
+  const trail = await jobAuditTrail(jobId, { ...options, excludeActions: [...NOISE] });
   const meaningful = trail.filter((entry) => !NOISE.has(entry.action));
 
   const commentIds = meaningful

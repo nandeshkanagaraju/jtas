@@ -80,6 +80,7 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
   }
 
   nav.push({ href: '/my-tasks', label: 'My tasks', icon: 'my-tasks' });
+  nav.push({ href: '/updates', label: 'Live updates', icon: 'updates' });
 
   if (can(session, 'user:view', undefined)) {
     nav.push({ href: '/users', label: 'Users', icon: 'users' });

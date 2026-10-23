@@ -4,10 +4,11 @@
  * The job's story: comments, status changes, deadline changes, problems and
  * attachments, merged and newest first.
  */
-import { handler, ok } from '@/lib/api/respond';
+import { handler, ok, parseQuery } from '@/lib/api/respond';
 import { requireActiveSession } from '@/lib/auth/session';
 import { jobActivityFeed } from '@/lib/services/activity-feed';
 import { getJob } from '@/lib/services/jobs';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,8 +23,11 @@ export async function GET(request: Request, context: RouteContext) {
     // Scopes to what this session may see; a member on the job qualifies.
     await getJob(session, id);
 
-    const limit = Number(new URL(req.url).searchParams.get('limit') ?? 40);
+    const { limit } = parseQuery(
+      new URL(req.url),
+      z.object({ limit: z.coerce.number().int().min(1).max(200).default(40) }),
+    );
 
-    return ok({ data: await jobActivityFeed(id, { limit: Math.min(limit, 200) }) });
+    return ok({ data: await jobActivityFeed(id, { limit: limit }) });
   })(request);
 }

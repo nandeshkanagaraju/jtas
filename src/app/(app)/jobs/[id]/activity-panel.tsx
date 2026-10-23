@@ -41,14 +41,22 @@ export function ActivityPanel({
         <T>{'Comments, status changes, deadlines, problems and files — newest first.'}</T>
       }
       action={
-        canViewAudit ? (
+        <div className="flex flex-wrap items-center gap-3">
           <Link
-            href={`/audit?job=${jobId}`}
-            className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline-offset-4 hover:underline"
+            href={`/updates?job=${jobId}`}
+            className="text-action inline-flex min-h-11 items-center text-xs font-medium underline"
           >
-            <T>{'Forensic view '}</T>
+            <T>Live updates</T>
           </Link>
-        ) : null
+          {canViewAudit ? (
+            <Link
+              href={`/audit?job=${jobId}`}
+              className="text-muted-foreground hover:text-foreground shrink-0 text-xs font-medium underline-offset-4 hover:underline"
+            >
+              <T>{'Forensic view '}</T>
+            </Link>
+          ) : null}
+        </div>
       }
     >
       <ActivityFeed jobId={jobId} currentUserId={currentUserId} />

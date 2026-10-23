@@ -1127,3 +1127,389 @@ html:is(:lang(ta), :lang(hi)) .ist-datetime-picker > button {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Shared job centre: a dependency map beside a bounded, live conversation. */
+.live-centre-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.live-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 17rem;
+  min-width: 0;
+}
+.live-select {
+  min-width: 0;
+  min-height: 44px;
+  max-width: 100%;
+  border: 1px solid var(--input);
+  background: var(--card);
+  color: var(--foreground);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+.live-connection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+.live-connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex-shrink: 0;
+}
+.live-connection-stale {
+  background: var(--risk);
+}
+.live-centre-layout {
+  display: grid;
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.live-job-sidebar {
+  min-width: 0;
+  position: sticky;
+  top: 9rem;
+}
+.live-job-picker {
+  display: none;
+}
+.live-job-list {
+  max-height: calc(100dvh - 20rem);
+  min-height: 8rem;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.live-job-choice {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.live-job-choice:last-child {
+  border-bottom: 0;
+}
+.live-job-choice:hover {
+  background: var(--muted);
+}
+.live-job-choice[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  box-shadow: inset 3px 0 var(--primary);
+}
+.live-progress-track {
+  display: block;
+  height: 5px;
+  background: var(--muted);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.live-progress-track > span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: inherit;
+}
+.live-job-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0 1rem;
+}
+.live-job-heading > :first-child {
+  flex: 1 1 18rem;
+}
+.live-job-progress {
+  min-width: 10rem;
+}
+.live-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.live-map-canvas {
+  container-type: inline-size;
+  position: relative;
+  min-width: 0;
+}
+.live-map-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+.live-stage-map {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  padding-inline: 1.25rem;
+  z-index: 1;
+}
+.live-stage-node {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: left;
+  background: var(--card);
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+  overflow-wrap: anywhere;
+}
+.live-stage-node:hover,
+.live-stage-node[aria-pressed='true'] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.live-stage-node[data-current='true'] {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 4%, var(--card));
+}
+.live-stage-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.live-stage-done .live-stage-symbol {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.live-stage-issue .live-stage-symbol {
+  background: var(--late-soft);
+  color: var(--late);
+}
+.live-stage-node[data-current='true'] .live-stage-symbol {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.live-feed-controls {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.live-kind-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+.live-kind-filters > button {
+  padding: 0.5rem 0.75rem;
+  border-radius: 7px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  min-height: 36px;
+}
+.live-kind-filters > button[aria-pressed='true'] {
+  background: var(--secondary);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.live-feed-body {
+  padding: 1.25rem;
+  max-height: 39rem;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.live-update-timeline {
+  padding: 0;
+}
+.live-update-entry {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  gap: 0.75rem;
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+.live-update-entry:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 1.75rem;
+  bottom: 0;
+  left: 0.875rem;
+  width: 1px;
+  background: var(--border);
+}
+.live-update-entry:last-child {
+  padding-bottom: 0;
+}
+.live-update-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.live-update-entry[data-kind='comment'] .live-update-icon {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.live-update-entry[data-kind='problem'] .live-update-icon {
+  background: var(--late-soft);
+  color: var(--late);
+}
+.live-message-body {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 0 10px 10px 10px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.live-composer {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+}
+.live-history-note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 1rem;
+  background: var(--risk-soft);
+  color: var(--risk);
+  font-size: 0.75rem;
+}
+.live-phone-views {
+  display: none;
+}
+@container (min-width: 480px) {
+  .live-stage-map {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (min-width: 800px) {
+  .live-stage-map {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1536px) {
+  .live-content-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(21rem, 1fr);
+  }
+}
+@media (max-width: 1023px) {
+  .live-centre-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+  .live-job-sidebar {
+    position: static;
+  }
+  .live-job-list {
+    display: none;
+  }
+  .live-job-picker {
+    display: block;
+  }
+  .live-phone-views {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .live-view-map .live-feed-panel,
+  .live-view-updates .live-map-panel {
+    display: none;
+  }
+  .live-feed-body {
+    max-height: none;
+  }
+  .live-job-heading {
+    gap: 0.75rem;
+  }
+  .live-job-progress {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+  }
+  .live-job-progress .live-progress-track {
+    flex: 1 1 5rem;
+    margin-top: 0;
+  }
+  .live-job-progress > a {
+    margin: 0;
+  }
+  .live-job-progress > strong {
+    font-size: 1.5rem;
+  }
+}
+@media (max-width: 479px) {
+  .live-centre-toolbar .live-search {
+    flex-basis: 100%;
+  }
+  .live-connection {
+    flex: 1 1 10rem;
+  }
+  .live-stage-map {
+    padding-inline: 1rem;
+  }
+  .live-stage-node {
+    padding: 0.875rem;
+  }
+  .live-feed-body {
+    padding: 1rem;
+  }
+}
+
+/* A live surface must stay still while its data refreshes. */
+.route-enter .live-centre .product-panel {
+  animation: none;
+}
+.live-search-controls {
+  display: flex;
+  flex: 1 1 24rem;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+[data-phone-app='true'] .live-centre > .page-heading .page-lead {
+  display: none;
+}
+[data-phone-app='true'] .live-centre-toolbar > .phone-disclosure {
+  flex-basis: 100%;
+}
+[data-phone-app='true'] .live-map-panel .panel-heading p {
+  display: none;
+}
+html:is(:lang(ta), :lang(hi)) .phone-app-tabs > :is(a, button) > span:last-child {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

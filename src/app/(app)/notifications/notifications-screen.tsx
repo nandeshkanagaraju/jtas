@@ -122,12 +122,19 @@ export function NotificationsScreen({
           </>
         }
         actions={
-          inbox.unreadCount > 0 ? (
-            <Button variant="outline" size="sm" onClick={markAll} disabled={busy}>
-              <CheckCheck className="size-4" />
-              <T>{'Mark all read '}</T>
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/updates">
+                <T>Live updates</T>
+              </Link>
             </Button>
-          ) : null
+            {inbox.unreadCount > 0 ? (
+              <Button variant="outline" size="sm" onClick={markAll} disabled={busy}>
+                <CheckCheck className="size-4" />
+                <T>{'Mark all read '}</T>
+              </Button>
+            ) : null}
+          </>
         }
       />
 

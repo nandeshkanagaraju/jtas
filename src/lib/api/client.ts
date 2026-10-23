@@ -54,6 +54,25 @@ async function toApiError(response: Response): Promise<ApiError> {
   });
 }
 
+// Polling views and the notification bell may expire together. Rotate once
+// per tab so concurrent 401s cannot race the same refresh-token family.
+let pendingRefresh: Promise<Response> | null = null;
+function refreshSession(): Promise<Response> {
+  if (!pendingRefresh) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    pendingRefresh = fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'same-origin',
+      signal: controller.signal,
+    }).finally(() => {
+      clearTimeout(timeout);
+      pendingRefresh = null;
+    });
+  }
+  return pendingRefresh;
+}
+
 /**
  * Fetches a JSON endpoint.
  *
@@ -74,10 +93,7 @@ export async function apiFetch<T>(
   });
 
   if (response.status === 401 && options.retryOnExpiry !== false) {
-    const rotated = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      credentials: 'same-origin',
-    });
+    const rotated = await refreshSession();
 
     // Retry once. `retryOnExpiry: false` stops a rotation failure from looping.
     if (rotated.ok) {

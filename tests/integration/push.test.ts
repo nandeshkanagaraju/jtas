@@ -293,7 +293,13 @@ describe('queued push delivery', () => {
       url: '/tasks/task-1',
       tag: notification.id,
     });
-    expect(JSON.parse(send.mock.calls[2][1] as string).title).toContain('नया कार्य');
+    // Database reads have no guaranteed order. Follow the device that failed,
+    // rather than assuming the Hindi subscription was returned second.
+    const failedEndpoint = (send.mock.calls[1][0] as { endpoint: string }).endpoint;
+    expect((send.mock.calls[2][0] as { endpoint: string }).endpoint).toBe(failedEndpoint);
+    const retry = JSON.parse(send.mock.calls[2][1] as string);
+    expect(retry.lang).toBe(failedEndpoint.endsWith('-2') ? 'hi' : 'ta');
+    expect(retry.title).toContain(failedEndpoint.endsWith('-2') ? 'नया कार्य' : 'புதிய பணி');
   });
   it('does not send to an expired session and cleans up the subscription', async () => {
     await POST(request());

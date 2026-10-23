@@ -10,6 +10,12 @@ Open **Your account → Push notifications** (also available in **Notifications*
 
 On iPhone/iPad, use iOS/iPadOS 16.4 or newer and open Jaraa from its Home Screen installation before enabling push. Android and supported desktop browsers can subscribe over HTTPS. A denied permission must be changed in browser/device settings. Delivery is subject to OS/browser settings, connectivity, Focus/Do Not Disturb, and the push service; provider acceptance does not prove the notification was displayed.
 
+## Notification appearance and Indic typography
+
+Web Push is delivered through the browser. Android/desktop may show Chrome or another browser as the sender even when the notification title and icon are Jaraa. Browser/OS attribution cannot be renamed by service-worker code; installed Android WebAPK permission delegation depends on the browser and installation type. Account includes expandable guidance and an installation link. Only test/disable remain once enabled. Test acceptance confirms a provider send, not OS display.
+
+Notifications use the Jaraa icon, a transparent monochrome J badge for Android, and the selected locale through the Notifications API. Tamil and Hindi interfaces load self-hosted Noto Sans Tamil/Devanagari via Next font optimization. Locale-scoped typography removes English tracking, gives vowel marks more line space, and lets buttons, badges and phone navigation labels wrap. English typography is unchanged.
+
 ## Delivery
 
 Assignments/reassignments, department handoffs, commitment windows and misses, deadline changes/reminders, overdue escalations, problems/resolutions, approval/time-extension requests, completed jobs, and daily summaries mirror the existing email notification queue to opted-in users. Comment mentions remain in the in-app inbox. Push does not replace email or Telegram. Push uses the scheduler cadence (normally five minutes), existing working-hour rules, rescheduling/cancellation, and retry backoff; it is not an immediate synchronous send.

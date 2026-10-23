@@ -88,7 +88,7 @@ export function IstDateTimePicker({
   const floor = minDate ?? new Date(new Date().setHours(0, 0, 0, 0));
 
   return (
-    <div className="flex gap-2">
+    <div className="ist-datetime-picker flex gap-2">
       <Popover>
         <PopoverTrigger asChild>
           <Button

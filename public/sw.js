@@ -64,7 +64,9 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'Jaraa', {
       body: data.body || 'Open Jaraa to view your work update.',
       icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      badge: '/icons/notification-badge.png',
+      lang: ['en', 'ta', 'hi'].includes(data.lang) ? data.lang : 'en',
+      dir: 'ltr',
       tag: data.tag || 'jaraa-update',
       data: { url },
     }),

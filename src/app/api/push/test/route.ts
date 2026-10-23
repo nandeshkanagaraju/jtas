@@ -38,6 +38,7 @@ export const POST = handler(async (request) => {
           'இந்தச் சாதனத்தில் புஷ் அறிவிப்புகள் செயல்படுகின்றன.',
           'इस डिवाइस पर पुश सूचनाएँ काम कर रही हैं।',
         ][index],
+        lang: subscription.locale,
         url: '/account#push',
         tag: 'jaraa-push-test',
       }),

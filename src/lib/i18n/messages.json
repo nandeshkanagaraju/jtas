@@ -1376,5 +1376,17 @@
   "Notifications, {{count}} unread": [
     "அறிவிப்புகள், {{count}} படிக்காதவை",
     "सूचनाएँ, {{count}} अपठित"
-  ]
+  ],
+  "Jaraa alerts are on": ["Jaraa அறிவிப்புகள் இயக்கத்தில் உள்ளன", "Jaraa सूचनाएँ चालू हैं"],
+  "Stay updated with Jaraa": ["Jaraa அறிவிப்புகளைப் பெறுங்கள்", "Jaraa से अपडेट पाएँ"],
+  "Your browser delivers Jaraa alerts, so your phone may show Chrome or another browser name. The alert itself shows Jaraa. For the app experience, install Jaraa and open it from your home screen.": [
+    "Jaraa அறிவிப்புகளை உங்கள் உலாவி வழங்குவதால், கைப்பேசியில் Chrome அல்லது வேறு உலாவியின் பெயர் தெரியலாம். அறிவிப்பில் Jaraa பெயர் இருக்கும். செயலியாகப் பயன்படுத்த, Jaraa-வை நிறுவி முகப்புத் திரையிலிருந்து திறக்கவும்.",
+    "Jaraa की सूचनाएँ आपका ब्राउज़र पहुँचाता है, इसलिए फ़ोन पर Chrome या किसी अन्य ब्राउज़र का नाम दिख सकता है। सूचना में Jaraa का नाम होगा। ऐप के अनुभव के लिए Jaraa इंस्टॉल करके होम स्क्रीन से खोलें।"
+  ],
+  "Test sent. Open your phone’s notification panel. If it does not appear, check notification permissions and Do Not Disturb.": [
+    "சோதனை அறிவிப்பு அனுப்பப்பட்டது. கைப்பேசியின் அறிவிப்புப் பட்டியலைத் திறக்கவும். அறிவிப்பு வரவில்லை என்றால், அறிவிப்பு அனுமதிகளையும் தொந்தரவு செய்யாதீர் அமைப்பையும் சரிபார்க்கவும்.",
+    "परीक्षण सूचना भेजी गई। फ़ोन का सूचना पैनल खोलें। सूचना न दिखे तो सूचना अनुमतियाँ और परेशान न करें सेटिंग जाँचें।"
+  ],
+  "Why does Chrome appear?": ["Chrome பெயர் ஏன் தெரிகிறது?", "Chrome का नाम क्यों दिखता है?"],
+  "Jaraa installation help": ["Jaraa நிறுவ உதவி", "Jaraa इंस्टॉल करने में मदद"]
 }

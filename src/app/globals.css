@@ -1054,3 +1054,76 @@
   border: 0;
   box-shadow: none;
 }
+
+/* Indic scripts need their own shaping fonts and room for vowel marks.
+ * Scope every override by language so English keeps its established rhythm. */
+html:lang(ta) body {
+  --font-localized: var(--font-tamil), var(--font-geist), sans-serif;
+}
+html:lang(hi) body {
+  --font-localized: var(--font-devanagari), var(--font-geist), sans-serif;
+}
+html:is(:lang(ta), :lang(hi)) :is(body, .font-sans, .font-display, h1, h2, h3) {
+  font-family: var(--font-localized);
+}
+html:is(:lang(ta), :lang(hi)) body {
+  line-height: 1.75;
+}
+html:is(:lang(ta), :lang(hi))
+  :is(h1, h2, h3, p, label, summary, button, a, .eyebrow, [role='tab'], [data-slot='badge']) {
+  letter-spacing: normal;
+}
+html:is(:lang(ta), :lang(hi)) :is(h1, h2, h3) {
+  line-height: 1.5;
+}
+html:is(:lang(ta), :lang(hi)) :is(.eyebrow, .font-mono) {
+  font-family: var(--font-geist-mono), var(--font-localized);
+}
+html:is(:lang(ta), :lang(hi))
+  :is(
+    [data-slot='button']:not([data-size^='icon']),
+    [data-slot='select-trigger'],
+    [data-slot='badge']
+  ) {
+  height: auto;
+  min-height: 2.5rem;
+  white-space: normal;
+  line-height: 1.65;
+  padding-block: 0.5rem;
+  text-align: center;
+  max-width: 100%;
+}
+html:is(:lang(ta), :lang(hi)) [data-slot='badge'] {
+  min-height: 0;
+  padding-block: 0.25rem;
+}
+html:is(:lang(ta), :lang(hi)) :is([data-slot='label'], label) {
+  line-height: 1.65;
+}
+html:is(:lang(ta), :lang(hi)) .phone-app-tabs :is(a, button) {
+  font-size: 0.75rem;
+  line-height: 1.6;
+  text-align: center;
+  padding-inline: 0.25rem;
+}
+html:is(:lang(ta), :lang(hi)) .phone-app-tabs span {
+  white-space: normal;
+}
+
+html:is(:lang(ta), :lang(hi)) .ist-datetime-picker {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+html:is(:lang(ta), :lang(hi)) .ist-datetime-picker > button {
+  min-width: 0;
+  flex-basis: 11rem;
+  text-align: start;
+}
+@media (max-width: 639px) {
+  html:is(:lang(ta), :lang(hi)) .job-register-timing {
+    flex-wrap: wrap;
+  }
+  html:is(:lang(ta), :lang(hi)) [data-phone-app='true'] .phone-task-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

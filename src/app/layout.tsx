@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies, headers } from 'next/headers';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Noto_Sans_Tamil, Noto_Sans_Devanagari } from 'next/font/google';
 
 import { ServiceWorkerRegistration } from '@/components/shared/service-worker';
 import { AppInstallProvider } from '@/components/shared/app-install';
@@ -25,6 +25,17 @@ const geist = Geist({
 const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-geist-mono',
+  display: 'swap',
+});
+
+const tamil = Noto_Sans_Tamil({
+  subsets: ['tamil', 'latin'],
+  variable: '--font-tamil',
+  display: 'swap',
+});
+const devanagari = Noto_Sans_Devanagari({
+  subsets: ['devanagari', 'latin'],
+  variable: '--font-devanagari',
   display: 'swap',
 });
 
@@ -74,7 +85,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body
+        className={`${geist.variable} ${geistMono.variable} ${tamil.variable} ${devanagari.variable} font-sans antialiased`}
+      >
         <ThemeProvider nonce={nonce}>
           <LanguageProvider initialLocale={locale}>
             <AppInstallProvider>

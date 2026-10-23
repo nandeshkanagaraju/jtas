@@ -366,7 +366,12 @@ function JobRow({
         )}
       </div>
 
-      <div className={cn('flex items-center justify-between gap-3', !card && 'xl:contents')}>
+      <div
+        className={cn(
+          'job-register-timing flex items-center justify-between gap-3',
+          !card && 'xl:contents',
+        )}
+      >
         <DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />
         <span className="flex shrink-0 flex-col items-end gap-1 xl:w-28 xl:items-start">
           <JobStatusBadge status={job.status} />

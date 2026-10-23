@@ -39,6 +39,7 @@ describe('push subscription destinations', () => {
 
 describe('push previews', () => {
   it('provides Tamil and Hindi workflow messages', () => {
+    expect(pushMessage({ type: 'COMMITMENT_OPEN' }, 'ta').lang).toBe('ta');
     expect(pushMessage({ type: 'COMMITMENT_OPEN' }, 'ta').title).toContain('24 மணி');
     expect(pushMessage({ type: 'COMMITMENT_OPEN' }, 'hi').title).toContain('24 घंटे');
   });
@@ -82,6 +83,26 @@ describe('service worker push handling', () => {
     expect(showNotification).toHaveBeenCalledWith(
       'Jaraa',
       expect.objectContaining({ data: { url: 'https://jaraa.test/notifications' } }),
+    );
+  });
+  it('uses the Jaraa badge and the notification language', async () => {
+    const { listeners, showNotification } = worker();
+    let done: Promise<unknown> = Promise.resolve();
+    listeners.push({
+      data: { json: () => ({ title: 'Jaraa · சோதனை அறிவிப்பு', body: 'சோதனை', lang: 'ta' }) },
+      waitUntil: (p: Promise<unknown>) => {
+        done = p;
+      },
+    });
+    await done;
+    expect(showNotification).toHaveBeenCalledWith(
+      'Jaraa · சோதனை அறிவிப்பு',
+      expect.objectContaining({
+        icon: '/icons/icon-192.png',
+        badge: '/icons/notification-badge.png',
+        lang: 'ta',
+        dir: 'ltr',
+      }),
     );
   });
   it('refuses cross-origin notification clicks', () => {

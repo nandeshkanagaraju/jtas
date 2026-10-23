@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Bell, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiFetch, apiPost } from '@/lib/api/client';
 import { endpointHash } from '@/lib/push/client';
@@ -137,15 +139,30 @@ export function PushSettings() {
       // Also saves a language change for this device.
       await apiPost('/api/push/subscriptions', { ...subscription.toJSON(), locale });
       await apiPost('/api/push/test', { endpoint: subscription.endpoint });
-      setMessage('Test sent. Check your device notifications.');
+      setMessage(
+        'Test sent. Open your phone’s notification panel. If it does not appear, check notification permissions and Do Not Disturb.',
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not send the test. Try again.');
     } finally {
       setBusy(false);
     }
   }
+  const enabled = state === 'Enabled' && Boolean(subscription);
   return (
     <section id="push" className="space-y-3">
+      <div className="flex items-center gap-3">
+        <span className="bg-primary/10 text-action flex size-10 shrink-0 items-center justify-center rounded-xl">
+          {enabled ? (
+            <BellRing className="size-5" aria-hidden />
+          ) : (
+            <Bell className="size-5" aria-hidden />
+          )}
+        </span>
+        <p className="font-medium">
+          {t(enabled ? 'Jaraa alerts are on' : 'Stay updated with Jaraa')}
+        </p>
+      </div>
       <p className="text-muted-foreground text-sm">
         {t(
           'Get task assignments, handoffs, reminders and problem alerts even when Jaraa is closed. Enable separately on each device. Email and Telegram continue.',
@@ -160,11 +177,28 @@ export function PushSettings() {
               : state,
         )}
       </p>
+      <details className="text-muted-foreground rounded-lg border p-3 text-sm">
+        <summary className="cursor-pointer font-medium">{t('Why does Chrome appear?')}</summary>
+        <p className="mt-3">
+          {t(
+            'Your browser delivers Jaraa alerts, so your phone may show Chrome or another browser name. The alert itself shows Jaraa. For the app experience, install Jaraa and open it from your home screen.',
+          )}
+        </p>
+        <Link
+          className="text-action mt-3 inline-flex min-h-11 items-center underline"
+          href="/account#install"
+        >
+          {t('Jaraa installation help')}
+        </Link>
+      </details>
       {key && (state === 'Ready' || state === 'Enabled') ? (
         <div className="flex flex-wrap gap-2">
-          <Button disabled={busy} onClick={enable}>
-            {t(busy ? 'Working…' : 'Enable notifications')}
-          </Button>
+          {!enabled ? (
+            <Button disabled={busy} onClick={enable}>
+              <Bell className="size-4" aria-hidden />
+              {t(busy ? 'Working…' : 'Enable notifications')}
+            </Button>
+          ) : null}
           {subscription ? (
             <>
               <Button disabled={busy} variant="outline" onClick={test}>

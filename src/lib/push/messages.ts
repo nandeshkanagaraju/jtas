@@ -74,6 +74,7 @@ const labels: Record<string, [string, string, string]> = {
 export function pushMessage(notification: Pick<OutboundNotification, 'type'>, locale: string) {
   const index = locale === 'ta' ? 1 : locale === 'hi' ? 2 : 0;
   return {
+    lang: locale === 'ta' || locale === 'hi' ? locale : 'en',
     title: `Jaraa · ${(labels[notification.type] ?? ['Work update', 'பணி புதுப்பிப்பு', 'कार्य अपडेट'])[index]}`,
     body: [
       'Open Jaraa to view the update.',

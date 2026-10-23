@@ -27,6 +27,9 @@ for (const language of [
     await page.getByLabel('Language').selectOption(language.code);
     await expect(page.locator('html')).toHaveAttribute('lang', language.code);
     await expect(page.getByRole('button', { name: language.signIn, exact: true })).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const font = await page.locator('body').evaluate((node) => getComputedStyle(node).fontFamily);
+    expect(font).toContain(language.code === 'ta' ? 'Noto Sans Tamil' : 'Noto Sans Devanagari');
     await page.reload();
     await expect(page.getByLabel(language.language)).toHaveValue(language.code);
     // Login through the API so this test is independent of translated field wording.
@@ -50,6 +53,36 @@ for (const language of [
     });
     await page.getByLabel(language.language).first().selectOption('en');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  });
+  test(`${language.code}: narrow MD screens fit translated controls`, async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = window.matchMedia.bind(window);
+      window.matchMedia = (query) =>
+        query === '(display-mode: standalone)'
+          ? ({
+              ...original(query),
+              matches: true,
+              addEventListener() {},
+              removeEventListener() {},
+            } as MediaQueryList)
+          : original(query);
+    });
+    await signIn(page, ACCOUNTS.md);
+    await page
+      .context()
+      .addCookies([{ name: 'jtas-language', value: language.code, url: 'http://localhost:3101' }]);
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const route of ['/dashboard', '/jobs', '/jobs/new', '/my-tasks']) {
+        await page.goto(route);
+        await page.evaluate(() => document.fonts.ready);
+        await expect(page.locator('[data-phone-app="true"]')).toBeVisible();
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          `${width}px ${route}`,
+        ).toBe(true);
+      }
+    }
   });
   test(`${language.code}: installed phone keeps navigation and language options usable`, async ({
     page,
@@ -75,6 +108,9 @@ for (const language of [
     await expect(page.locator('.phone-app-tabs')).toContainText(language.work);
     await expect(page.getByRole('dialog').getByLabel(language.language)).toHaveValue(language.code);
     await page.keyboard.press('Escape');
+    await page.evaluate(() => document.fonts.ready);
+    const heading = page.getByRole('heading', { name: /Planning/ });
+    expect(await heading.evaluate((node) => getComputedStyle(node).letterSpacing)).toBe('normal');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
@@ -141,8 +177,14 @@ test('push requires an explicit enable click and offers a test and disable', asy
   await page.getByRole('button', { name: 'Enable notifications', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Send test notification' })).toBeVisible();
   expect(enrolled).toBe(true);
+  await expect(page.getByRole('button', { name: 'Enable notifications', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText('Jaraa alerts are on')).toBeVisible();
   await page.getByRole('button', { name: 'Send test notification' }).click();
-  await expect(page.getByText('Test sent. Check your device notifications.')).toBeVisible();
+  await expect(
+    page.getByText('Test sent. Open your phone’s notification panel.', { exact: false }),
+  ).toBeVisible();
   expect(tests).toBe(1);
   await page.getByRole('button', { name: 'Disable notifications' }).click();
   await expect(page.getByRole('button', { name: 'Send test notification' })).toHaveCount(0);

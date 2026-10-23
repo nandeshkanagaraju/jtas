@@ -6,3 +6,8 @@ playwright-report/
 test-results/
 docs/
 prisma/migrations/
+
+android/.gradle/
+android/build/
+android/app/build/
+releases/

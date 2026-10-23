@@ -39,10 +39,24 @@
 		max_size 2MB
 	}
 
-	reverse_proxy app:3000 {
-		health_uri /api/health
-		health_interval 15s
-		health_timeout 5s
+	# Public app identity and signed internal Android installer. No account data
+	# or signing secrets live in this read-only release directory.
+	@androidRelease path /.well-known/assetlinks.json /downloads/jaraa-android.apk /downloads/jaraa-android.apk.sha256
+	handle @androidRelease {
+		root * /srv/android
+		header Cache-Control "no-cache"
+		@apk path /downloads/jaraa-android.apk
+		header @apk Content-Type application/vnd.android.package-archive
+		header @apk Content-Disposition "attachment; filename=jaraa-android.apk"
+		file_server
+	}
+
+	handle {
+		reverse_proxy app:3000 {
+			health_uri /api/health
+			health_interval 15s
+			health_timeout 5s
+		}
 	}
 
 	log {

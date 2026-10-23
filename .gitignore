@@ -54,3 +54,13 @@ yarn-error.log*
 
 # Production secrets, never committed.
 .env.production
+
+# Signed Android artifacts, build state and private signing material
+/releases/
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/signing/
+*.jks
+*.keystore

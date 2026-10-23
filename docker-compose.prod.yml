@@ -82,6 +82,7 @@ services:
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./releases/android:/srv/android:ro
       - jtas-caddy-data:/data # the certificates; losing this re-issues them
       - jtas-caddy-config:/config
       - jtas-caddy-logs:/var/log/caddy

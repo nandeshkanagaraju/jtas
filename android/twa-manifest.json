@@ -1,0 +1,50 @@
+{
+  "packageId": "com.jaraaglobal.jtas",
+  "host": "13-127-170-245.sslip.io",
+  "name": "Jaraa",
+  "launcherName": "Jaraa",
+  "display": "standalone",
+  "themeColor": "#F5F4EF",
+  "themeColorDark": "#181D17",
+  "navigationColor": "#F5F4EF",
+  "navigationColorDark": "#181D17",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#F5F4EF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://13-127-170-245.sslip.io/icons/icon-512.png",
+  "maskableIconUrl": "https://13-127-170-245.sslip.io/icons/icon-512.png",
+  "monochromeIconUrl": "https://13-127-170-245.sslip.io/icons/notification-badge.png",
+  "splashScreenFadeOutDuration": 150,
+  "signingKey": {
+    "path": "signing/jaraa-release.jks",
+    "alias": "jaraa"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "unknown",
+  "webManifestUrl": "https://13-127-170-245.sslip.io/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://13-127-170-245.sslip.io/",
+  "minSdkVersion": 24,
+  "orientation": "default",
+  "fingerprints": [
+    {
+      "name": "Internal release",
+      "value": "24:74:EC:7B:74:A2:7A:83:BD:B6:39:34:62:E2:A0:19:EB:6B:54:14:A7:8E:B0:54:0C:54:7D:06:2B:30:A8:B3"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": [],
+  "appVersion": "1.0.0"
+}

@@ -12,3 +12,7 @@ docs
 *.md
 !README.md
 .seed-credentials.txt
+
+# Android builds and signed installers are deployed separately.
+android/
+releases/

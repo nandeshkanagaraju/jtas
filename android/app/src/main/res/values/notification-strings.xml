@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="work_updates_channel">Work updates</string>
+    <string name="work_updates_description">Task assignments, handoffs, deadlines and problem alerts</string>
+</resources>

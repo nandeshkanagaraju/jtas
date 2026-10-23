@@ -13,6 +13,8 @@ const eslintConfig = [
   {
     ignores: [
       '.next/**',
+      'android/**',
+      'releases/**',
       'out/**',
       'build/**',
       'coverage/**',

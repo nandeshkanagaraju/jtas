@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="work_updates_channel">काम के अपडेट</string>
+    <string name="work_updates_description">कार्य आवंटन, हस्तांतरण, समय सीमा और समस्या की सूचनाएँ</string>
+</resources>

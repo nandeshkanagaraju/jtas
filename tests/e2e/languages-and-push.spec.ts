@@ -131,6 +131,7 @@ test('push requires an explicit enable click and offers a test and disable', asy
   );
   let enrolled = false;
   let tests = 0;
+  const delays: number[] = [];
   await page.addInitScript(() => {
     Object.defineProperty(window, 'Notification', {
       value: {
@@ -164,6 +165,7 @@ test('push requires an explicit enable click and offers a test and disable', asy
   });
   await page.route('**/api/push/test', async (route) => {
     tests++;
+    delays.push(route.request().postDataJSON().delaySeconds);
     await route.fulfill({ json: { sent: true } });
   });
   await signIn(page, ACCOUNTS.planning);
@@ -186,6 +188,9 @@ test('push requires an explicit enable click and offers a test and disable', asy
     page.getByText('Test sent. Open your phone’s notification panel.', { exact: false }),
   ).toBeVisible();
   expect(tests).toBe(1);
+  await page.getByRole('button', { name: 'Test with app closed' }).click();
+  await expect.poll(() => tests).toBe(2);
+  expect(delays).toEqual([0, 15]);
   await page.getByRole('button', { name: 'Disable notifications' }).click();
   await expect(page.getByRole('button', { name: 'Send test notification' })).toHaveCount(0);
   expect(enrolled).toBe(false);

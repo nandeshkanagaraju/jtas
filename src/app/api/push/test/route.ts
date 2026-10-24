@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import webpush from 'web-push';
 import { z } from 'zod';
 import { handler, ok, parseJson } from '@/lib/api/respond';
@@ -15,7 +16,13 @@ export const POST = handler(async (request) => {
   const limit = await rateLimiter.hit(`push-test:${user.id}`, 3, 60);
   if (!limit.allowed)
     throw rateLimited('Please wait before sending another test.', limit.retryAfterSeconds);
-  const input = await parseJson(request, z.object({ endpoint: endpointSchema }));
+  const input = await parseJson(
+    request,
+    z.object({
+      endpoint: endpointSchema,
+      delaySeconds: z.union([z.literal(0), z.literal(15)]).default(0),
+    }),
+  );
   const family = await pushSessionFamily(user.id);
   const subscription = await prisma.pushSubscription.findFirst({
     where: { userId: user.id, endpoint: input.endpoint, sessionFamilyId: family },
@@ -23,6 +30,16 @@ export const POST = handler(async (request) => {
   const config = pushConfig();
   if (!subscription || !config) throw conflict('Enable push notifications on this device first.');
   const index = subscription.locale === 'ta' ? 1 : subscription.locale === 'hi' ? 2 : 0;
+  // The server owns this timer: putting the phone to sleep does not stop it.
+  if (input.delaySeconds) {
+    await delay(input.delaySeconds * 1000);
+    // Disabling notifications or signing out during the test cancels delivery.
+    const stillEnrolled = await prisma.pushSubscription.findFirst({
+      where: { id: subscription.id, userId: user.id, sessionFamilyId: family },
+      select: { id: true },
+    });
+    if (!stillEnrolled) throw conflict('Enable push notifications on this device first.');
+  }
   try {
     await webpush.sendNotification(
       {
@@ -42,7 +59,7 @@ export const POST = handler(async (request) => {
         url: '/account#push',
         tag: 'jaraa-push-test',
       }),
-      { vapidDetails: config, TTL: 60, timeout: 10_000 },
+      { vapidDetails: config, TTL: 300, urgency: 'high', timeout: 10_000 },
     );
   } catch (error) {
     const status = (error as { statusCode?: number }).statusCode;

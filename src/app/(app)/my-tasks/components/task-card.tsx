@@ -3,6 +3,7 @@
 import { T } from '@/lib/i18n/provider';
 
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
 import { Countdown } from '@/components/shared/countdown';
@@ -72,42 +73,44 @@ export function TaskCard({
       <div className="space-y-4">
         {phone ? (
           <div className="min-w-0 space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Link
-                href={`/tasks/${task.id}`}
-                className="code inline-flex min-h-11 items-center text-sm font-semibold"
-              >
-                {task.jobCode}
-                <span className="sr-only">
-                  <T>{', details'}</T>
+            <Link
+              href={`/tasks/${task.id}`}
+              className="task-open-area block rounded-md focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="code inline-flex min-h-11 items-center text-sm font-semibold">
+                  {task.jobCode}
+                  <span className="sr-only">
+                    <T>{', details'}</T>
+                  </span>
                 </span>
-              </Link>
-              <span
-                className={cn(
-                  'text-xs font-medium',
-                  overdue ? 'text-late' : 'text-muted-foreground',
+                <span
+                  className={cn(
+                    'text-xs font-medium',
+                    overdue ? 'text-late' : 'text-muted-foreground',
+                  )}
+                >
+                  <T>{stamp.label}</T>
+                  {overdue ? <T>{' · Overdue'}</T> : ''}
+                </span>
+              </div>
+              <p className="text-base leading-snug font-semibold">{task.title}</p>
+              <p className={cn('text-sm', overdue ? 'text-late' : 'text-muted-foreground')}>
+                {task.deadline ? (
+                  `Due ${formatIST(new Date(task.deadline), 'd MMM, h:mm a')}`
+                ) : task.commitmentDueAt ? (
+                  `Commit by ${formatIST(new Date(task.commitmentDueAt), 'd MMM, h:mm a')}`
+                ) : (
+                  <T>{'Waiting for your turn'}</T>
                 )}
-              >
-                <T>{stamp.label}</T>
-                {overdue ? <T>{' · Overdue'}</T> : ''}
-              </span>
-            </div>
-            <p className="text-base leading-snug font-semibold">{task.title}</p>
-            <p className={cn('text-sm', overdue ? 'text-late' : 'text-muted-foreground')}>
-              {task.deadline ? (
-                `Due ${formatIST(new Date(task.deadline), 'd MMM, h:mm a')}`
-              ) : task.commitmentDueAt ? (
-                `Commit by ${formatIST(new Date(task.commitmentDueAt), 'd MMM, h:mm a')}`
-              ) : (
-                <T>{'Waiting for your turn'}</T>
-              )}
-            </p>
-            {blocked && task.dependency ? (
-              <p className="text-sm">
-                <T>{'Waiting on '}</T>
-                {task.dependency.departmentName}
               </p>
-            ) : null}
+              {blocked && task.dependency ? (
+                <p className="text-sm">
+                  <T>{'Waiting on '}</T>
+                  {task.dependency.departmentName}
+                </p>
+              ) : null}
+            </Link>
             <PhoneDisclosure title="Task details">
               <p className="text-sm">
                 {task.department.name}
@@ -219,6 +222,18 @@ export function TaskCard({
         )}
 
         <div className="mt-4 w-full">
+          {phone ? (
+            <Button asChild variant="outline" className={cn(ACTION, 'mb-3 w-full justify-between')}>
+              <Link href={`/tasks/${task.id}`}>
+                <T>
+                  {!task.deadline && task.commitmentDueAt && !blocked && !done
+                    ? 'Set deadline'
+                    : 'Open task'}
+                </T>
+                <ArrowRight className="size-4 shrink-0" aria-hidden />
+              </Link>
+            </Button>
+          ) : null}
           {reporting ? (
             <ProblemForm
               busy={busy}
@@ -229,7 +244,7 @@ export function TaskCard({
                 onAction('PROBLEM', payload);
               }}
             />
-          ) : actionable ? (
+          ) : actionable && (!phone || task.deadline || !task.commitmentDueAt) ? (
             <div className="space-y-2">
               {task.status === 'PENDING' ? (
                 <Button

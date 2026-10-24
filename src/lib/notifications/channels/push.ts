@@ -46,7 +46,7 @@ export const pushChannel: NotificationChannel = {
             url: inboxLinkFor(notification),
             tag: notification.id,
           }),
-          { vapidDetails: config, TTL: 3600, timeout: 10_000 },
+          { vapidDetails: config, TTL: 86_400, urgency: 'high', timeout: 10_000 },
         );
         await prisma.pushDelivery.upsert({
           where: {

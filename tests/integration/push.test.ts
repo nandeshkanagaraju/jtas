@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import webpush from 'web-push';
+import { setTimeout as delay } from 'node:timers/promises';
 import {
   afterAll,
   afterEach,
@@ -32,6 +33,8 @@ import {
   resetAuthTables,
   testDb,
 } from './helpers/db';
+
+vi.mock('node:timers/promises', () => ({ setTimeout: vi.fn().mockResolvedValue(undefined) }));
 
 const jar = vi.hoisted(() => new Map<string, string>());
 vi.mock('next/headers', () => ({
@@ -84,6 +87,7 @@ async function signIn(person = user) {
 }
 beforeEach(async () => {
   await resetAuthTables();
+  vi.mocked(delay).mockReset().mockResolvedValue(undefined);
   jar.clear();
   useCapturingMail();
   user = await createTestUser({ mustChangePassword: false });
@@ -185,10 +189,50 @@ describe('push subscription API', () => {
     await revokeFamily(family, user.id, { ipAddress: '127.0.0.1' }, 'LOGOUT');
     expect(await testDb.pushSubscription.count()).toBe(0);
   });
+  it('waits on the server before sending a background test', async () => {
+    await POST(request());
+    let release!: () => void;
+    vi.mocked(delay).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const pending = testPush(request('POST', { endpoint: input.endpoint, delaySeconds: 15 }));
+    await vi.waitFor(() => expect(delay).toHaveBeenCalledWith(15000));
+    expect(send).not.toHaveBeenCalled();
+    release();
+    expect((await pending).status).toBe(200);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+  it('cancels a delayed test when notifications are disabled while waiting', async () => {
+    await POST(request());
+    let release!: () => void;
+    vi.mocked(delay).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const pending = testPush(request('POST', { endpoint: input.endpoint, delaySeconds: 15 }));
+    await vi.waitFor(() => expect(delay).toHaveBeenCalledWith(15000));
+    await DELETE(request('DELETE', { endpoint: input.endpoint }));
+    release();
+    expect((await pending).status).toBe(409);
+    expect(send).not.toHaveBeenCalled();
+  });
+  it('rejects unbounded background test delays', async () => {
+    await POST(request());
+    expect(
+      (await testPush(request('POST', { endpoint: input.endpoint, delaySeconds: 3600 }))).status,
+    ).toBe(400);
+    expect(send).not.toHaveBeenCalled();
+  });
   it('sends a Tamil test and removes expired endpoints', async () => {
     await POST(request());
     expect((await testPush(request('POST', { endpoint: input.endpoint }))).status).toBe(200);
     expect(JSON.parse(send.mock.calls[0][1] as string).title).toContain('சோதனை');
+    expect(send.mock.calls[0][2]).toMatchObject({ urgency: 'high', TTL: 300 });
     send.mockRejectedValueOnce({ statusCode: 410 });
     expect((await testPush(request('POST', { endpoint: input.endpoint }))).status).toBe(409);
     expect(await testDb.pushSubscription.count()).toBe(0);
@@ -215,6 +259,7 @@ describe('queued push delivery', () => {
     expect(result.dispatched).toBe(2);
     expect(send).toHaveBeenCalledTimes(1);
     expect(JSON.parse(send.mock.calls[0][1] as string).url).toBe(`/tasks/${task.id}`);
+    expect(send.mock.calls[0][2]).toMatchObject({ urgency: 'high', TTL: 86400 });
     expect((await listNotifications(user.id)).unreadCount).toBe(1);
   });
   it('delivers push even when the email provider has exhausted its quota', async () => {

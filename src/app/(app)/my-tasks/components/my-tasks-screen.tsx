@@ -149,6 +149,11 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
           <T>{'My work'}</T>
         </h1>
         <p className="mt-2 text-base font-medium">{standing(data.summary)}</p>
+        {phone ? (
+          <p className="text-muted-foreground mt-2 text-sm">
+            <T>{'Tap a task to set its deadline, add updates or view details.'}</T>
+          </p>
+        ) : null}
       </header>
 
       {refreshError ? (

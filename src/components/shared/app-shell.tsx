@@ -4,7 +4,7 @@ import { LocalizedElement } from '@/lib/i18n/provider';
 
 import { T } from '@/lib/i18n/provider';
 
-import { ArrowLeft, ArrowUpRight, Bell, Menu, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Bell, Menu, UserRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -56,10 +56,10 @@ export function AppShell({
   const admin = nav.filter((item) => ADMIN_HREFS.has(item.href));
   const tabOrder =
     role === 'MD' || role === 'DEPUTY_MD'
-      ? ['/dashboard', '/jobs', '/problems']
+      ? ['/dashboard', '/jobs', '/problems', '/updates']
       : role === 'ADMIN'
-        ? ['/users', '/my-tasks']
-        : ['/my-tasks', '/jobs'];
+        ? ['/users', '/my-tasks', '/updates']
+        : ['/my-tasks', '/jobs', '/updates'];
   const phoneTabs = tabOrder.flatMap((href) => nav.find((item) => item.href === href) ?? []);
   const backHref = pathname.startsWith('/tasks/')
     ? '/my-tasks'
@@ -233,7 +233,7 @@ export function AppShell({
               </Link>
             );
           })}
-          {phoneTabs.length < 3 ? (
+          {phoneTabs.length < 4 ? (
             <Link
               href="/notifications"
               aria-current={pathname === '/notifications' ? 'page' : undefined}
@@ -284,6 +284,22 @@ export function AppShell({
             {phone ? (
               <div className="mb-3">
                 <QuickNavigation items={nav} mobile onNavigate={() => setDrawer(false)} />
+              </div>
+            ) : null}
+            {phone ? (
+              <div className="mb-4 space-y-1 border-b pb-4">
+                <Link href="/account" onClick={() => setDrawer(false)} className="mobile-nav-link">
+                  <UserRound className="size-4 shrink-0" aria-hidden />
+                  <T>{'Your account'}</T>
+                </Link>
+                <Link
+                  href="/account#push"
+                  onClick={() => setDrawer(false)}
+                  className="mobile-nav-link"
+                >
+                  <Bell className="size-4 shrink-0" aria-hidden />
+                  <T>{'Push notifications'}</T>
+                </Link>
               </div>
             ) : null}
             {primary.map((item) => navLink(item, true))}

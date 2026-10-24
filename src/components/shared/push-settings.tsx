@@ -131,14 +131,19 @@ export function PushSettings() {
       setBusy(false);
     }
   }
-  async function test() {
+  async function test(delaySeconds = 0) {
     if (!subscription) return;
     setBusy(true);
     setMessage('');
     try {
       // Also saves a language change for this device.
       await apiPost('/api/push/subscriptions', { ...subscription.toJSON(), locale });
-      await apiPost('/api/push/test', { endpoint: subscription.endpoint });
+      setMessage(
+        delaySeconds
+          ? 'Test started. Go to your phone’s home screen now. An alert will be sent in 15 seconds.'
+          : 'Working…',
+      );
+      await apiPost('/api/push/test', { endpoint: subscription.endpoint, delaySeconds });
       setMessage(
         'Test sent. Open your phone’s notification panel. If it does not appear, check notification permissions and Do Not Disturb.',
       );
@@ -201,8 +206,11 @@ export function PushSettings() {
           ) : null}
           {subscription ? (
             <>
-              <Button disabled={busy} variant="outline" onClick={test}>
+              <Button disabled={busy} variant="outline" onClick={() => test()}>
                 {t('Send test notification')}
+              </Button>
+              <Button disabled={busy} variant="outline" onClick={() => test(15)}>
+                {t('Test with app closed')}
               </Button>
               <Button disabled={busy} variant="ghost" onClick={disable}>
                 {t('Disable notifications')}

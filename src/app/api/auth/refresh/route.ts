@@ -18,6 +18,7 @@ import { handler } from '@/lib/api/respond';
 import { rotateRefreshToken } from '@/lib/services/auth';
 import { unauthenticated } from '@/lib/errors';
 import { clientIp } from '@/lib/utils/request';
+import { appRedirectUrl, safeReturnPath } from '@/lib/auth/redirect-url';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,25 +45,24 @@ export const POST = handler(async (request) => {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  // Only a same-origin path is honoured, so `?next=` cannot be used as an open
-  // redirect into someone else's site.
-  const rawNext = url.searchParams.get('next') ?? '/';
-  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
+  // The request URL can contain the internal bind address behind a proxy.
+  // Every outcome must return to APP_BASE_URL and retain only a local path.
+  const next = safeReturnPath(url.searchParams.get('next'));
 
   const token = (await cookies()).get(REFRESH_COOKIE)?.value;
 
   if (!token) {
-    return clearSessionCookies(NextResponse.redirect(new URL('/login', url.origin)));
+    return clearSessionCookies(NextResponse.redirect(appRedirectUrl('/login', request.url)));
   }
 
   try {
     const { tokens } = await rotateRefreshToken(token, { ipAddress: clientIp(request) });
-    return setSessionCookies(NextResponse.redirect(new URL(next, url.origin)), tokens);
+    return setSessionCookies(NextResponse.redirect(appRedirectUrl(next, request.url)), tokens);
   } catch {
     // Rotation failed — expired, revoked, or reuse detected. Either way the
     // session is over; clear the cookies so middleware does not loop back here.
     const response = NextResponse.redirect(
-      new URL(`/login?next=${encodeURIComponent(next)}`, url.origin),
+      appRedirectUrl(`/login?next=${encodeURIComponent(next)}`, request.url),
     );
     return clearSessionCookies(response);
   }

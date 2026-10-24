@@ -17,6 +17,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/auth/cookies';
 import { verifyAccessToken, type AccessClaims } from '@/lib/auth/jwt';
 import { buildContentSecurityPolicy, generateNonce } from '@/lib/security/csp';
+import { appRedirectUrl } from '@/lib/auth/redirect-url';
 
 /**
  * Reachable without a session.
@@ -44,7 +45,7 @@ function landingPath(role: AccessClaims['role']): string {
 }
 
 function redirect(request: NextRequest, path: string): NextResponse {
-  return NextResponse.redirect(new URL(path, request.nextUrl.origin));
+  return NextResponse.redirect(appRedirectUrl(path, request.url));
 }
 
 export async function middleware(request: NextRequest) {
@@ -95,12 +96,12 @@ export async function middleware(request: NextRequest) {
     // a login screen they did not need. Middleware cannot do this itself — it
     // has no database — so it hands off to the Node-runtime refresh route.
     if (request.cookies.has(REFRESH_COOKIE)) {
-      const target = new URL('/api/auth/refresh', request.nextUrl.origin);
+      const target = appRedirectUrl('/api/auth/refresh', request.url);
       target.searchParams.set('next', `${pathname}${search}`);
       return withCsp(NextResponse.redirect(target));
     }
 
-    const login = new URL('/login', request.nextUrl.origin);
+    const login = appRedirectUrl('/login', request.url);
     // Remember where they were headed, so the deep link from a notification
     // email survives the detour (improvement I-14).
     if (pathname !== '/') login.searchParams.set('next', `${pathname}${search}`);

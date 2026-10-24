@@ -1,6 +1,6 @@
 'use client';
 
-import { T } from '@/lib/i18n/provider';
+import { T, useLanguage } from '@/lib/i18n/provider';
 
 import { useEffect, useRef, useState } from 'react';
 import { AtSign, Loader2, MessageSquare, Send } from 'lucide-react';
@@ -37,11 +37,14 @@ export function CommentThread({
   subtaskId,
   currentUserId,
   canComment,
+  focusComposer = false,
 }: {
   subtaskId: string;
   currentUserId: string;
   canComment: boolean;
+  focusComposer?: boolean;
 }) {
+  const { t } = useLanguage();
   const [comments, setComments] = useState<CommentDto[] | null>(null);
   const [candidates, setCandidates] = useState<MentionCandidate[]>([]);
   const [draft, setDraft] = useState('');
@@ -182,10 +185,11 @@ export function CommentThread({
         <div className="relative space-y-2">
           <Textarea
             ref={textarea}
+            autoFocus={focusComposer}
             value={draft}
             rows={3}
             maxLength={COMMENT_MAX_LENGTH}
-            placeholder="Add a note, or type @ to mention somebody on this job."
+            placeholder={t('Add a note, or type @ to mention somebody on this job.')}
             onChange={(event) => {
               setDraft(event.target.value);
               setSuggestOpen(event.target.value.includes('@'));

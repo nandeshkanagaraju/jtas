@@ -2,7 +2,7 @@
 
 import { T } from '@/lib/i18n/provider';
 
-import { Check, Lock, Play, TriangleAlert } from 'lucide-react';
+import { Check, Lock, MessageSquarePlus, Play, TriangleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from '@/lib/i18n/toast';
@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
-import { PhoneDisclosure } from '@/components/shared/phone-app';
+import { PhoneDisclosure, usePhoneApp } from '@/components/shared/phone-app';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api/client';
@@ -55,6 +55,8 @@ export function TaskDetail({
   extensionRequests: ExtensionRequestDto[];
 }) {
   const router = useRouter();
+  const phone = usePhoneApp();
+  const [updatesOpen, setUpdatesOpen] = useState(false);
   const [reporting, setReporting] = useState(initialAction === 'problem');
   const [completing, setCompleting] = useState(initialAction === 'complete');
   const [note, setNote] = useState('');
@@ -347,6 +349,28 @@ export function TaskDetail({
             ) : null}
           </Panel>
 
+          {phone && permissions.comment ? (
+            updatesOpen ? (
+              <Panel title={<T>{'Progress updates'}</T>} bodyClassName="p-4">
+                <CommentThread
+                  subtaskId={subtask.id}
+                  currentUserId={currentUserId}
+                  canComment
+                  focusComposer
+                />
+              </Panel>
+            ) : (
+              <Button
+                variant="outline"
+                className="min-h-12 w-full justify-start text-base"
+                onClick={() => setUpdatesOpen(true)}
+              >
+                <MessageSquarePlus className="size-5" aria-hidden />
+                <T>{'Add progress update'}</T>
+              </Button>
+            )
+          ) : null}
+
           {permissions.requestExtension && subtask.deadline && !done && !cancelled ? (
             <ExtensionPanel
               subtaskId={subtask.id}
@@ -357,11 +381,22 @@ export function TaskDetail({
           ) : null}
         </div>
         <div className="min-w-0 space-y-5">
-          <PhoneDisclosure title="Files and discussion" hint="Drawings, uploads and comments">
+          <PhoneDisclosure
+            title={phone && permissions.comment ? 'Files' : 'Files and discussion'}
+            hint={
+              phone && permissions.comment
+                ? 'Drawings and uploads'
+                : 'Drawings, uploads and comments'
+            }
+          >
             <Panel
-              title={<T>{'Comments and files'}</T>}
+              title={<T>{phone && permissions.comment ? 'Files' : 'Comments and files'}</T>}
               description={
-                <T>{'Drawings, inspection reports and the back-and-forth on this task.'}</T>
+                <T>
+                  {phone && permissions.comment
+                    ? 'Drawings and uploads'
+                    : 'Drawings, inspection reports and the back-and-forth on this task.'}
+                </T>
               }
               bodyClassName="p-4 space-y-6"
             >
@@ -372,11 +407,13 @@ export function TaskDetail({
                 canDelete={permissions.attach}
               />
 
-              <CommentThread
-                subtaskId={subtask.id}
-                currentUserId={currentUserId}
-                canComment={permissions.comment}
-              />
+              {!(phone && permissions.comment) ? (
+                <CommentThread
+                  subtaskId={subtask.id}
+                  currentUserId={currentUserId}
+                  canComment={permissions.comment}
+                />
+              ) : null}
             </Panel>
           </PhoneDisclosure>
         </div>

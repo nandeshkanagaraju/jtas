@@ -55,6 +55,26 @@ test('phone task titles and explicit actions open the task; navigation stays acc
   await card.getByText(task.title, { exact: true }).tap();
   await expect(page).toHaveURL(new RegExp(`/tasks/${task.id}$`));
   await expect(page.getByRole('heading', { name: task.title, exact: true })).toBeVisible();
+  const update = 'Planning drawings are ready for review.';
+  await page.getByRole('button', { name: 'Add progress update' }).tap();
+  await expect(page.getByRole('button', { name: 'Add progress update' })).toHaveCount(0);
+  const composer = page.getByPlaceholder('Add a note, or type @ to mention somebody on this job.');
+  await expect(composer).toBeFocused();
+  await composer.fill(update);
+  await page.getByRole('button', { name: 'Post', exact: true }).tap();
+  await expect(page.getByText(update, { exact: true })).toBeVisible();
+  await page
+    .locator('details.phone-disclosure')
+    .filter({ hasText: 'Files' })
+    .locator('summary')
+    .tap();
+  await expect(page.getByRole('heading', { name: 'Attachments' })).toBeVisible();
+  await page.goto(`/updates?job=${job.id}`);
+  await page.getByRole('button', { name: 'Updates and messages' }).tap();
+  await expect(page.locator('.live-message-body').getByText(update, { exact: true })).toBeVisible();
+  await page.goto(`/tasks/${task.id}`);
+  await page.getByRole('button', { name: 'Add progress update' }).tap();
+  await expect(page.getByText(update, { exact: true })).toBeVisible();
   await page.locator('.phone-app-header').getByRole('link', { name: 'Back to list' }).tap();
   await expect(card).toHaveCount(1);
   await expect(card).toBeVisible();
@@ -74,4 +94,23 @@ test('phone task titles and explicit actions open the task; navigation stays acc
     path: test.info().outputPath('mobile-push-settings.png'),
     fullPage: true,
   });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/tasks/${task.id}`);
+  await expect(page.getByRole('button', { name: 'Add progress update' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Comments and files' })).toBeVisible();
+  await expect(page.getByText(update, { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 900 });
+  for (const [locale, label] of [
+    ['ta', 'பணி நிலவரத்தைச் சேர்க்கவும்'],
+    ['hi', 'कार्य प्रगति जोड़ें'],
+  ] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'jtas-language', value: locale, url: 'http://localhost:3101' }]);
+    await page.reload();
+    await expect(page.getByRole('button', { name: label })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  }
 });

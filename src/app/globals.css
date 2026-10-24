@@ -1513,3 +1513,49 @@ html:is(:lang(ta), :lang(hi)) .phone-app-tabs > :is(a, button) > span:last-child
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+
+/* Installed-phone overview of the actual job route. */
+.phone-department-progress {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  overflow-wrap: anywhere;
+}
+.phone-department-track {
+  display: grid;
+  align-items: end;
+  gap: 4px;
+  margin-top: 12px;
+}
+.phone-department-track > li {
+  min-width: 0;
+}
+.phone-department-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 8px;
+  margin-top: 6px;
+  border: 1px solid var(--input);
+  border-radius: 3px;
+  background: var(--muted);
+}
+.phone-department-done {
+  height: 14px;
+  margin-top: 0;
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--ok-soft);
+}
+.phone-department-current {
+  height: 14px;
+  margin-top: 0;
+  border-color: var(--info);
+  background: var(--info);
+}
+.phone-department-issue {
+  border-color: var(--late);
+  background: var(--late-soft);
+}

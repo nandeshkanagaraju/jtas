@@ -89,6 +89,13 @@ test('shared messages and department handoffs arrive without reloading', async (
   await expect(page.getByRole('heading', { name: 'Live updates', exact: true })).toBeVisible();
   await expect(page.locator('.live-job-heading')).toContainText('Purchase');
   await expect(page.locator('.live-job-heading')).toContainText('33%');
+  const overview = page.getByRole('region', { name: 'Department progress summary' });
+  if (info.project.name === 'mobile') {
+    await expect(overview).toContainText('Next after Purchase: Production');
+    await expect(overview).toContainText('Purchase Member');
+  } else {
+    await expect(overview).toHaveCount(0);
+  }
   await expect(page.locator('.live-stage-node[data-current="true"]')).toHaveCount(1);
   await page.locator(`[data-stage-id="${second.id}"]`).click();
   const disclosure = page.locator('.live-composer summary');
@@ -128,6 +135,11 @@ test('shared messages and department handoffs arrive without reloading', async (
   expect(completed.ok(), await completed.text()).toBeTruthy();
   await expect(page.locator('.live-job-heading')).toContainText('Production', { timeout: 12000 });
   await expect(page.locator('.live-job-heading')).toContainText('67%');
+  if (info.project.name === 'mobile') {
+    await expect(overview).toContainText('2 of 3 tasks complete');
+    await expect(overview).toContainText('Production Member');
+    await expect(overview).not.toContainText('Next after Purchase');
+  }
   await page.route('**/api/live-jobs/**', (route) =>
     route.fulfill({
       status: 503,
@@ -194,4 +206,96 @@ test('Tamil and Hindi progress maps fit installed phones and wide web layouts', 
       });
     }
   }
+});
+
+test('eight-stage phone overview follows Production first and fits all supported languages', async ({
+  page,
+}, info) => {
+  const md = await db.user.findUniqueOrThrow({ where: { email: ACCOUNTS.md } });
+  const departments = await db.department.findMany();
+  const names = [
+    'Production',
+    'Planning',
+    'Purchase',
+    'Store',
+    'Quality',
+    'Dispatch',
+    'Accounts',
+    'HR',
+  ];
+  const job = await db.job.create({
+    data: {
+      jobCode: `STRIP-${Date.now()}`,
+      title: 'TEST — department overview',
+      status: 'IN_PROGRESS',
+      isDemo: true,
+      createdById: md.id,
+      overallDeadline: new Date(Date.now() + 86400000),
+    },
+  });
+  let previous: string | null = null;
+  for (const name of names) {
+    const row: { id: string } = await db.subtask.create({
+      data: {
+        jobId: job.id,
+        title: `${name} test work`,
+        departmentId: departments.find((department) => department.name === name)!.id,
+        assigneeId: md.id,
+        status: previous ? 'BLOCKED' : 'IN_PROGRESS',
+        dependsOnId: previous,
+      },
+    });
+    previous = row.id;
+  }
+  await installed(page);
+  await signIn(page, ACCOUNTS.md);
+  for (const locale of ['en', 'ta', 'hi'] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'jtas-language', value: locale, url: 'http://localhost:3101' }]);
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`/updates?job=${job.id}`);
+      const strip = page.locator('.phone-department-progress');
+      await expect(strip).toBeVisible();
+      await expect(strip.locator('li')).toHaveCount(8);
+      expect(await strip.locator('li > span[aria-hidden="true"]').allTextContents()).toEqual([
+        '',
+        'PRD',
+        '',
+        'PLN',
+        '',
+        'PUR',
+        '',
+        'STR',
+        '',
+        'QLY',
+        '',
+        'DSP',
+        '',
+        'ACC',
+        '',
+        'HR',
+      ]);
+      await expect(strip).toContainText(
+        translate('Next after {{department}}', locale, {
+          department: translate('Production', locale),
+        }),
+      );
+      await expect(strip).toContainText(translate('Planning', locale));
+      await page
+        .getByRole('button', { name: translate('Updates and messages', locale), exact: true })
+        .click();
+      await expect(strip).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      await strip.screenshot({ path: info.outputPath(`overview-${locale}-${width}.png`) });
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/updates?job=${job.id}`);
+  await expect(page.locator('.phone-department-progress')).toHaveCount(0);
+  await expect(page.locator('.live-stage-node')).toHaveCount(8);
+  await page.screenshot({ path: info.outputPath('overview-desktop.png'), fullPage: true });
 });

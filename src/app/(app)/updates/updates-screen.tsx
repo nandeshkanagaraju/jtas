@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import type { LiveJobList, LiveJobDetail, UpdateKind } from '@/lib/live-updates/types';
 import { toast } from '@/lib/i18n/toast';
 import { ProgressMap, STATUS_LABELS } from './progress-map';
+import { DepartmentProgressStrip } from './department-progress-strip';
 import { UpdateTimeline } from './update-timeline';
 import { MessageComposer } from './message-composer';
 
@@ -365,6 +366,7 @@ export function UpdatesScreen({
                   </Link>
                 </div>
               </section>
+              <DepartmentProgressStrip stages={data.stages} jobStatus={data.job.status} />
               <div className="live-phone-views" role="group" aria-label={t('Centre view')}>
                 <Button
                   variant={mode === 'map' ? 'secondary' : 'ghost'}

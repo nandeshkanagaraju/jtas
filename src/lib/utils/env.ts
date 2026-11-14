@@ -58,6 +58,8 @@ const envSchema = z.object({
   /** Display name on outbound mail from the Brevo adapter. */
   MAIL_FROM_NAME: z.string().default('JTAS'),
 
+  STORAGE_PROVIDER: z.enum(['s3', 'stratus']).default('s3'),
+  STRATUS_BUCKET: z.string().optional(),
   S3_ENDPOINT: z.string().optional(),
   /**
    * The endpoint a browser uses, when it differs from the one the server uses.

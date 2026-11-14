@@ -1,6 +1,6 @@
 {
   "packageId": "com.jaraaglobal.jtas",
-  "host": "13-127-170-245.sslip.io",
+  "host": "jaraa-live-50047542089.catalystappsail.in",
   "name": "Jaraa",
   "launcherName": "Jaraa",
   "display": "standalone",
@@ -13,19 +13,19 @@
   "backgroundColor": "#F5F4EF",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://13-127-170-245.sslip.io/icons/icon-512.png",
-  "maskableIconUrl": "https://13-127-170-245.sslip.io/icons/icon-512.png",
-  "monochromeIconUrl": "https://13-127-170-245.sslip.io/icons/notification-badge.png",
+  "iconUrl": "https://jaraa-live-50047542089.catalystappsail.in/icons/icon-512.png",
+  "maskableIconUrl": "https://jaraa-live-50047542089.catalystappsail.in/icons/icon-512.png",
+  "monochromeIconUrl": "https://jaraa-live-50047542089.catalystappsail.in/icons/notification-badge.png",
   "splashScreenFadeOutDuration": 150,
   "signingKey": {
     "path": "signing/jaraa-release.jks",
     "alias": "jaraa"
   },
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionName": "1.0.4",
+  "appVersionCode": 5,
   "shortcuts": [],
   "generatorApp": "unknown",
-  "webManifestUrl": "https://13-127-170-245.sslip.io/manifest.webmanifest",
+  "webManifestUrl": "https://jaraa-live-50047542089.catalystappsail.in/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {
@@ -34,7 +34,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://13-127-170-245.sslip.io/",
+  "fullScopeUrl": "https://jaraa-live-50047542089.catalystappsail.in/",
   "minSdkVersion": 24,
   "orientation": "default",
   "fingerprints": [
@@ -46,5 +46,5 @@
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "displayOverride": [],
-  "appVersion": "1.0.0"
+  "appVersion": "1.0.4"
 }

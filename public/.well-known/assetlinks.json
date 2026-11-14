@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.jaraaglobal.jtas",
+      "sha256_cert_fingerprints": [
+        "24:74:EC:7B:74:A2:7A:83:BD:B6:39:34:62:E2:A0:19:EB:6B:54:14:A7:8E:B0:54:0C:54:7D:06:2B:30:A8:B3"
+      ]
+    }
+  }
+]

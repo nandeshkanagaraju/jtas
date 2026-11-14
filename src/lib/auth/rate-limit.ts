@@ -4,7 +4,7 @@
  * Behind an interface so the in-memory implementation can be swapped for a
  * Redis one without touching a route handler. In-memory is correct for a
  * single app process; the moment JTAS runs more than one, the limit becomes
- * per-process and the Redis implementation is required.
+ * per-process. Production uses PostgreSQL so AppSail instances share limits.
  */
 
 export interface RateLimitResult {
@@ -92,11 +92,40 @@ export class InMemoryRateLimiter implements RateLimiter {
  * Process-wide limiter, cached on `globalThis` so hot reload does not reset the
  * counters mid-development.
  */
-const globalForLimiter = globalThis as unknown as { jtasRateLimiter?: InMemoryRateLimiter };
+export class PostgresRateLimiter implements RateLimiter {
+  async hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
+    const { prisma } = await import('@/lib/db/prisma');
+    const [row] = await prisma.$queryRaw<Array<{ count: number; retryAfterSeconds: number }>>`
+      INSERT INTO "RateLimitBucket" ("key", "count", "expiresAt")
+      VALUES (${key}, 1, CURRENT_TIMESTAMP + make_interval(secs => ${windowSeconds}))
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE WHEN "RateLimitBucket"."expiresAt" <= CURRENT_TIMESTAMP
+                       THEN 1 ELSE "RateLimitBucket"."count" + 1 END,
+        "expiresAt" = CASE WHEN "RateLimitBucket"."expiresAt" <= CURRENT_TIMESTAMP
+                           THEN CURRENT_TIMESTAMP + make_interval(secs => ${windowSeconds})
+                           ELSE "RateLimitBucket"."expiresAt" END
+      RETURNING "count", GREATEST(1, CEIL(EXTRACT(EPOCH FROM ("expiresAt" - CURRENT_TIMESTAMP))))::int
+        AS "retryAfterSeconds"
+    `;
+    return {
+      allowed: row.count <= limit,
+      remaining: Math.max(0, limit - row.count),
+      retryAfterSeconds: row.retryAfterSeconds,
+    };
+  }
+
+  async reset(key: string): Promise<void> {
+    const { prisma } = await import('@/lib/db/prisma');
+    await prisma.rateLimitBucket.deleteMany({ where: { key } });
+  }
+}
+
+const globalForLimiter = globalThis as unknown as { jtasRateLimiter?: RateLimiter };
 
 export const rateLimiter: RateLimiter =
   globalForLimiter.jtasRateLimiter ??
-  (globalForLimiter.jtasRateLimiter = new InMemoryRateLimiter());
+  (globalForLimiter.jtasRateLimiter =
+    process.env.NODE_ENV === 'production' ? new PostgresRateLimiter() : new InMemoryRateLimiter());
 
 // --- Policy constants ------------------------------------------------------
 

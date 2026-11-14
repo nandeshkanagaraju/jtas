@@ -38,6 +38,22 @@ function run(command, args, capture = false) {
     throw new Error(`${path.basename(command)} failed${capture ? `: ${result.stderr}` : '.'}`);
   return result.stdout;
 }
+// Keep Android notification delegation bound to the same origin as the launcher.
+// Chrome uses this app-to-site declaration to find our DelegationService.
+const releaseManifest = JSON.parse(readFileSync(path.join(android, 'twa-manifest.json'), 'utf8'));
+const stringsPath = path.join(android, 'app/src/main/res/values/strings.xml');
+const statements = JSON.stringify([{
+  relation: ['delegate_permission/common.handle_all_urls'],
+  target: { namespace: 'web', site: `https://${releaseManifest.host}` },
+}]).replaceAll('"', '\\"');
+const strings = readFileSync(stringsPath, 'utf8');
+if (!/<string name="assetStatements"[\s\S]*?<\/string>/.test(strings))
+  throw new Error('Missing Android assetStatements resource.');
+writeFileSync(stringsPath, strings.replace(
+  /<string name="assetStatements"[\s\S]*?<\/string>/,
+  `<string name="assetStatements" translatable="false">${statements}</string>`,
+));
+
 run(path.join(android, 'gradlew'), [
   '--no-daemon',
   '--console',

@@ -22,7 +22,7 @@ plugins {
 
 def twaManifest = [
     applicationId: 'com.jaraaglobal.jtas',
-    hostName: '13-127-170-245.sslip.io', // The domain being opened in the TWA.
+    hostName: 'jaraa-live-50047542089.catalystappsail.in', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'Jaraa', // The application name.
     launcherName: 'Jaraa', // The name shown on the Android Launcher.
@@ -57,8 +57,8 @@ android {
         applicationId "com.jaraaglobal.jtas"
         minSdkVersion 24
         targetSdkVersion 36
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 5
+        versionName "1.0.4"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -76,12 +76,12 @@ android {
             // The URL the Web Manifest for the Progressive Web App that the TWA points to. This
             // is used by Chrome OS and Meta Quest to open the Web version of the PWA instead of
             // the TWA, as it will probably give a better user experience for non-mobile devices.
-            resValue "string", "webManifestUrl", 'https://13-127-170-245.sslip.io/manifest.webmanifest'
+            resValue "string", "webManifestUrl", 'https://jaraa-live-50047542089.catalystappsail.in/manifest.webmanifest'
 
 
 
             // This is used by Meta Quest.
-            resValue "string", "fullScopeUrl", 'https://13-127-170-245.sslip.io/'
+            resValue "string", "fullScopeUrl", 'https://jaraa-live-50047542089.catalystappsail.in/'
 
 
 
@@ -122,7 +122,7 @@ android {
 
         // Sets the color for the background used for the splash screen when launching the
         // Trusted Web Activity.
-        resValue "color", "backgroundColor", twaManifest.backgroundColor
+        // Splash colors live in values/colors.xml and values-night/colors.xml.
 
         // Defines a provider authority for the Splash Screen
         resValue "string", "providerAuthority", twaManifest.applicationId + '.fileprovider'

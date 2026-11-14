@@ -8,14 +8,14 @@
  * and `/api/health` reports the age of that stamp (improvement I-15).
  *
  * Run with: pnpm worker
+ * Run one scheduled pass with: pnpm worker:once
  */
 import { prisma } from '@/lib/db/prisma';
 import { ensureTelegramWebhook } from '@/lib/telegram/webhook';
-import { queueDailyDigest } from '@/lib/notifications/digest';
-import { runSweep } from '@/lib/notifications/sweeper';
 import { assertConfiguration } from '@/lib/startup/validate';
 import { env } from '@/lib/utils/env';
 import { moduleLogger } from '@/lib/utils/logger';
+import { runSchedulerPass } from './run-pass';
 
 const log = moduleLogger('worker');
 
@@ -35,9 +35,12 @@ async function tick(): Promise<void> {
   const startedAt = Date.now();
 
   try {
-    const now = new Date();
-    const digested = await queueDailyDigest(now);
-    const result = await runSweep(now);
+    const result = await runSchedulerPass();
+    if (!result) {
+      log.info('another scheduler owns the lease; skipping this pass');
+      return;
+    }
+    const { digested } = result;
 
     const total =
       result.dispatched + result.deferred + result.failed + result.dropped + result.escalated;
@@ -53,6 +56,9 @@ async function tick(): Promise<void> {
     );
   } catch (error) {
     log.error({ err: error }, 'sweep failed; will retry on the next interval');
+    // Scheduled executions must fail visibly so the job platform can alert
+    // and retry. The continuous worker catches this at the interval boundary.
+    throw error;
   }
 }
 
@@ -63,9 +69,13 @@ async function runTick(): Promise<void> {
     return;
   }
 
-  inFlight = tick().finally(() => {
-    inFlight = null;
-  });
+  inFlight = tick()
+    .catch(() => {
+      // tick already logged the failure. Keep the continuous worker alive.
+    })
+    .finally(() => {
+      inFlight = null;
+    });
 
   await inFlight;
 }
@@ -79,6 +89,15 @@ async function main() {
    * heartbeat exists to catch and the one hardest to notice.
    */
   await assertConfiguration();
+
+  if (process.argv.includes('--once')) {
+    try {
+      await tick();
+    } finally {
+      await prisma.$disconnect();
+    }
+    return;
+  }
 
   try {
     await ensureTelegramWebhook();

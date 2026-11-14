@@ -26,8 +26,27 @@ import { formatIST } from '@/lib/utils/time';
  * expires in a few minutes; the bucket itself stays private.
  */
 export async function openAttachment(id: string): Promise<void> {
-  const { url } = await apiFetch<{ url: string }>(`/api/attachments/${id}/url`);
-  window.location.assign(url);
+  const { url, fileName, downloadInBrowser } = await apiFetch<{
+    url: string;
+    fileName: string;
+    downloadInBrowser?: boolean;
+  }>(`/api/attachments/${id}/url`);
+  if (!downloadInBrowser) {
+    window.location.assign(url);
+    return;
+  }
+
+  const response = await fetch(url, { credentials: 'omit', cache: 'no-store' });
+  if (!response.ok) throw new Error('Could not download that attachment.');
+  const objectUrl = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Give mobile browsers time to start saving before releasing the object.
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 }
 
 interface Uploading {

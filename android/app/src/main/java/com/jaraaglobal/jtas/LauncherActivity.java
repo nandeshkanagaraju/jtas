@@ -43,6 +43,11 @@ public class LauncherActivity
     }
 
     @Override
+    protected com.google.androidbrowserhelper.trusted.TwaLauncher createTwaLauncher() {
+        return new VerifiedTwaLauncher(this);
+    }
+
+    @Override
     protected Uri getLaunchingUrl() {
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();

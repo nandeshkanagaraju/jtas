@@ -5,7 +5,7 @@ generator client {
   provider      = "prisma-client-js"
   // native is the machine that runs `prisma generate`. The musl target is the
   // EC2 image: the Mac build is arm64, and the container that runs it is amd64.
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -515,6 +515,21 @@ model Holiday {
 model Setting {
   key   String @id
   value Json
+}
+
+// Shared state for AppSail instances and restartable scheduled jobs.
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model SchedulerLease {
+  key       String   @id
+  owner     String
+  expiresAt DateTime
 }
 
 // ---------------------------------------------------------------------------

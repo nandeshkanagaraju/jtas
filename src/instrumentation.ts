@@ -1,7 +1,8 @@
 /**
  * Next's boot hook — build spec M9.6.
  *
- * Runs once per server process, before the first request is served.
+ * Runs once per server process. Remote checks run in the background so the
+ * AppSail listener can open within its ten-second startup deadline.
  */
 export async function register() {
   // Only the Node runtime: the edge runtime has no database client, and the
@@ -17,9 +18,11 @@ export async function register() {
    * loudly and the app comes up. `checkConfiguration` classifies a malformed
    * setting as a warning precisely because the read path already falls back.
    */
-  const report = await assertConfiguration({ exit: false });
-
-  if (!report.ok) {
-    console.error(`\n${formatConfigReport(report)}\n`);
-  }
+  void assertConfiguration({ exit: false })
+    .then((report) => {
+      if (!report.ok) console.error(`\n${formatConfigReport(report)}\n`);
+    })
+    .catch((error) => {
+      console.error('Startup configuration checks failed.', error);
+    });
 }

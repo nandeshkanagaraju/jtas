@@ -1,6 +1,12 @@
 node_modules
 .next
 .git
+.deploy
+.agents
+.codex
+.catalystrc
+catalyst-debug.log
+skills-lock.json
 .env
 .env.*
 !.env.example

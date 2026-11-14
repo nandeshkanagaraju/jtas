@@ -22,7 +22,7 @@ COPY prisma ./prisma
 # because this stage runs on the Mac and the process that loads them does not.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
-    pnpm install --frozen-lockfile --ignore-scripts \
+    pnpm install --frozen-lockfile --ignore-scripts --fetch-timeout=180000 --network-concurrency=8 \
       --config.supportedArchitectures.os=linux \
       --config.supportedArchitectures.cpu=x64 \
       --config.supportedArchitectures.libc=musl
@@ -42,7 +42,7 @@ COPY scripts/docker/ensure-amd64-native.mjs ./scripts/docker/ensure-amd64-native
 # place in a container. Prisma's client is generated explicitly below instead.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
-    pnpm install --frozen-lockfile --prod --ignore-scripts \
+    pnpm install --frozen-lockfile --prod --ignore-scripts --fetch-timeout=180000 --network-concurrency=8 \
       --config.supportedArchitectures.os=linux \
       --config.supportedArchitectures.cpu=x64 \
       --config.supportedArchitectures.libc=musl && \
@@ -107,6 +107,6 @@ EXPOSE 3000
 # The app's own health endpoint, so an unhealthy container is restarted rather
 # than left serving errors. It answers 503 on a stale scheduler heartbeat.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "const port=process.env.X_ZOHO_CATALYST_LISTEN_PORT||process.env.PORT||3000;fetch('http://127.0.0.1:'+port+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "server.js"]
+CMD ["node", "scripts/start-server.mjs"]

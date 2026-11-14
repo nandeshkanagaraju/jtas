@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "source": ".deploy/functions",
+    "targets": ["jaraa_scheduler"]
+  }
+}

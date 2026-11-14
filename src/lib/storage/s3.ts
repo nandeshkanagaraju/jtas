@@ -95,6 +95,7 @@ function bucket(): string {
 /** True when storage is configured at all. */
 export function storageConfigured(): boolean {
   const config = env();
+  if (config.STORAGE_PROVIDER === 'stratus') return Boolean(config.STRATUS_BUCKET);
   return Boolean(config.S3_BUCKET && config.S3_KEY && config.S3_SECRET);
 }
 
@@ -109,6 +110,9 @@ export async function presignUpload(input: {
   contentType: string;
   sizeBytes: number;
 }): Promise<{ url: string; expiresInSeconds: number }> {
+  if (env().STORAGE_PROVIDER === 'stratus') {
+    return (await import('./stratus')).presignUpload(input.key, UPLOAD_URL_TTL_SECONDS);
+  }
   const command = new PutObjectCommand({
     Bucket: bucket(),
     Key: input.key,
@@ -133,7 +137,15 @@ export async function presignDownload(input: {
   contentType: string;
   /** `inline` for a thumbnail, `attachment` for a download. */
   disposition?: 'inline' | 'attachment';
-}): Promise<{ url: string; expiresInSeconds: number; expiresAt: string }> {
+}): Promise<{
+  url: string;
+  expiresInSeconds: number;
+  expiresAt: string;
+  downloadInBrowser?: boolean;
+}> {
+  if (env().STORAGE_PROVIDER === 'stratus') {
+    return (await import('./stratus')).presignDownload(input, DOWNLOAD_URL_TTL_SECONDS);
+  }
   // Quotes and backslashes would break out of the header's quoted string.
   const safeName = input.fileName.replace(/["\\]/g, '_');
 
@@ -161,6 +173,9 @@ export interface ObjectFacts {
 /** What the bucket says about an object, or null if it is not there. */
 export async function headObject(key: string): Promise<ObjectFacts | null> {
   try {
+    if (env().STORAGE_PROVIDER === 'stratus') {
+      return await (await import('./stratus')).headObject(key);
+    }
     const result = await client().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
 
     return {
@@ -183,6 +198,9 @@ export async function headObject(key: string): Promise<ObjectFacts | null> {
  */
 export async function readHead(key: string, bytes: number): Promise<Uint8Array | null> {
   try {
+    if (env().STORAGE_PROVIDER === 'stratus') {
+      return await (await import('./stratus')).readHead(key, bytes);
+    }
     const result = await client().send(
       new GetObjectCommand({ Bucket: bucket(), Key: key, Range: `bytes=0-${bytes - 1}` }),
     );
@@ -213,6 +231,9 @@ export async function putObject(input: {
   contentType: string;
   body: Uint8Array;
 }): Promise<void> {
+  if (env().STORAGE_PROVIDER === 'stratus') {
+    return (await import('./stratus')).putObject(input);
+  }
   await client().send(
     new PutObjectCommand({
       Bucket: bucket(),
@@ -225,6 +246,10 @@ export async function putObject(input: {
 }
 
 export async function deleteObject(key: string): Promise<void> {
+  if (env().STORAGE_PROVIDER === 'stratus') {
+    await (await import('./stratus')).deleteObject(key).catch(() => {});
+    return;
+  }
   await client()
     .send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }))
     .catch(() => {

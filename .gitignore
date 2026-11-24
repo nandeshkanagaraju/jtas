@@ -66,3 +66,6 @@ yarn-error.log*
 /android/signing/
 *.jks
 *.keystore
+
+# Rendered email previews (contain member email addresses)
+email-preview/

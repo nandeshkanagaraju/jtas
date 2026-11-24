@@ -169,6 +169,54 @@ describe('shared live job centre', () => {
       getLiveJob(member, job.id, liveJobQuerySchema.parse({ cursor: 'invalid' })),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
   });
+  it('stops linking an uploaded file once that attachment is removed', async () => {
+    const upload = (fileName: string) =>
+      testDb.attachment.create({
+        data: {
+          jobId: job.id,
+          subtaskId: second.id,
+          fileName,
+          storageKey: `jobs/${job.id}/${fileName}`,
+          mimeType: 'application/pdf',
+          sizeBytes: 10,
+          uploadedById: peer.id,
+        },
+      });
+    const kept = await upload('kept.pdf');
+    const removed = await upload('removed.pdf');
+    await testDb.auditLog.createMany({
+      data: [kept, removed].map((file) => ({
+        actorId: peer.id,
+        entityType: 'SUBTASK',
+        entityId: second.id,
+        action: 'ATTACHMENT_UPLOADED',
+        after: { attachmentId: file.id, fileName: file.fileName, sizeBytes: 10 },
+      })),
+    });
+    await testDb.attachment.update({
+      where: { id: removed.id },
+      data: { deletedAt: new Date(), deletedById: peer.id },
+    });
+    await testDb.auditLog.create({
+      data: {
+        actorId: peer.id,
+        entityType: 'SUBTASK',
+        entityId: second.id,
+        action: 'ATTACHMENT_DELETED',
+        before: { attachmentId: removed.id, fileName: removed.fileName },
+      },
+    });
+    const { events } = await getLiveJob(member, job.id, all());
+    const uploads = events.filter((event) => event.action === 'ATTACHMENT_UPLOADED');
+    expect(uploads).toHaveLength(2);
+    expect(uploads.find((event) => event.body === 'kept.pdf')?.attachmentId).toBe(kept.id);
+    expect(uploads.find((event) => event.body === 'removed.pdf')?.attachmentId).toBeNull();
+    expect(
+      events
+        .filter((event) => event.action === 'ATTACHMENT_DELETED')
+        .every((event) => event.attachmentId === null),
+    ).toBe(true);
+  });
   it('reflects completed work and job holds rather than leaving a stale current owner', async () => {
     await testDb.job.update({ where: { id: job.id }, data: { status: 'ON_HOLD' } });
     expect((await getLiveJob(member, job.id, all())).stages.every((stage) => !stage.current)).toBe(

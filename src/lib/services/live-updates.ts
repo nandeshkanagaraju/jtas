@@ -122,6 +122,25 @@ export async function getLiveJob(
   });
   const page = events.slice(0, 40);
   const last = page.at(-1);
+  // An upload event keeps its attachment id after the file is removed; only
+  // link the ones whose attachment is still live, in one query for the page.
+  const linkedIds = [
+    ...new Set(
+      page.flatMap((event) =>
+        event.action !== 'ATTACHMENT_DELETED' && event.attachmentId ? [event.attachmentId] : [],
+      ),
+    ),
+  ];
+  const liveAttachmentIds = new Set(
+    linkedIds.length
+      ? (
+          await prisma.attachment.findMany({
+            where: { id: { in: linkedIds }, deletedAt: null },
+            select: { id: true },
+          })
+        ).map((row) => row.id)
+      : [],
+  );
   const current = currentStageIds(subtasks, job.status);
   const participants = subtasks.map((task) => task.assignee.id);
   const byId = new Map(subtasks.map((task) => [task.id, task]));
@@ -175,7 +194,12 @@ export async function getLiveJob(
     events: page.map((event) => ({
       ...event,
       changes: event.changes.filter((change) => SAFE_CHANGES.has(change.field)),
-      attachmentId: event.action === 'ATTACHMENT_DELETED' ? null : event.attachmentId,
+      attachmentId:
+        event.action !== 'ATTACHMENT_DELETED' &&
+        event.attachmentId &&
+        liveAttachmentIds.has(event.attachmentId)
+          ? event.attachmentId
+          : null,
     })),
     nextCursor:
       events.length > 40 && last

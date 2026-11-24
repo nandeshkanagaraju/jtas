@@ -285,7 +285,7 @@ export function TaskCard({
   );
 }
 
-function stampFor(
+export function stampFor(
   task: MyTaskDto,
   section: BucketName,
   flags: { blocked: boolean; done: boolean; waiting: boolean; reported: boolean; overdue: boolean },

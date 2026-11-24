@@ -16,6 +16,7 @@ import { EmptyState, ErrorState, ListSkeleton } from '@/components/shared/states
 import { openAttachment } from '@/components/collaboration/attachment-panel';
 import { CommentBody } from '@/components/collaboration/comment-body';
 import { apiFetch } from '@/lib/api/client';
+import { useLanguage } from '@/lib/i18n/provider';
 import { toast } from '@/lib/i18n/toast';
 import type { ActivityItem } from '@/lib/services/activity-feed';
 import type { MentionCandidate } from '@/lib/domain/mentions';
@@ -53,6 +54,66 @@ const SHOW_CHANGES = new Set<ActivityItem['kind']>([
   'other',
 ]);
 
+/** Fields a reader cares about, with their plain names. Ids, raw actions and
+ * bookkeeping timestamps stay in the forensic view. */
+const FIELDS: Record<string, string> = {
+  status: 'Status',
+  deadline: 'Deadline',
+  overallDeadline: 'Job deadline',
+  requestedDeadline: 'Requested deadline',
+  priority: 'Priority',
+  note: 'Note',
+  reason: 'Reason',
+  completionNote: 'Completion note',
+  mdActionNote: 'Decision note',
+};
+
+const STATUS_WORDS: Record<string, string> = {
+  DRAFT: 'Draft',
+  PENDING: 'Ready to start',
+  BLOCKED: 'Waiting',
+  IN_PROGRESS: 'In progress',
+  PROBLEM: 'Problem',
+  AWAITING_APPROVAL: 'Awaiting approval',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+  ON_HOLD: 'On hold',
+  AT_RISK: 'At risk',
+  DELAYED: 'Delayed',
+};
+
+const TEXT_FIELDS = new Set(['note', 'reason', 'completionNote', 'mdActionNote']);
+const EMPTY = new Set(['', 'none', '—', 'null']);
+
+/** Readable change lines; drops ids, system codes and empty notes. */
+function readableChanges(
+  changes: ActivityItem['changes'],
+): Array<{ label: string; text?: string; before?: string; after?: string }> {
+  const lines: Array<{ label: string; text?: string; before?: string; after?: string }> = [];
+  for (const change of changes) {
+    const label = FIELDS[change.field];
+    if (!label) continue;
+    if (TEXT_FIELDS.has(change.field)) {
+      const text = change.after?.trim() ?? '';
+      // A system reason such as JOB_PUBLISHED is not a sentence anyone wrote.
+      if (EMPTY.has(text) || /^[A-Z_]+$/.test(text)) continue;
+      lines.push({ label, text });
+      continue;
+    }
+    lines.push({ label, before: change.before, after: change.after });
+  }
+  return lines;
+}
+
+function readableValue(field: string, text: string): string {
+  if (EMPTY.has(text)) return '—';
+  if (field === 'status') return STATUS_WORDS[text] ?? text;
+  if (/^\d{4}-\d\d-\d\dT/.test(text) && !Number.isNaN(Date.parse(text))) {
+    return formatIST(new Date(text));
+  }
+  return text;
+}
+
 /** "SUBTASK_STATUS_CHANGED" -> "status changed". */
 function phrase(action: string): string {
   return action
@@ -87,6 +148,7 @@ export function ActivityFeed({
   currentUserId: string;
   mentionCandidates?: MentionCandidate[];
 }) {
+  const { t } = useLanguage();
   const [items, setItems] = useState<ActivityItem[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -211,14 +273,21 @@ export function ActivityFeed({
                * above, and repeating them as `fileName — → drawing.pdf` is
                * noise that makes the readable line harder to find.
                */}
-              {SHOW_CHANGES.has(item.kind) && item.changes.length > 0 ? (
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {item.changes
+              {SHOW_CHANGES.has(item.kind)
+                ? readableChanges(item.changes)
                     .slice(0, 3)
-                    .map((change) => `${change.field} ${change.before} → ${change.after}`)
-                    .join(' · ')}
-                </p>
-              ) : null}
+                    .map((line) => (
+                      <p
+                        key={line.label}
+                        className="text-muted-foreground mt-0.5 text-xs break-words"
+                      >
+                        <span className="font-medium">{t(line.label)}: </span>
+                        {line.text !== undefined
+                          ? line.text
+                          : `${t(readableValue(line.label === 'Status' ? 'status' : 'value', line.before ?? ''))} → ${t(readableValue(line.label === 'Status' ? 'status' : 'value', line.after ?? ''))}`}
+                      </p>
+                    ))
+                : null}
             </div>
           </li>
         );

@@ -3,7 +3,7 @@
 import { T } from '@/lib/i18n/provider';
 
 import { ChevronRight } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { toast } from '@/lib/i18n/toast';
 
 import { ApiError } from '@/lib/api/client';
@@ -15,6 +15,7 @@ import { usePhoneApp } from '@/components/shared/phone-app';
 import { formatIST } from '@/lib/utils/time';
 
 import { TaskCard } from './task-card';
+import { DesktopTaskTable } from './task-table';
 import type { Severity } from './problem-form';
 
 /** Overdue and due today stay open. The rest is a count until asked for. */
@@ -176,8 +177,51 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
         Overdue and due today stay open. A single overdue task is the whole
         screen: large, with its actions, and everything not due now is a count.
       */}
+      {phone ? (
+        <PhoneGroups
+          data={data}
+          overdue={overdue}
+          focusGroup={focusGroup}
+          open={open}
+          setOpen={setOpen}
+          busyId={busyId}
+          onAction={act}
+        />
+      ) : (
+        <DesktopTaskTable data={data} busyId={busyId} onAction={act} />
+      )}
+    </div>
+  );
+}
+
+type ActionHandler = (
+  task: MyTaskDto,
+  action: 'START' | 'COMPLETE' | 'PROBLEM',
+  payload?: { note: string; severity: Severity },
+) => void;
+
+/** Phone: unchanged from the original layout. */
+function PhoneGroups({
+  data,
+  overdue,
+  focusGroup,
+  open,
+  setOpen,
+  busyId,
+  onAction: act,
+}: {
+  data: MyTasksDto;
+  overdue: MyTaskDto[];
+  focusGroup: BucketName | undefined;
+  open: Partial<Record<BucketName, boolean>>;
+  setOpen: Dispatch<SetStateAction<Partial<Record<BucketName, boolean>>>>;
+  busyId: string | null;
+  onAction: ActionHandler;
+}) {
+  return (
+    <>
       <div className="workspace-columns">
-        {OPEN_GROUPS.filter((name) => !phone || data.buckets[name].length > 0).map((name) => (
+        {OPEN_GROUPS.filter((name) => data.buckets[name].length > 0).map((name) => (
           <Group
             key={name}
             name={name}
@@ -234,7 +278,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
           );
         })}
       </div>
-    </div>
+    </>
   );
 }
 

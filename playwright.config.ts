@@ -34,7 +34,7 @@ if (E2E_DATABASE_URL && !process.env.PW_SKIP_DB_SETUP) {
  * to jtas_e2e and then sweeps jtas_dev, which fails in the most confusing way
  * available: the row it just created is still PENDING, because a different
  * database was swept.
- *
+ */
 if (E2E_DATABASE_URL) process.env.DATABASE_URL = E2E_DATABASE_URL;
 
 /*

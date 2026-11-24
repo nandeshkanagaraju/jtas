@@ -15,6 +15,10 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    // Multi-department publishing and dependency cascades make several queries
+    // inside one atomic transaction. Allow for the network round trips to the
+    // hosted database; Prisma's five-second default expires during this work.
+    transactionOptions: { maxWait: 10_000, timeout: 30_000 },
   });
 
 if (process.env.NODE_ENV !== 'production') {

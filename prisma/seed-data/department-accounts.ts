@@ -6,19 +6,30 @@
  * `pnpm users:provision-departments`. The suffix lives in `.env`, not here,
  * so this file does not publish the passwords.
  *
- * `passwordName` is the department name as it appears in the password.
+ * `passwordName` is the department name as it appears in the password (for
+ * the Managing Director, who has no department, it is "MD").
  * `replaces` is the go-live placeholder account this person takes over: its
  * open tasks move to them and the placeholder is deactivated.
  */
 export interface DepartmentAccount {
   name: string;
   email: string;
-  departmentCode: string;
+  /** Null for the Managing Director, who sits above the departments. */
+  departmentCode: string | null;
+  /** Defaults to MEMBER. */
+  role?: 'MEMBER' | 'MD';
   passwordName: string;
   replaces?: string;
 }
 
 export const DEPARTMENT_ACCOUNTS: DepartmentAccount[] = [
+  {
+    name: 'S Ramkumar',
+    email: 'ramkumar@jaraaglobal.in',
+    role: 'MD',
+    departmentCode: null,
+    passwordName: 'MD',
+  },
   {
     name: 'Arun Kumar Pandian',
     email: 'production@jaraaglobal.in',

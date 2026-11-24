@@ -123,7 +123,9 @@ async function main() {
 
   try {
     // Departments the roster needs, created if this database predates them.
-    const codes = new Set(DEPARTMENT_ACCOUNTS.map((a) => a.departmentCode));
+    const codes = new Set(
+      DEPARTMENT_ACCOUNTS.flatMap((a) => (a.departmentCode ? [a.departmentCode] : [])),
+    );
     for (const dept of SEED_DEPARTMENTS.filter((d) => codes.has(d.code))) {
       await prisma.department.upsert({
         where: { code: dept.code },
@@ -135,8 +137,10 @@ async function main() {
     const byCode = new Map(departments.map((d) => [d.code, d]));
 
     for (const account of DEPARTMENT_ACCOUNTS) {
-      const department = byCode.get(account.departmentCode);
-      if (!department) fail(`Unknown department code ${account.departmentCode}.`);
+      const department = account.departmentCode ? byCode.get(account.departmentCode) : null;
+      if (account.departmentCode && !department) {
+        fail(`Unknown department code ${account.departmentCode}.`);
+      }
 
       const email = account.email.toLowerCase();
       const password = `${account.passwordName}${suffix}`;
@@ -144,8 +148,8 @@ async function main() {
 
       const common = {
         name: account.name,
-        role: 'MEMBER' as const,
-        departmentId: department.id,
+        role: account.role ?? ('MEMBER' as const),
+        departmentId: department?.id ?? null,
         isActive: true,
         mustChangePassword: false,
       };
@@ -183,7 +187,12 @@ async function main() {
         await handOver(prisma, account.replaces.toLowerCase(), person);
       }
 
-      sheet.push({ name: account.name, department: department.name, email, password });
+      sheet.push({
+        name: account.name,
+        department: department?.name ?? 'Managing Director',
+        email,
+        password,
+      });
     }
   } finally {
     await prisma.$disconnect();

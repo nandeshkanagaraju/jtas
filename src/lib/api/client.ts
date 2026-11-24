@@ -57,7 +57,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 // Polling views and the notification bell may expire together. Rotate once
 // per tab so concurrent 401s cannot race the same refresh-token family.
 let pendingRefresh: Promise<Response> | null = null;
-function refreshSession(): Promise<Response> {
+export function refreshSession(): Promise<Response> {
   if (!pendingRefresh) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);

@@ -8,7 +8,7 @@ import { toast } from '@/lib/i18n/toast';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ApiError, apiFetch } from '@/lib/api/client';
+import { ApiError, apiFetch, refreshSession } from '@/lib/api/client';
 import {
   ACCEPT_ATTRIBUTE,
   checkDeclaredFile,
@@ -36,7 +36,11 @@ export async function openAttachment(id: string): Promise<void> {
     return;
   }
 
-  const response = await fetch(url, { credentials: 'omit', cache: 'no-store' });
+  // Same-origin stream: the bucket's CORS list does not cover every app origin.
+  const response = await fetch(`/api/attachments/${id}/content`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
   if (!response.ok) throw new Error('Could not download that attachment.');
   const objectUrl = URL.createObjectURL(await response.blob());
   const link = document.createElement('a');
@@ -140,62 +144,63 @@ export function AttachmentPanel({
     setUploading({ name: file.name, percent: 0 });
 
     try {
-      const presigned = await apiFetch<{
-        attachmentId: string;
-        uploadUrl: string;
-        storageKey: string;
-      }>('/api/attachments/presign', {
-        method: 'POST',
-        body: JSON.stringify({
-          jobId,
-          subtaskId: subtaskId ?? null,
-          fileName: file.name,
-          contentType: file.type || 'application/octet-stream',
-          sizeBytes: file.size,
-        }),
-      });
+      /*
+       * Bytes go to this app, which stores them in the bucket server-side. A
+       * direct browser PUT to the bucket depends on its CORS list, which the
+       * Production environment cannot always be given.
+       */
+      const params = new URLSearchParams({ jobId });
+      if (subtaskId) params.set('subtaskId', subtaskId);
+      const contentType = file.type || 'application/octet-stream';
 
-      await new Promise<void>((resolve, reject) => {
-        const request = new XMLHttpRequest();
-        request.open('PUT', presigned.uploadUrl);
-        request.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      const send = () =>
+        new Promise<{ status: number; body: string }>((resolve, reject) => {
+          const request = new XMLHttpRequest();
+          request.open('POST', `/api/attachments/upload?${params}`);
+          request.withCredentials = true;
+          request.setRequestHeader('Content-Type', contentType);
+          request.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
 
-        request.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            setUploading({
-              name: file.name,
-              percent: Math.round((event.loaded / event.total) * 100),
-            });
-          }
+          request.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              setUploading({
+                name: file.name,
+                percent: Math.round((event.loaded / event.total) * 100),
+              });
+            }
+          });
+
+          request.addEventListener('load', () =>
+            resolve({ status: request.status, body: request.responseText }),
+          );
+          request.addEventListener('error', () => reject(new Error('Upload failed')));
+          request.send(file);
         });
 
-        request.addEventListener('load', () =>
-          request.status >= 200 && request.status < 300
-            ? resolve()
-            : reject(new Error(`Upload failed (${request.status})`)),
-        );
-        request.addEventListener('error', () => reject(new Error('Upload failed')));
-        request.send(file);
-      });
+      let result = await send();
+      if (result.status === 401 && (await refreshSession()).ok) result = await send();
 
-      await apiFetch('/api/attachments', {
-        method: 'POST',
-        body: JSON.stringify({
-          attachmentId: presigned.attachmentId,
-          jobId,
-          subtaskId: subtaskId ?? null,
-          fileName: file.name,
-          contentType: file.type || 'application/octet-stream',
-          storageKey: presigned.storageKey,
-        }),
-      });
+      if (result.status < 200 || result.status >= 300) {
+        let message = 'Could not upload that file.';
+        try {
+          const parsed = JSON.parse(result.body) as { error?: { message?: string } };
+          message = parsed.error?.message ?? message;
+        } catch {
+          // Not JSON — keep the generic message.
+        }
+        throw new Error(message);
+      }
 
       await reload();
       toast.success(`${file.name} attached.`);
     } catch (error) {
       // The server's message is the useful one — "that file is not really a
       // PDF, check that it was not renamed".
-      toast.error(error instanceof ApiError ? error.message : 'Could not upload that file.');
+      toast.error(
+        error instanceof ApiError || error instanceof Error
+          ? error.message
+          : 'Could not upload that file.',
+      );
     } finally {
       setUploading(null);
     }

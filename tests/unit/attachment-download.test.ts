@@ -2,7 +2,11 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const apiFetch = vi.hoisted(() => vi.fn());
-vi.mock('@/lib/api/client', () => ({ apiFetch, ApiError: class extends Error {} }));
+vi.mock('@/lib/api/client', () => ({
+  apiFetch,
+  refreshSession: vi.fn(),
+  ApiError: class extends Error {},
+}));
 
 import { openAttachment } from '@/components/collaboration/attachment-panel';
 
@@ -15,7 +19,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('downloads directly from the private URL and saves the original filename', async () => {
+it('downloads through the same-origin content route and saves the original filename', async () => {
   apiFetch.mockResolvedValue({
     url: 'https://bucket.example/signed',
     fileName: 'drawing.pdf',
@@ -34,8 +38,8 @@ it('downloads directly from the private URL and saves the original filename', as
     savedName = this.download;
   });
   await openAttachment('attachment-1');
-  expect(fetch).toHaveBeenCalledWith('https://bucket.example/signed', {
-    credentials: 'omit',
+  expect(fetch).toHaveBeenCalledWith('/api/attachments/attachment-1/content', {
+    credentials: 'same-origin',
     cache: 'no-store',
   });
   expect(savedName).toBe('drawing.pdf');

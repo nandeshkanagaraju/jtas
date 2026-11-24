@@ -282,7 +282,7 @@ export async function registerUpload(
 export async function ingestAttachment(
   input: {
     jobId: string;
-    subtaskId: string;
+    subtaskId: string | null;
     fileName: string;
     contentType: string;
     bytes: Uint8Array;

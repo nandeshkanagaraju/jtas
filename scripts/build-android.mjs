@@ -42,17 +42,22 @@ function run(command, args, capture = false) {
 // Chrome uses this app-to-site declaration to find our DelegationService.
 const releaseManifest = JSON.parse(readFileSync(path.join(android, 'twa-manifest.json'), 'utf8'));
 const stringsPath = path.join(android, 'app/src/main/res/values/strings.xml');
-const statements = JSON.stringify([{
-  relation: ['delegate_permission/common.handle_all_urls'],
-  target: { namespace: 'web', site: `https://${releaseManifest.host}` },
-}]).replaceAll('"', '\\"');
+const statements = JSON.stringify([
+  {
+    relation: ['delegate_permission/common.handle_all_urls'],
+    target: { namespace: 'web', site: `https://${releaseManifest.host}` },
+  },
+]).replaceAll('"', '\\"');
 const strings = readFileSync(stringsPath, 'utf8');
 if (!/<string name="assetStatements"[\s\S]*?<\/string>/.test(strings))
   throw new Error('Missing Android assetStatements resource.');
-writeFileSync(stringsPath, strings.replace(
-  /<string name="assetStatements"[\s\S]*?<\/string>/,
-  `<string name="assetStatements" translatable="false">${statements}</string>`,
-));
+writeFileSync(
+  stringsPath,
+  strings.replace(
+    /<string name="assetStatements"[\s\S]*?<\/string>/,
+    `<string name="assetStatements" translatable="false">${statements}</string>`,
+  ),
+);
 
 run(path.join(android, 'gradlew'), [
   '--no-daemon',

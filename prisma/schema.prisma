@@ -162,7 +162,7 @@ model User {
   /// hard bounces per escalation, counted against the sending reputation of
   /// the one address that does exist.
   isDemo             Boolean     @default(false)
-  mustChangePassword Boolean     @default(true)
+  mustChangePassword Boolean     @default(false)
   failedLoginCount   Int         @default(0)
   lockedUntil        DateTime?
   lastLoginAt        DateTime?

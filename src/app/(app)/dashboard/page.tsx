@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 import { Suspense } from 'react';
 
+import { Greeting } from '@/components/shared/greeting';
 import { OnTimeTrend } from '@/components/dashboard/on-time-trend';
 import { RangePicker } from '@/components/dashboard/range-picker';
 import { SummaryStrip } from '@/components/dashboard/summary-strip';
@@ -55,8 +56,8 @@ export default async function DashboardPage({
     <div className="production-overview space-y-8">
       <header className="overview-heading flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="eyebrow">
-            <T>{'Jaraa Global / Production control'}</T>
+          <p className="text-foreground text-lg font-medium">
+            <Greeting name={session.name} />
           </p>
           <h1 className="overview-title mt-3">
             <T>{'Production overview'}</T>

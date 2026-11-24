@@ -66,8 +66,9 @@ export async function createUser(
           role: input.role,
           departmentId,
           passwordHash,
-          // FR-03: the temporary password is good for exactly one sign-in.
-          mustChangePassword: true,
+          // The organisation owns passwords: the one issued here is the one
+          // the person keeps. Nobody is sent to change it.
+          mustChangePassword: false,
         },
         select: USER_SELECT,
       });

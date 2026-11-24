@@ -64,7 +64,8 @@ describe('createUser', () => {
     );
 
     expect(temporaryPassword).toHaveLength(16);
-    expect(user.mustChangePassword).toBe(true);
+    // Organisation-owned passwords: the issued one is kept, never forced to change.
+    expect(user.mustChangePassword).toBe(false);
     expect(user.departmentName).toBe('Production');
 
     const row = await testDb.user.findUniqueOrThrow({ where: { id: user.id } });
@@ -194,8 +195,8 @@ describe('acceptance: a created member signs in and is forced to change password
     );
 
     expect(session.user.id).toBe(user.id);
-    // FR-03: the client redirects on this rather than deciding for itself.
-    expect(session.user.mustChangePassword).toBe(true);
+    // Organisation-owned passwords: nobody is sent to change theirs.
+    expect(session.user.mustChangePassword).toBe(false);
 
     expect(await auditActionsFor(user.id)).toContain('LOGIN_SUCCESS');
   });
@@ -623,12 +624,12 @@ describe('resetPassword', () => {
       login({ email: member.email, password: member.password, rememberDevice: false }, ctx),
     ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
 
-    // …the new one works and forces a change…
+    // …the new one works and is kept as the account's password…
     const session = await login(
       { email: member.email, password: temporaryPassword, rememberDevice: false },
       ctx,
     );
-    expect(session.user.mustChangePassword).toBe(true);
+    expect(session.user.mustChangePassword).toBe(false);
 
     // …and the session that existed before the reset was revoked.
     const revoked = await testDb.refreshToken.count({
@@ -664,7 +665,7 @@ describe('resetPassword', () => {
     const serialised = JSON.stringify(entry);
     expect(serialised).not.toContain(temporaryPassword);
     expect(serialised).not.toMatch(/\$2[aby]\$/);
-    expect(entry.after).toMatchObject({ mustChangePassword: true, sessionsRevoked: true });
+    expect(entry.after).toMatchObject({ mustChangePassword: false, sessionsRevoked: true });
   });
 
   it('refuses to reset a deactivated account', async () => {

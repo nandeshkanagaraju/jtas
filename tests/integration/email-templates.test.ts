@@ -84,7 +84,9 @@ describe('a 15-minute lead', () => {
     expect(text).not.toMatch(/0 hours/);
 
     expect(text).toMatchInlineSnapshot(`
-      "You have a new task
+      "JTAS
+
+      You have a new task
 
       Dear Ravi Kumar,
 
@@ -101,8 +103,6 @@ describe('a 15-minute lead', () => {
       so the Managing Director can act on it.
 
       Open the task http://localhost:3000/tasks/sub-demo-1
-
-      ----------------------------------------
 
       JTAS — Jaraa Task & Accountability System
       Jaraa Global Engineering Pvt Ltd. This is an automated

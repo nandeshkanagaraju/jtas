@@ -79,7 +79,7 @@ export function TemporaryPasswordDialog({
                   'Only an encrypted form is stored, so this password cannot be shown again. Copy it now and hand it over. If it is lost, reset the password to issue a new one. '
                 }
               </T>
-              {userName} <T>{'must change it at first sign-in. '}</T>
+              {userName} <T>{'keeps this password and cannot change it. '}</T>
             </AlertDescription>
           </Alert>
         </div>

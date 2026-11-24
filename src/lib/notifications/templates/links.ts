@@ -31,3 +31,8 @@ export function myTasksLink(): string {
 export function dashboardLink(): string {
   return `${base()}/dashboard`;
 }
+
+/** The Jaraa logo every mail carries in its header. Served from `public/brand`. */
+export function logoUrl(): string {
+  return `${base()}/brand/jaraa-logo.png`;
+}

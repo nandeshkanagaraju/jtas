@@ -25,6 +25,7 @@ next-env.d.ts
 
 # one-time seeded credentials — plain-text temporary passwords
 .seed-credentials.txt
+.department-credentials.txt
 
 # digest of the app image the server was running before the last deploy
 .deploy/

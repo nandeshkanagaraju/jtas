@@ -30,6 +30,7 @@
     "db:studio": "prisma studio",
     "db:reset": "pnpm preflight && tsx --env-file-if-exists=.env scripts/db-reset.ts",
     "user:rename-email": "pnpm preflight && tsx --env-file-if-exists=.env scripts/rename-user-email.ts",
+    "users:provision-departments": "pnpm preflight && tsx --env-file-if-exists=.env scripts/provision-department-accounts.ts",
     "user:reset-password": "tsx --env-file-if-exists=.env scripts/reset-password.ts",
     "suppress-escalation": "pnpm preflight && tsx --env-file-if-exists=.env scripts/suppress-escalation.ts",
     "explain:subtask": "pnpm preflight && tsx --env-file-if-exists=.env scripts/explain-subtask.ts",

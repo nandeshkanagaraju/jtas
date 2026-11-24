@@ -22,6 +22,7 @@ export default async function MyTasksPage() {
 
   return (
     <MyTasksScreen
+      userName={session.name}
       initial={{
         ...result,
         now: result.now.toISOString(),

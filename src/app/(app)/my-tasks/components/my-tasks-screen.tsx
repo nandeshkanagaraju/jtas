@@ -11,6 +11,7 @@ import { changeSubtaskStatusRequest } from '@/lib/api/subtasks-client';
 import { fetchMyTasks, type MyTaskDto, type MyTasksDto } from '@/lib/api/my-tasks-client';
 import { BUCKET_ORDER, type BucketName } from '@/lib/domain/task-buckets';
 import { cn } from '@/lib/utils';
+import { Greeting } from '@/components/shared/greeting';
 import { usePhoneApp } from '@/components/shared/phone-app';
 import { formatIST } from '@/lib/utils/time';
 
@@ -49,7 +50,7 @@ const EMPTY_STATES: Record<BucketName, string> = {
   recentlyCompleted: 'Nothing finished this week.',
 };
 
-export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
+export function MyTasksScreen({ initial, userName }: { initial: MyTasksDto; userName: string }) {
   const [data, setData] = useState<MyTasksDto>(initial);
   const phone = usePhoneApp();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -147,7 +148,7 @@ export function MyTasksScreen({ initial }: { initial: MyTasksDto }) {
       <header className="page-heading">
         <p className="eyebrow">{today}</p>
         <h1 className="page-title mt-1">
-          <T>{'My work'}</T>
+          <Greeting name={userName} />
         </h1>
         <p className="mt-2 text-base font-medium">{standing(data.summary)}</p>
         {phone ? (

@@ -176,7 +176,8 @@ export interface PasswordResetResult {
 /**
  * Issues a new temporary password (FR-03).
  *
- * Clears any lockout, forces a change at next sign-in, and revokes every
+ * Clears any lockout, keeps the new password as the account's password (the
+ * organisation owns passwords; nobody changes their own), and revokes every
  * existing session — an administrator resets a password precisely when they
  * suspect the old one is compromised, so leaving live sessions running would
  * defeat the point.
@@ -206,7 +207,7 @@ export async function resetPassword(
       where: { id: userId },
       data: {
         passwordHash,
-        mustChangePassword: true,
+        mustChangePassword: false,
         failedLoginCount: 0,
         lockedUntil: null,
       },
@@ -225,7 +226,7 @@ export async function resetPassword(
       entityId: userId,
       // No password material on either side — only the flags that changed.
       before: { mustChangePassword: before.mustChangePassword, lockedUntil: before.lockedUntil },
-      after: { mustChangePassword: true, lockedUntil: null, sessionsRevoked: true },
+      after: { mustChangePassword: false, lockedUntil: null, sessionsRevoked: true },
       ipAddress: ctx.ipAddress,
     });
 

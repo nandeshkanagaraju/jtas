@@ -237,6 +237,66 @@ export async function resetPassword(
 }
 
 /**
+ * Sets an account's password to a value the developer chose.
+ *
+ * Same effects as `resetPassword` (lockout cleared, every session revoked,
+ * audited without password material) except the password is supplied rather
+ * than generated. The caller checks `canSetAnyPassword` and the password policy.
+ *
+ * @throws {AppError} `NOT_FOUND`, `CONFLICT`
+ */
+export async function setPassword(
+  userId: string,
+  password: string,
+  actor: Actor,
+  ctx: RequestContext,
+): Promise<UserSummary> {
+  const before = await prisma.user.findUnique({ where: { id: userId }, select: USER_SELECT });
+  if (!before) throw notFound('User');
+
+  if (!before.isActive) {
+    throw conflict(
+      `${before.name} is deactivated. Reactivate the account before setting its password.`,
+      { reason: 'INACTIVE_USER' },
+    );
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: false, failedLoginCount: 0, lockedUntil: null },
+      select: USER_SELECT,
+    });
+
+    await tx.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    await writeAudit(tx, {
+      actorId: actor.id,
+      action: 'PASSWORD_RESET',
+      entityType: 'USER',
+      entityId: userId,
+      before: { mustChangePassword: before.mustChangePassword, lockedUntil: before.lockedUntil },
+      after: {
+        mustChangePassword: false,
+        lockedUntil: null,
+        sessionsRevoked: true,
+        setBy: 'developer',
+      },
+      ipAddress: ctx.ipAddress,
+    });
+
+    return user;
+  });
+
+  return toSummary(updated);
+}
+
+/**
  * Reactivates a previously deactivated user.
  *
  * The counterpart to `deactivateUser` — without it, "never hard-delete" would

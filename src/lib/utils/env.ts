@@ -43,6 +43,12 @@ const envSchema = z.object({
    * never normalising a plus-tag lives in one place with its tests.
    */
   MAIL_ALLOWLIST: z.string().optional(),
+
+  /**
+   * Comma-separated sign-in emails of the developers. A developer may change
+   * their own password and set any account's password; see `lib/auth/developer`.
+   */
+  DEVELOPER_EMAILS: z.string().optional(),
   /** Daily send ceiling. Defaults to 250, under Brevo's free 300. */
   MAIL_DAILY_CAP: z.coerce.number().int().positive().default(250),
 

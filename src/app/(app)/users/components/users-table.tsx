@@ -2,7 +2,7 @@
 
 import { T } from '@/lib/i18n/provider';
 
-import { KeyRound, Pencil, Undo2, Users, UserX } from 'lucide-react';
+import { KeyRound, LockKeyhole, Pencil, Undo2, Users, UserX } from 'lucide-react';
 
 import { Panel } from '@/components/shared/panel';
 import { EmptyState, TableSkeleton } from '@/components/shared/states';
@@ -35,6 +35,7 @@ export function UsersTable({
   busyId,
   onEdit,
   onResetPassword,
+  onSetPassword,
   onDeactivate,
   onReactivate,
 }: {
@@ -44,6 +45,8 @@ export function UsersTable({
   busyId: string | null;
   onEdit: (user: UserRow) => void;
   onResetPassword: (user: UserRow) => void;
+  /** Developer only; omitted for everyone else. */
+  onSetPassword?: (user: UserRow) => void;
   onDeactivate: (user: UserRow) => void;
   onReactivate: (user: UserRow) => void;
 }) {
@@ -165,6 +168,17 @@ export function UsersTable({
                       >
                         <KeyRound className="size-4" />
                       </Button>
+                      {onSetPassword ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Set password for ${user.name}`}
+                          disabled={busyId === user.id}
+                          onClick={() => onSetPassword(user)}
+                        >
+                          <LockKeyhole className="size-4" />
+                        </Button>
+                      ) : null}
                       <Button
                         variant="ghost"
                         size="icon"

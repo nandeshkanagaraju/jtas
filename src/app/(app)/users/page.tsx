@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { forbidden } from 'next/navigation';
 
+import { canSetAnyPassword } from '@/lib/auth/developer';
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
 import { listDepartments } from '@/lib/services/department-service';
@@ -26,6 +27,10 @@ export default async function UsersPage() {
   const departments = await listDepartments();
 
   return (
-    <UsersScreen departments={departments} currentUser={{ id: session.id, role: session.role }} />
+    <UsersScreen
+      departments={departments}
+      currentUser={{ id: session.id, role: session.role }}
+      canSetPasswords={canSetAnyPassword(session)}
+    />
   );
 }

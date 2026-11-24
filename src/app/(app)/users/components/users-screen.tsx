@@ -24,6 +24,7 @@ import type { DepartmentSummary } from '@/lib/services/department-service';
 import type { CreateUserInput } from '@/lib/validation/user';
 
 import { DeactivateDialog } from './deactivate-dialog';
+import { SetPasswordDialog } from './set-password-dialog';
 import { TemporaryPasswordDialog } from './temporary-password-dialog';
 import { UserFormDialog } from './user-form-dialog';
 import { ALL, UsersFilters, type UserFilters } from './users-filters';
@@ -50,9 +51,12 @@ const INITIAL_FILTERS: UserFilters = {
 export function UsersScreen({
   departments,
   currentUser,
+  canSetPasswords = false,
 }: {
   departments: DepartmentSummary[];
   currentUser: { id: string; role: Role };
+  /** Developer only: shows "Set password" on every active account. */
+  canSetPasswords?: boolean;
 }) {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -67,6 +71,8 @@ export function UsersScreen({
   const [secret, setSecret] = useState<SecretState | null>(null);
   const [deactivating, setDeactivating] = useState<UserRow | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [settingPassword, setSettingPassword] = useState<UserRow | null>(null);
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
 
   // Typing should not fire a request per keystroke on a 4G connection; 300 ms
   // is below the point where it starts to feel laggy.
@@ -227,6 +233,7 @@ export function UsersScreen({
             'Could not reset the password.',
           )
         }
+        onSetPassword={canSetPasswords ? setSettingPassword : undefined}
         onReactivate={(user) =>
           run(
             user,
@@ -234,6 +241,23 @@ export function UsersScreen({
             'Could not reactivate.',
           )
         }
+      />
+
+      {passwordNotice ? (
+        <p role="status" className="text-muted-foreground text-sm">
+          {passwordNotice}
+        </p>
+      ) : null}
+
+      <SetPasswordDialog
+        user={settingPassword}
+        onOpenChange={(open) => {
+          if (!open) setSettingPassword(null);
+        }}
+        onDone={(user) => {
+          setSettingPassword(null);
+          setPasswordNotice(`Password set for ${user.name}. They have been signed out everywhere.`);
+        }}
       />
 
       <UserFormDialog

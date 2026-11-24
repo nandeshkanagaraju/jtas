@@ -3,15 +3,17 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
+import { canChangeOwnPassword } from '@/lib/auth/developer';
 import { getSession } from '@/lib/auth/session';
 import { T } from '@/lib/i18n/provider';
+
+import { ChangePasswordForm } from './change-password-form';
 
 export const metadata: Metadata = { title: 'Password' };
 
 /**
- * Passwords are set by the organisation and nobody changes their own, so this
- * page only explains that. The old form lives on in `change-password-form.tsx`
- * should self-service ever be reopened (see the API route).
+ * Passwords are set by the organisation. The Managing Director and a developer
+ * may change their own here; everyone else is told to ask the administrator.
  */
 export default async function ChangePasswordPage() {
   const session = await getSession();
@@ -19,6 +21,16 @@ export default async function ChangePasswordPage() {
   // Middleware normally handles this; the check is repeated because a page must
   // never depend on middleware for access control (architecture rule 3).
   if (!session) redirect('/login');
+
+  if (canChangeOwnPassword(session)) {
+    return (
+      <ChangePasswordForm
+        forced={session.mustChangePassword}
+        role={session.role}
+        email={session.email}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">

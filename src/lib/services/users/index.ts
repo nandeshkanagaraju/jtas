@@ -12,6 +12,7 @@ export {
   deactivateUser,
   reactivateUser,
   resetPassword,
+  setPassword,
   type DeactivationResult,
   type PasswordResetResult,
 } from './lifecycle';

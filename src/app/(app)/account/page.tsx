@@ -3,11 +3,14 @@ import { LanguageSelector } from '@/lib/i18n/provider';
 import { PushSettings } from '@/components/shared/push-settings';
 import { Fingerprint } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { PageHeader } from '@/components/shared/page-header';
 import { AppInstallPanel } from '@/components/shared/app-install';
 import { Panel } from '@/components/shared/panel';
 import { ThemeToggle } from '@/components/shared/theme';
+import { Button } from '@/components/ui/button';
+import { canChangeOwnPassword } from '@/lib/auth/developer';
 import { requireActiveSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 
@@ -41,6 +44,18 @@ export default async function AccountPage() {
 
       <div className="workspace-columns">
         <AppInstallPanel />
+        {canChangeOwnPassword(session) ? (
+          <Panel
+            title={<T>{'Password'}</T>}
+            description={<T>{'Change the password you sign in with.'}</T>}
+          >
+            <Button asChild variant="outline">
+              <Link href="/change-password">
+                <T>{'Change password'}</T>
+              </Link>
+            </Button>
+          </Panel>
+        ) : null}
         <Panel
           title={<T>{'Language'}</T>}
           description={<T>{'Choose the language for this browser or installed app.'}</T>}

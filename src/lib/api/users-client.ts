@@ -79,3 +79,8 @@ export function resetPasswordRequest(
 ): Promise<{ user: UserRow; temporaryPassword: string }> {
   return apiPost(`/api/users/${id}/reset-password`, {});
 }
+
+/** Developer only: set an account's password to a chosen value. */
+export function setPasswordRequest(id: string, password: string): Promise<{ user: UserRow }> {
+  return apiPost(`/api/users/${id}/set-password`, { password });
+}

@@ -171,6 +171,36 @@ export function UsersScreen({
         </Toolbar>
       </PageHeader>
 
+      {currentUser.role === 'ADMIN' && departments.length > 0 ? (
+        <section className="desktop-directory-departments" aria-labelledby="directory-departments">
+          <h2 id="directory-departments" className="section-title">
+            <T>{'Browse by department'}</T>
+          </h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {departments.map((department) => {
+              const selected = filters.departmentId === department.id;
+              return (
+                <Button
+                  key={department.id}
+                  type="button"
+                  variant={selected ? 'secondary' : 'outline'}
+                  size="sm"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    setFilters((current) => ({
+                      ...current,
+                      departmentId: selected ? ALL : department.id,
+                    }))
+                  }
+                >
+                  <T>{department.name}</T>
+                </Button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       {loadError ? <ErrorState message={loadError} onRetry={() => void load()} /> : null}
 
       <UsersTable

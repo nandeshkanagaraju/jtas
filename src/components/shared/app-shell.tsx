@@ -54,6 +54,8 @@ export function AppShell({
   const phone = usePhoneApp();
   const primary = sortPrimary(nav.filter((item) => !ADMIN_HREFS.has(item.href)));
   const admin = nav.filter((item) => ADMIN_HREFS.has(item.href));
+  const myWork = role === 'MEMBER' ? primary.find((item) => item.href === '/my-tasks') : undefined;
+  const desktopPrimary = myWork ? [myWork, ...primary.filter((item) => item !== myWork)] : primary;
   const tabOrder =
     role === 'MD' || role === 'DEPUTY_MD'
       ? ['/dashboard', '/jobs', '/problems', '/updates']
@@ -74,7 +76,9 @@ export function AppShell({
     (href === '/my-tasks' && pathname.startsWith('/tasks/'));
 
   function navLink(item: NavItem, mobile = false) {
-    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const active = mobile
+      ? pathname === item.href || pathname.startsWith(`${item.href}/`)
+      : currentTab(item.href);
     const Icon = NAV_ICONS[item.icon];
     return (
       <Link
@@ -168,7 +172,7 @@ export function AppShell({
               className="shell-width hidden min-h-[54px] items-stretch justify-between gap-4 lg:flex"
             >
               <div className="flex flex-wrap items-stretch gap-1 lg:gap-4">
-                {primary.map((item) => navLink(item))}
+                {desktopPrimary.map((item) => navLink(item))}
               </div>
               {admin.length > 0 ? (
                 <div className="flex flex-wrap items-stretch gap-1 border-l pl-4 lg:gap-3">

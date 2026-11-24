@@ -38,9 +38,11 @@ const PAGE_SIZE = 25;
 export function JobsScreen({
   departments,
   canCreate,
+  initialStatus,
 }: {
   departments: DepartmentSummary[];
   canCreate: boolean;
+  initialStatus?: JobFilters['status'];
 }) {
   const [view, setView] = useState<'list' | 'grid'>('grid');
   const [rows, setRows] = useState<JobRowDto[]>([]);
@@ -50,7 +52,7 @@ export function JobsScreen({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<JobFilters>(INITIAL);
+  const [filters, setFilters] = useState<JobFilters>({ ...INITIAL, status: initialStatus ?? ALL });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [relays, setRelays] = useState<Record<string, RelayStation[] | null>>({});
 
@@ -169,9 +171,30 @@ export function JobsScreen({
   }, [debouncedSearch, filters.status, filters.priority, filters.departmentId, departments]);
 
   const filtered = active.length > 0;
+  const layoutToggle = (
+    <LocalizedElement
+      as="div"
+      role="group"
+      aria-label="Job layout"
+      className="border-border bg-card inline-flex gap-1 rounded-lg border p-1"
+    >
+      {(['list', 'grid'] as const).map((mode) => (
+        <Button
+          key={mode}
+          variant={view === mode ? 'secondary' : 'ghost'}
+          size="icon-sm"
+          aria-label={`${mode === 'list' ? 'List' : 'Card'} view`}
+          aria-pressed={view === mode}
+          onClick={() => setView(mode)}
+        >
+          {mode === 'list' ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
+        </Button>
+      ))}
+    </LocalizedElement>
+  );
 
   return (
-    <div className="space-y-5">
+    <div className="job-register space-y-5">
       <PageHeader
         eyebrow={<T>{'Production / Job register'}</T>}
         title={<T>{'Production'}</T>}
@@ -192,12 +215,13 @@ export function JobsScreen({
           hint={filtered ? `${active.length} filters applied` : 'Find a job or narrow the register'}
         >
           <div className="space-y-3">
-            <Toolbar label="Filter jobs">
+            <Toolbar className="desktop-register-toolbar" label="Filter jobs">
               <JobsFilters
                 filters={filters}
                 departments={departments}
                 onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
               />
+              <div className="hidden lg:block">{layoutToggle}</div>
             </Toolbar>
             <ActiveFilters
               filters={active}
@@ -216,29 +240,11 @@ export function JobsScreen({
         </PhoneDisclosure>
       </PageHeader>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 lg:hidden">
         <h2 className="section-title">
           <T>{'All jobs'}</T>
         </h2>
-        <LocalizedElement
-          as="div"
-          role="group"
-          aria-label="Job layout"
-          className="border-border bg-card inline-flex gap-1 rounded-lg border p-1"
-        >
-          {(['list', 'grid'] as const).map((mode) => (
-            <Button
-              key={mode}
-              variant={view === mode ? 'secondary' : 'ghost'}
-              size="icon-sm"
-              aria-label={`${mode === 'list' ? 'List' : 'Card'} view`}
-              aria-pressed={view === mode}
-              onClick={() => setView(mode)}
-            >
-              {mode === 'list' ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
-            </Button>
-          ))}
-        </LocalizedElement>
+        {layoutToggle}
       </div>
       <Panel
         flush
@@ -279,7 +285,13 @@ export function JobsScreen({
             }
           />
         ) : (
-          <ol className={view === 'grid' ? 'grid gap-4 lg:grid-cols-2 2xl:grid-cols-3' : undefined}>
+          <ol
+            className={
+              view === 'grid'
+                ? 'job-register-grid grid gap-4 lg:grid-cols-2 2xl:grid-cols-3'
+                : undefined
+            }
+          >
             {rows.map((job) => (
               <li
                 key={job.id}
@@ -341,7 +353,7 @@ function JobRow({
         job.hasOverdueSubtask && 'border-l-late border-l-[3px]',
       )}
     >
-      <div className="min-w-0 xl:flex-1">
+      <div className="job-register-identity min-w-0 xl:flex-1">
         <span className="code text-muted-foreground block text-xs">{job.jobCode}</span>
         <span className="mt-1 block text-base font-medium">{job.title}</span>
         <span className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
@@ -349,14 +361,14 @@ function JobRow({
           {job.partNumber ? <span className="code">{job.partNumber}</span> : null}
           <PriorityBadge priority={job.priority} />
           {job.progress.total > 0 ? (
-            <span className="code">
+            <span className="code job-register-inline-progress">
               {job.progress.completed}/{job.progress.total}
             </span>
           ) : null}
         </span>
       </div>
 
-      <div className={cn('block shrink-0', card ? 'w-full' : 'w-full xl:w-64')}>
+      <div className={cn('job-register-route block shrink-0', card ? 'w-full' : 'w-full xl:w-64')}>
         {stations === undefined ? (
           <Skeleton className="h-2 w-40" />
         ) : stations && stations.length > 0 ? (
@@ -373,7 +385,14 @@ function JobRow({
         )}
       >
         <DeadlineCell deadline={job.overallDeadline} completedAt={job.completedAt} />
-        <span className="flex shrink-0 flex-col items-end gap-1 xl:w-28 xl:items-start">
+        {card && job.progress.total > 0 ? (
+          <span className="job-register-footer-progress text-muted-foreground">
+            <T values={{ completed: job.progress.completed, total: job.progress.total }}>
+              {'{{completed}} of {{total}} complete'}
+            </T>
+          </span>
+        ) : null}
+        <span className="job-register-status flex shrink-0 flex-col items-end gap-1 xl:w-28 xl:items-start">
           <JobStatusBadge status={job.status} />
           {job.hasOverdueSubtask ? (
             <span className="text-late text-xs font-medium">
@@ -383,7 +402,7 @@ function JobRow({
         </span>
       </div>
       <ArrowUpRight
-        className="text-muted-foreground group-hover:text-action hidden size-4 shrink-0 xl:block"
+        className="job-register-open text-muted-foreground group-hover:text-action hidden size-4 shrink-0 xl:block"
         aria-hidden
       />
     </Link>

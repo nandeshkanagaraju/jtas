@@ -54,7 +54,7 @@ export function QuickNavigation({
         className={
           mobile
             ? 'bg-muted text-foreground inline-flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted hidden min-h-10 items-center gap-2 rounded-lg px-3 text-sm transition-colors sm:inline-flex'
+            : 'desktop-quick-navigation text-muted-foreground hover:text-foreground hover:bg-muted hidden min-h-10 items-center gap-2 rounded-lg px-3 text-sm transition-colors sm:inline-flex'
         }
       >
         <Search className="size-4" />

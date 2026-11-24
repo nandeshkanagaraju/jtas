@@ -28,11 +28,13 @@ export function Triage({
   overdue,
   atRisk,
   relays,
+  performance,
 }: {
   problems: AttentionProblem[];
   overdue: AttentionSubtask[];
   atRisk: JobAtRisk[];
   relays: Record<string, RelayStation[]>;
+  performance: React.ReactNode;
 }) {
   const seen = new Set<string>();
   const items: Item[] = [];
@@ -51,8 +53,10 @@ export function Triage({
   const [first, ...rest] = items;
 
   return (
-    <div className="phone-triage space-y-8">
-      {first ? <Hero item={first} stations={stationsFor(first, relays)} /> : <Clear />}
+    <div id="overview-triage" className="phone-triage scroll-mt-36 space-y-8">
+      <div className="overview-priority">
+        {first ? <Hero item={first} stations={stationsFor(first, relays)} /> : <Clear />}
+      </div>
       <section
         aria-labelledby="action-register-heading"
         className="phone-action-register product-panel border-border bg-card border"
@@ -93,6 +97,7 @@ export function Triage({
           </PhoneQueue>
         )}
       </section>
+      <div className="overview-performance">{performance}</div>
     </div>
   );
 }

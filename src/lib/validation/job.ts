@@ -90,8 +90,10 @@ export const jobReasonSchema = z.object({
 
 export type JobReasonInput = z.infer<typeof jobReasonSchema>;
 
+export const jobListStatusSchema = jobStatusSchema.or(z.literal('active'));
+
 export const listJobsQuerySchema = paginationSchema.merge(searchSchema).extend({
-  status: jobStatusSchema.optional(),
+  status: jobListStatusSchema.optional(),
   priority: prioritySchema.optional(),
   /** Jobs with at least one subtask owned by this department. */
   departmentId: z.string().min(1).optional(),

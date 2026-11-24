@@ -1,5 +1,14 @@
 import { T } from '@/lib/i18n/provider';
 import Link from 'next/link';
+import {
+  BriefcaseBusiness,
+  CalendarClock,
+  CircleCheck,
+  Clock3,
+  Flag,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { textClass, type Tone } from '@/lib/ui/tone';
@@ -9,6 +18,7 @@ interface Cell {
   href: string;
   label: string;
   value: number;
+  icon: LucideIcon;
   /** Omitted where a non-zero count is simply information, not a warning. */
   tone?: Tone;
   note?: string;
@@ -17,25 +27,39 @@ interface Cell {
 
 export function SummaryStrip({ kpis }: { kpis: KpiCounts }) {
   const cells: Cell[] = [
-    { href: '/jobs?status=active', label: 'Active jobs', value: kpis.activeJobs },
-    { href: '/jobs?status=AT_RISK', label: 'At risk', value: kpis.atRiskJobs, tone: 'risk' },
+    {
+      href: '/jobs?status=active',
+      label: 'Active jobs',
+      value: kpis.activeJobs,
+      icon: BriefcaseBusiness,
+    },
+    {
+      href: '/jobs?status=AT_RISK',
+      label: 'At risk',
+      value: kpis.atRiskJobs,
+      tone: 'risk',
+      icon: TriangleAlert,
+    },
     {
       href: '/jobs?status=DELAYED',
       label: 'Behind schedule',
       value: kpis.delayedJobs,
       tone: 'late',
+      icon: CalendarClock,
     },
     {
-      href: '/jobs?filter=overdue',
+      href: '/dashboard#overview-triage',
       label: 'Past-due tasks',
       value: kpis.overdueSubtasks,
       tone: 'late',
+      icon: Clock3,
     },
     {
       href: '/problems',
       label: 'Decisions pending',
       value: kpis.openProblems,
       tone: 'late',
+      icon: Flag,
       note:
         kpis.openProblemsOlderThan24h > 0 ? `${kpis.openProblemsOlderThan24h} over 24h` : undefined,
     },
@@ -44,6 +68,7 @@ export function SummaryStrip({ kpis }: { kpis: KpiCounts }) {
       label: 'Completed',
       value: kpis.completedThisMonth,
       tone: 'ok',
+      icon: CircleCheck,
       scope: 'in range',
     },
   ];
@@ -52,6 +77,9 @@ export function SummaryStrip({ kpis }: { kpis: KpiCounts }) {
     <div className="pulse-strip">
       {cells.map((cell) => (
         <Link key={cell.href} href={cell.href} className="pulse-cell">
+          <span className="desktop-pulse-icon" data-tone={cell.tone} aria-hidden="true">
+            <cell.icon className="size-4" />
+          </span>
           <p className="flex items-baseline gap-1.5">
             <span className="text-muted-foreground text-xs">
               <T>{cell.label}</T>

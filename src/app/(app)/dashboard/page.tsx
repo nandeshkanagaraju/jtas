@@ -65,7 +65,7 @@ export default async function DashboardPage({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-muted-foreground mr-2 inline-flex items-center gap-2 text-xs">
+          <span className="overview-date text-muted-foreground mr-2 inline-flex items-center gap-2 text-xs">
             <CalendarDays className="size-4" />
             {formatIST(new Date(), 'dd MMM yyyy')}
           </span>
@@ -91,26 +91,31 @@ export default async function DashboardPage({
         overdue={data.attention.overdueSubtasks}
         atRisk={data.jobsAtRisk}
         relays={relays}
-      />
-
-      <PhoneDisclosure title="Delivery performance">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow">
-                <T>{'Performance review'}</T>
-              </p>
-              <h2 className="section-title mt-1">
-                <T>{'Delivery, measured.'}</T>
-              </h2>
+        performance={
+          <PhoneDisclosure title="Delivery performance">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="eyebrow">
+                    <T>{'Performance review'}</T>
+                  </p>
+                  <h2 className="section-title mt-1">
+                    <T>{'Delivery, measured.'}</T>
+                  </h2>
+                </div>
+                <Suspense fallback={<Skeleton className="h-14 w-72" />}>
+                  <RangePicker from={data.range.from} to={data.range.to} plain />
+                </Suspense>
+              </div>
+              <OnTimeTrend
+                trend={data.trend}
+                summary={onTime}
+                selectedRate={data.onTimeCompletionPercent}
+              />
             </div>
-            <Suspense fallback={<Skeleton className="h-14 w-72" />}>
-              <RangePicker from={data.range.from} to={data.range.to} plain />
-            </Suspense>
-          </div>
-          <OnTimeTrend trend={data.trend} summary={onTime} />
-        </div>
-      </PhoneDisclosure>
+          </PhoneDisclosure>
+        }
+      />
     </div>
   );
 }

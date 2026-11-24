@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { requireActiveSession } from '@/lib/auth/session';
+import { prisma } from '@/lib/db/prisma';
 import { getMyTasks } from '@/lib/services/my-tasks-service';
 
 import { MyTasksScreen } from './components/my-tasks-screen';
@@ -18,11 +19,20 @@ export const dynamic = 'force-dynamic';
  */
 export default async function MyTasksPage() {
   const session = await requireActiveSession();
-  const result = await getMyTasks(session.id);
+  const [result, department] = await Promise.all([
+    getMyTasks(session.id),
+    session.role === 'MEMBER' && session.departmentId
+      ? prisma.department.findUnique({
+          where: { id: session.departmentId },
+          select: { id: true, name: true },
+        })
+      : null,
+  ]);
 
   return (
     <MyTasksScreen
       userName={session.name}
+      department={department}
       initial={{
         ...result,
         now: result.now.toISOString(),

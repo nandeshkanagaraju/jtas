@@ -2,6 +2,15 @@
 
 import { T } from '@/lib/i18n/provider';
 
+import {
+  CalendarDays,
+  CalendarRange,
+  CircleCheck,
+  ClipboardCheck,
+  Clock3,
+  GitPullRequest,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Fragment, useState } from 'react';
 
@@ -22,13 +31,18 @@ type ActionHandler = (
   payload?: { note: string; severity: Severity },
 ) => void;
 
-const TILES: Array<{ name: BucketName; label: string; tone?: 'late' | 'risk' | 'info' }> = [
-  { name: 'overdue', label: 'Overdue', tone: 'late' },
-  { name: 'dueToday', label: 'Due today', tone: 'risk' },
-  { name: 'dueThisWeek', label: 'This week' },
-  { name: 'blocked', label: 'Blocked' },
-  { name: 'awaitingApproval', label: 'With the MD', tone: 'info' },
-  { name: 'recentlyCompleted', label: 'Done' },
+const TILES: Array<{
+  name: BucketName;
+  label: string;
+  icon: LucideIcon;
+  tone?: 'late' | 'risk' | 'info' | 'ok';
+}> = [
+  { name: 'overdue', label: 'Overdue', icon: Clock3, tone: 'late' },
+  { name: 'dueToday', label: 'Due today', icon: CalendarDays, tone: 'risk' },
+  { name: 'dueThisWeek', label: 'This week', icon: CalendarRange },
+  { name: 'blocked', label: 'Blocked', icon: GitPullRequest },
+  { name: 'awaitingApproval', label: 'With the MD', icon: ClipboardCheck, tone: 'info' },
+  { name: 'recentlyCompleted', label: 'Done', icon: CircleCheck, tone: 'ok' },
 ];
 
 /**
@@ -38,10 +52,12 @@ const TILES: Array<{ name: BucketName; label: string; tone?: 'late' | 'risk' | '
  */
 export function DesktopTaskTable({
   data,
+  departmentId,
   busyId,
   onAction,
 }: {
   data: MyTasksDto;
+  departmentId?: string;
   busyId: string | null;
   onAction: ActionHandler;
 }) {
@@ -51,6 +67,15 @@ export function DesktopTaskTable({
   const rows = BUCKET_ORDER.filter((name) => !filter || name === filter).flatMap((name) =>
     data.buckets[name].map((task) => ({ task, section: name })),
   );
+  const next = departmentId
+    ? data.buckets.overdue
+        .concat(data.buckets.dueToday, data.buckets.dueThisWeek, data.buckets.later)
+        .find(
+          (task) =>
+            task.department.id === departmentId &&
+            (task.status === 'PENDING' || task.status === 'IN_PROGRESS'),
+        )
+    : undefined;
 
   return (
     <>
@@ -66,6 +91,9 @@ export function DesktopTaskTable({
               onClick={() => setFilter(active ? null : tile.name)}
               className={cn('pulse-cell text-left', active && 'bg-card')}
             >
+              <span className="desktop-pulse-icon" data-tone={tile.tone} aria-hidden="true">
+                <tile.icon className="size-4" />
+              </span>
               <span
                 className={cn(
                   'text-xs',
@@ -86,6 +114,26 @@ export function DesktopTaskTable({
           );
         })}
       </div>
+
+      {next ? (
+        <section className="desktop-next-task decision-hero" aria-labelledby="next-department-task">
+          <div className="min-w-0">
+            <p id="next-department-task" className="text-sm text-[#c4cebd]">
+              <T>{'Next assigned task'}</T>
+            </p>
+            <p className="section-title mt-2 break-words">{next.title}</p>
+            <p className="mt-2 text-sm text-[#c4cebd]">
+              {next.jobCode} · {next.jobTitle}
+              {next.deadline ? ` · ${formatIST(new Date(next.deadline), 'd MMM, h:mm a')}` : null}
+            </p>
+          </div>
+          <Button asChild className="shrink-0">
+            <Link href={`/tasks/${next.id}`}>
+              <T>{'Open task'}</T>
+            </Link>
+          </Button>
+        </section>
+      ) : null}
 
       <div className="border-border bg-card overflow-hidden rounded-lg border">
         <div className="border-border flex items-center justify-between gap-4 border-b px-5 py-3">

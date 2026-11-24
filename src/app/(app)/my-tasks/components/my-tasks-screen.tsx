@@ -50,7 +50,15 @@ const EMPTY_STATES: Record<BucketName, string> = {
   recentlyCompleted: 'Nothing finished this week.',
 };
 
-export function MyTasksScreen({ initial, userName }: { initial: MyTasksDto; userName: string }) {
+export function MyTasksScreen({
+  initial,
+  userName,
+  department,
+}: {
+  initial: MyTasksDto;
+  userName: string;
+  department: { id: string; name: string } | null;
+}) {
   const [data, setData] = useState<MyTasksDto>(initial);
   const phone = usePhoneApp();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -146,6 +154,11 @@ export function MyTasksScreen({ initial, userName }: { initial: MyTasksDto; user
   return (
     <div className="member-workspace w-full space-y-6">
       <header className="page-heading">
+        {department ? (
+          <p className="desktop-workspace-label eyebrow">
+            <T>{department.name}</T>
+          </p>
+        ) : null}
         <p className="eyebrow">{today}</p>
         <h1 className="page-title mt-1">
           <Greeting name={userName} />
@@ -189,7 +202,12 @@ export function MyTasksScreen({ initial, userName }: { initial: MyTasksDto; user
           onAction={act}
         />
       ) : (
-        <DesktopTaskTable data={data} busyId={busyId} onAction={act} />
+        <DesktopTaskTable
+          data={data}
+          departmentId={department?.id}
+          busyId={busyId}
+          onAction={act}
+        />
       )}
     </div>
   );

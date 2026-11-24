@@ -1559,3 +1559,232 @@ html:is(:lang(ta), :lang(hi)) .phone-app-tabs > :is(a, button) > span:last-child
   border-color: var(--late);
   background: var(--late-soft);
 }
+
+/* Desktop web workspace */
+.desktop-pulse-icon,
+.desktop-workspace-label,
+.desktop-next-task,
+.desktop-directory-departments,
+.overview-delivery-rate,
+.job-register-footer-progress {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .app-canvas:not([data-phone-app]) .desktop-quick-navigation {
+    border: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .app-canvas:not([data-phone-app]) .web-app-chrome .brand-symbol {
+    color: var(--ok);
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-date {
+    min-height: 2.5rem;
+    padding-inline: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+  }
+
+  .app-canvas:not([data-phone-app]) :is(.production-overview, .member-workspace) .pulse-strip {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.75rem;
+    border: 0;
+  }
+
+  .app-canvas:not([data-phone-app]) :is(.production-overview, .member-workspace) .pulse-cell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-content: start;
+    align-items: center;
+    column-gap: 0.7rem;
+    row-gap: 0.3rem;
+    padding: 1rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+  }
+
+  .app-canvas:not([data-phone-app]) .pulse-cell::before {
+    display: none;
+  }
+
+  .app-canvas:not([data-phone-app]) .pulse-cell:is(:hover, [aria-pressed='true']) {
+    border-color: var(--ring);
+  }
+
+  .app-canvas:not([data-phone-app]) .pulse-cell[aria-pressed='true'] {
+    background: var(--sidebar-active);
+  }
+
+  .app-canvas:not([data-phone-app]) .pulse-cell > :last-child {
+    grid-column: 2;
+    margin-top: 0;
+  }
+
+  .app-canvas:not([data-phone-app]) .desktop-pulse-icon {
+    display: grid;
+    grid-row: span 2;
+    place-items: center;
+    align-self: start;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    color: var(--pulse-icon-foreground, var(--muted-foreground));
+    background: var(--pulse-icon-background, var(--muted));
+  }
+
+  .desktop-pulse-icon[data-tone='late'] {
+    --pulse-icon-foreground: var(--late);
+    --pulse-icon-background: var(--late-soft);
+  }
+
+  .desktop-pulse-icon[data-tone='risk'] {
+    --pulse-icon-foreground: var(--risk);
+    --pulse-icon-background: var(--risk-soft);
+  }
+
+  .desktop-pulse-icon[data-tone='info'] {
+    --pulse-icon-foreground: var(--info);
+    --pulse-icon-background: var(--info-soft);
+  }
+
+  .desktop-pulse-icon[data-tone='ok'] {
+    --pulse-icon-foreground: var(--ok);
+    --pulse-icon-background: var(--ok-soft);
+  }
+
+  .app-canvas:not([data-phone-app]) .desktop-workspace-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--action);
+  }
+
+  .app-canvas:not([data-phone-app]) .desktop-next-task {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+
+  .app-canvas:not([data-phone-app]) .desktop-directory-departments,
+  .app-canvas:not([data-phone-app]) .desktop-register-toolbar {
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+  }
+
+  .app-canvas:not([data-phone-app]) .desktop-directory-departments {
+    display: block;
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-card {
+    position: relative;
+    border-radius: var(--radius);
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-card .job-register-identity {
+    flex: initial;
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-card .job-register-identity > :first-child {
+    padding-inline-end: 10rem;
+    overflow-wrap: anywhere;
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-card .job-register-route {
+    flex: 1;
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-card .job-register-timing {
+    margin-top: auto;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-card .job-register-status {
+    position: absolute;
+    inset-block-start: 1rem;
+    inset-inline-end: 1rem;
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-card .job-register-inline-progress,
+  .app-canvas:not([data-phone-app]) .job-register-card .job-register-open {
+    display: none;
+  }
+
+  .app-canvas:not([data-phone-app]) .job-register-footer-progress {
+    display: block;
+    font-size: 0.75rem;
+    text-align: end;
+  }
+}
+
+@media (min-width: 1280px) {
+  .app-canvas:not([data-phone-app]) .job-register-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-canvas:not([data-phone-app]) #overview-triage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .app-canvas:not([data-phone-app]) #overview-triage > * {
+    margin-block: 0;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-priority {
+    grid-column: 1 / -1;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-trend-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-trend-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.75rem;
+    border: 0;
+    padding: 0;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-trend-total > p:nth-child(2) {
+    margin-top: 0.5rem;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-trend-summary > dl {
+    margin: 0;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-trend-period {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding-top: 0.75rem;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-trend-chart {
+    height: 10rem;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-trend-chart[data-empty='true'] {
+    display: none;
+  }
+
+  .app-canvas:not([data-phone-app]) .overview-delivery-rate {
+    display: block;
+  }
+}

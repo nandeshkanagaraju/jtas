@@ -53,7 +53,12 @@ export function visibilityFilter(user: SessionUser): Prisma.JobWhereInput {
 function buildWhere(user: SessionUser, query: ListJobsQuery): Prisma.JobWhereInput {
   const filters: Prisma.JobWhereInput[] = [visibilityFilter(user)];
 
-  if (query.status) filters.push({ status: query.status });
+  if (query.status) {
+    filters.push({
+      status:
+        query.status === 'active' ? { in: ['IN_PROGRESS', 'AT_RISK', 'DELAYED'] } : query.status,
+    });
+  }
   if (query.priority) filters.push({ priority: query.priority });
   if (query.departmentId) {
     filters.push({ subtasks: { some: { departmentId: query.departmentId } } });

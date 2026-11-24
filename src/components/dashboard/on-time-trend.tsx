@@ -35,10 +35,12 @@ function shortDay(day: string): string {
 export function OnTimeTrend({
   trend,
   summary,
+  selectedRate,
 }: {
   trend: TrendPoint[];
   /** The on-time sentence for the selected range, shown above the chart. */
   summary: string;
+  selectedRate?: number | null;
 }) {
   const total = trend.reduce((sum, point) => sum + point.onTime + point.late, 0);
   const late = trend.reduce((sum, point) => sum + point.late, 0);
@@ -58,15 +60,17 @@ export function OnTimeTrend({
         </p>
       </div>
 
-      <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[15rem_1fr]">
-        <div className="flex flex-col border-b pb-6 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0">
-          <p className="eyebrow">
-            <T>{'Last 30 days'}</T>
-          </p>
-          <p className="mt-5 font-mono text-6xl tracking-[-.08em]">{total}</p>
-          <p className="text-muted-foreground mt-2 text-sm">
-            <T>{'department tasks completed'}</T>
-          </p>
+      <div className="overview-trend-body grid gap-6 p-5 sm:p-6 lg:grid-cols-[15rem_1fr]">
+        <div className="overview-trend-summary flex flex-col border-b pb-6 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0">
+          <div className="overview-trend-total">
+            <p className="eyebrow">
+              <T>{'Last 30 days'}</T>
+            </p>
+            <p className="mt-5 font-mono text-6xl tracking-[-.08em]">{total}</p>
+            <p className="text-muted-foreground mt-2 text-sm">
+              <T>{'department tasks completed'}</T>
+            </p>
+          </div>
           <dl className="mt-6 flex gap-6 text-xs">
             <div>
               <dt className="text-muted-foreground">
@@ -81,14 +85,23 @@ export function OnTimeTrend({
               <dd className="text-late mt-1 font-mono text-lg">{late}</dd>
             </div>
           </dl>
-          <p className="text-muted-foreground mt-6 border-t pt-4 text-xs leading-relaxed">
+          <p className="overview-trend-period text-muted-foreground mt-6 border-t pt-4 text-xs leading-relaxed">
             <span className="text-foreground mb-1 block font-medium">
               <T>{'Selected period'}</T>
             </span>
+            {selectedRate != null ? (
+              <span className="overview-delivery-rate text-ok metric mb-2" aria-hidden="true">
+                {selectedRate}%
+              </span>
+            ) : null}
             {summary}
           </p>
         </div>
-        <div className="h-64 w-full min-w-0" aria-hidden>
+        <div
+          className="overview-trend-chart h-64 w-full min-w-0"
+          data-empty={total === 0}
+          aria-hidden
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={trend} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
               <CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="3 5" />

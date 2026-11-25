@@ -69,6 +69,7 @@ export async function jobRows(
   filters: ReportFilters = {},
 ): Promise<JobRow[]> {
   const where: Prisma.JobWhereInput = {
+    deletedAt: null,
     createdAt: { gte: dateRange.from, lt: dateRange.until },
     ...(filters.status ? { status: filters.status as never } : {}),
     ...(filters.departmentId ? { subtasks: { some: { departmentId: filters.departmentId } } } : {}),
@@ -121,6 +122,7 @@ export async function subtaskRows(
 ): Promise<SubtaskRow[]> {
   const rows = await prisma.subtask.findMany({
     where: {
+      job: { deletedAt: null },
       createdAt: { gte: dateRange.from, lt: dateRange.until },
       ...(filters.status ? { status: filters.status as never } : {}),
       ...(filters.departmentId ? { departmentId: filters.departmentId } : {}),
@@ -162,10 +164,13 @@ export async function problemRows(
 ): Promise<ProblemRow[]> {
   const rows = await prisma.problem.findMany({
     where: {
+      subtask: {
+        job: { deletedAt: null },
+        ...(filters.departmentId ? { departmentId: filters.departmentId } : {}),
+        ...(filters.jobId ? { jobId: filters.jobId } : {}),
+      },
       createdAt: { gte: dateRange.from, lt: dateRange.until },
       ...(filters.status ? { status: filters.status as never } : {}),
-      ...(filters.departmentId ? { subtask: { departmentId: filters.departmentId } } : {}),
-      ...(filters.jobId ? { subtask: { jobId: filters.jobId } } : {}),
     },
     take: EXPORT_ROW_LIMIT,
     orderBy: { createdAt: 'desc' },

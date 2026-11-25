@@ -4,7 +4,7 @@ import { T } from '@/lib/i18n/provider';
 
 import Link from 'next/link';
 
-import { Ban, ChevronDown, Pause, Pencil, Play, ScrollText, Send } from 'lucide-react';
+import { Ban, ChevronDown, Pause, Pencil, Play, ScrollText, Send, Trash2 } from 'lucide-react';
 
 import { JobProgress, JobStatusBadge, PriorityBadge } from '@/app/(app)/jobs/components/job-badges';
 import { PageHeader } from '@/components/shared/page-header';
@@ -32,6 +32,8 @@ export interface JobPermissions {
   approve: boolean;
   /** Decide a problem raised on a task: the MD and deputy only. */
   resolveProblems: boolean;
+  /** Delete a cancelled job or a draft: the MD, deputy and job managers. */
+  delete: boolean;
 }
 
 /**
@@ -80,6 +82,7 @@ export function JobHeader({
   onPublish,
   onToggleHold,
   onCancel,
+  onDelete,
 }: {
   job: JobRowDto;
   permissions: JobPermissions;
@@ -89,6 +92,7 @@ export function JobHeader({
   onPublish: () => void;
   onToggleHold: () => void;
   onCancel: () => void;
+  onDelete: () => void;
 }) {
   const isDraft = job.status === 'DRAFT';
   const isOnHold = job.status === 'ON_HOLD';
@@ -127,6 +131,18 @@ export function JobHeader({
                   <T>{'Full history'}</T>
                 </span>
               </Link>
+            </Button>
+          ) : null}
+
+          {permissions.delete && (isDraft || job.status === 'CANCELLED') ? (
+            <Button
+              variant="outline"
+              className="text-destructive"
+              disabled={busy}
+              onClick={onDelete}
+            >
+              <Trash2 className="size-4" />
+              <T>{'Delete job'}</T>
             </Button>
           ) : null}
 

@@ -44,6 +44,7 @@ export type AuditAction =
   | 'JOB_HELD'
   | 'JOB_UNHELD'
   | 'JOB_CANCELLED'
+  | 'JOB_DELETED'
   | 'JOB_STATUS_RECOMPUTED'
   // M4 — subtasks
   | 'SUBTASK_CREATED'

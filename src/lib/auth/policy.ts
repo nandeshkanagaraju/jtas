@@ -134,6 +134,7 @@ export type Action =
   | 'job:publish'
   | 'job:hold'
   | 'job:cancel'
+  | 'job:delete'
   | 'job:list'
   // "Assign / reassign subtask", "Change any deadline"
   | 'subtask:create'
@@ -183,6 +184,7 @@ export interface ResourceFor {
   'job:publish': JobResource;
   'job:hold': JobResource;
   'job:cancel': JobResource;
+  'job:delete': JobResource;
   'job:list': undefined;
 
   'subtask:create': JobResource;
@@ -297,6 +299,8 @@ export function can<A extends Action>(
     case 'job:publish':
     case 'job:hold':
     case 'job:cancel':
+    // Deleting is limited to cancelled jobs and drafts by the service.
+    case 'job:delete':
       return canManageJobs(user);
 
     // Matrix: "View all jobs" — MD ✔ DEPUTY ✔ ADMIN ✔ (read) MEMBER ✖;

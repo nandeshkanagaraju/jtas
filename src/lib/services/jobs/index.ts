@@ -6,7 +6,7 @@
  */
 export { listJobs, getJob, loadJobForWrite, visibilityFilter, type JobListResult } from './queries';
 export { createJob, updateJob, parseJobDeadline } from './mutations';
-export { publishJob, holdJob, unholdJob, cancelJob } from './lifecycle';
+export { publishJob, holdJob, unholdJob, cancelJob, deleteJob, DELETABLE } from './lifecycle';
 export { recomputeJobStatus, type RecomputeResult } from './status';
 export { allocateJobCode } from './job-code';
 export {

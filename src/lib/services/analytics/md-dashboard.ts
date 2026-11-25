@@ -77,7 +77,7 @@ export async function kpiCounts(dateRange: DateRange, now: Date): Promise<KpiCou
   const [byStatus, completedThisMonth, overdueSubtasks, openProblems, staleProblems] =
     await Promise.all([
       // One pass for the three job-state tiles rather than three counts.
-      prisma.job.groupBy({ by: ['status'], _count: { _all: true } }),
+      prisma.job.groupBy({ by: ['status'], where: { deletedAt: null }, _count: { _all: true } }),
 
       prisma.job.count({
         where: { status: 'COMPLETED', completedAt: { gte: dateRange.from, lt: dateRange.until } },

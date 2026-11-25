@@ -5,6 +5,7 @@ import type { AppError } from '@/lib/errors';
 import {
   cancelJob,
   createJob,
+  deleteJob,
   getJob,
   holdJob,
   listJobs,
@@ -699,5 +700,47 @@ describe('listJobs', () => {
 
     const refreshed = (await listJobs(md, listQuery({ q: first.jobCode }))).data[0];
     expect(refreshed.hasOverdueSubtask).toBe(true);
+  });
+});
+
+describe('deleteJob', () => {
+  const asMd = () => ({ id: md.id, role: 'MD' as const });
+
+  it('removes a draft from every screen and keeps it on the record', async () => {
+    const job = await makeJob();
+    await deleteJob(job, 'Created by mistake', asMd(), ctx);
+
+    expect((await listJobs(md, listQuery())).data).toHaveLength(0);
+    await expect(getJob(md, job.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(loadJobForWrite(job.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+    const row = await testDb.job.findUniqueOrThrow({ where: { id: job.id } });
+    expect(row.deletedAt).not.toBeNull();
+    expect(row).toMatchObject({ deletedById: md.id, deleteReason: 'Created by mistake' });
+    expect(await auditActionsFor(job.id)).toContain('JOB_DELETED');
+  });
+
+  it('deletes a cancelled job', async () => {
+    const job = await makeJob();
+    const cancelled = await cancelJob(job, 'Customer withdrew the order', asMd(), ctx);
+    await deleteJob(cancelled, 'Clearing the board', asMd(), ctx);
+    expect((await listJobs(md, listQuery())).total).toBe(0);
+  });
+
+  it('refuses a job that is live, and leaves it alone', async () => {
+    const job = await makeJob();
+    await testDb.job.update({ where: { id: job.id }, data: { status: 'IN_PROGRESS' } });
+    const live = await loadJobForWrite(job.id);
+
+    await expect(deleteJob(live, 'Should not work', asMd(), ctx)).rejects.toMatchObject({
+      code: 'INVALID_TRANSITION',
+    } satisfies Partial<AppError>);
+    expect((await testDb.job.findUniqueOrThrow({ where: { id: job.id } })).deletedAt).toBeNull();
+  });
+
+  it('cannot delete the same job twice', async () => {
+    const job = await makeJob();
+    await deleteJob(job, 'Created by mistake', asMd(), ctx);
+    await expect(deleteJob(job, 'Again', asMd(), ctx)).rejects.toMatchObject({ code: 'CONFLICT' });
   });
 });

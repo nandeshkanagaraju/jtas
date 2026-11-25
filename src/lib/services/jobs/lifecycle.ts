@@ -244,3 +244,61 @@ export async function cancelJob(
     return cancelled;
   });
 }
+
+/** Only these can be deleted: nothing in them is running or finished. */
+export const DELETABLE: readonly JobStatus[] = ['DRAFT', 'CANCELLED'];
+
+/**
+ * Removes a cancelled job or a draft from every screen.
+ *
+ * Soft: the row stays, with who deleted it, when and why, so the audit trail,
+ * comments, files and invoices keep pointing at a real job, and a mistake can
+ * be put right by clearing `deletedAt`. Every job query filters it out.
+ *
+ * @throws {AppError} `INVALID_TRANSITION` for a job that is live or finished.
+ */
+export async function deleteJob(
+  job: JobRow & { deletedAt?: Date | null },
+  reason: string,
+  actor: Actor,
+  ctx: RequestContext,
+): Promise<void> {
+  if (!DELETABLE.includes(job.status)) {
+    throw invalidTransition(
+      `${job.jobCode} is ${job.status.toLowerCase().replace('_', ' ')}. Cancel it first, then delete it.`,
+      { from: job.status, to: 'DELETED' },
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.job.updateMany({
+      where: { id: job.id, deletedAt: null, status: { in: [...DELETABLE] } },
+      data: { deletedAt: new Date(), deletedById: actor.id, deleteReason: reason },
+    });
+    if (count === 0) throw conflict(`${job.jobCode} was already deleted or has changed.`);
+
+    // Nothing should still be waiting to go out about a job nobody can see.
+    await tx.notification.updateMany({
+      where: {
+        status: 'PENDING',
+        entityType: 'SUBTASK',
+        entityId: {
+          in: (await tx.subtask.findMany({ where: { jobId: job.id }, select: { id: true } })).map(
+            (row) => row.id,
+          ),
+        },
+      },
+      data: { status: 'SUPPRESSED', lastError: 'The job was deleted.' },
+    });
+
+    await writeAudit(tx, {
+      actorId: actor.id,
+      action: 'JOB_DELETED',
+      entityType: 'JOB',
+      entityId: job.id,
+      before: { status: job.status, jobCode: job.jobCode, title: job.title },
+      after: { deleted: true, reason },
+      ipAddress: ctx.ipAddress,
+    });
+  });
+}

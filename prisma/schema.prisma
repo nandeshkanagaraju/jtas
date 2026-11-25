@@ -288,6 +288,13 @@ model Job {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  /// Deleted from every screen by the MD, deputy or a job manager. Only a
+  /// cancelled job or a draft can be deleted. The row is kept, so the audit
+  /// trail, comments and files still point somewhere, and it can be restored.
+  deletedAt    DateTime?
+  deletedById  String?
+  deleteReason String?
+
   subtasks    Subtask[]
   attachments Attachment[]
   invoices    Invoice[]
@@ -296,6 +303,7 @@ model Job {
   @@index([jobCode])
   // The sweeper filters on this on every pass, so it is worth an index.
   @@index([isDemo])
+  @@index([deletedAt])
 }
 
 /// Per-calendar-year counter backing job-code generation (SDD 4.1).

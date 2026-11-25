@@ -42,11 +42,14 @@ export interface JobListResult {
  * at least one subtask, or which they created.
  */
 export function visibilityFilter(user: SessionUser): Prisma.JobWhereInput {
-  if (user.role === 'MD' || user.role === 'DEPUTY_MD' || user.role === 'ADMIN') return {};
+  // A deleted job is gone for everybody, whatever else they may see.
+  const live: Prisma.JobWhereInput = { deletedAt: null };
+  if (user.role === 'MD' || user.role === 'DEPUTY_MD' || user.role === 'ADMIN') return live;
   // Read-only followers such as Marketing see every job (see `readsAllJobs`).
-  if (user.readsAllJobs || user.managesJobs) return {};
+  if (user.readsAllJobs || user.managesJobs) return live;
 
   return {
+    ...live,
     OR: [{ subtasks: { some: { assigneeId: user.id } } }, { createdById: user.id }],
   };
 }
@@ -171,7 +174,10 @@ export async function getJob(user: SessionUser, jobId: string): Promise<JobSumma
 
 /** Loads a job for a mutation, ignoring visibility — the caller checks `can()`. */
 export async function loadJobForWrite(jobId: string) {
-  const row = await prisma.job.findUnique({ where: { id: jobId }, select: JOB_SELECT });
+  const row = await prisma.job.findFirst({
+    where: { id: jobId, deletedAt: null },
+    select: JOB_SELECT,
+  });
   if (!row) throw notFound('Job');
   return row;
 }

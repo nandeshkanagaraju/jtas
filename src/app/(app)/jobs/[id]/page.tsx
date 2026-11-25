@@ -94,6 +94,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         }),
         viewAudit: can(session, 'audit:view', undefined),
         approve: can(session, 'subtask:approve', anySubtask),
+        delete: can(session, 'job:delete', jobRef),
         resolveProblems: can(session, 'problem:resolve', {
           id: '',
           raisedById: '',

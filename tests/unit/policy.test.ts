@@ -620,3 +620,16 @@ describe('a job manager', () => {
     expect(can({ ...manager, isActive: false }, 'job:create', undefined)).toBe(false);
   });
 });
+
+describe('deleting a job', () => {
+  const job: JobResource = { id: 'job-1', createdById: md.id, participantIds: [member.id] };
+
+  it('is for the MD, the deputy and job managers only', () => {
+    expect(can(md, 'job:delete', job)).toBe(true);
+    expect(can(deputy, 'job:delete', job)).toBe(true);
+    expect(can(subject('MEMBER', { managesJobs: true }), 'job:delete', job)).toBe(true);
+    expect(can(member, 'job:delete', job)).toBe(false);
+    expect(can(admin, 'job:delete', job)).toBe(false);
+    expect(can(subject('MEMBER', { readsAllJobs: true }), 'job:delete', job)).toBe(false);
+  });
+});

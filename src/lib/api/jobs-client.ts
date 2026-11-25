@@ -55,3 +55,8 @@ export function unholdJobRequest(id: string): Promise<{ job: JobRowDto }> {
 export function cancelJobRequest(id: string, reason: string): Promise<{ job: JobRowDto }> {
   return apiPost(`/api/jobs/${id}/cancel`, { reason });
 }
+
+/** Deletes a cancelled job or a draft. */
+export function deleteJobRequest(id: string, reason: string): Promise<{ deleted: true }> {
+  return apiFetch(`/api/jobs/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) });
+}

@@ -126,7 +126,7 @@ async function JobReports({
   selected: string | null;
 }) {
   const jobs: PickableJob[] = await prisma.job.findMany({
-    where: { status: { not: 'DRAFT' } },
+    where: { status: { not: 'DRAFT' }, deletedAt: null },
     take: JOB_PICKER_LIMIT,
     orderBy: { createdAt: 'desc' },
     select: { id: true, jobCode: true, title: true, status: true, customerName: true },

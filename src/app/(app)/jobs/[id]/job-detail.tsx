@@ -14,6 +14,7 @@ import { Panel } from '@/components/shared/panel';
 import { ApiError } from '@/lib/api/client';
 import {
   cancelJobRequest,
+  deleteJobRequest,
   holdJobRequest,
   publishJobRequest,
   unholdJobRequest,
@@ -73,6 +74,7 @@ export function JobDetail({
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -119,6 +121,7 @@ export function JobDetail({
         onPublish={() => run(() => publishJobRequest(job.id))}
         onToggleHold={() => (isOnHold ? run(() => unholdJobRequest(job.id)) : setHoldOpen(true))}
         onCancel={() => setCancelOpen(true)}
+        onDelete={() => setDeleteOpen(true)}
       />
 
       {isDraft ? (
@@ -298,6 +301,21 @@ export function JobDetail({
         onConfirm={async (reason) => {
           await cancelJobRequest(job.id, reason);
           setCancelOpen(false);
+          router.refresh();
+        }}
+      />
+
+      <ReasonDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete ${job.jobCode}?`}
+        description="The job disappears from every screen and list. Its history is kept in the activity log, and the developer can bring it back if this was a mistake."
+        confirmLabel="Delete job"
+        destructive
+        onConfirm={async (reason) => {
+          await deleteJobRequest(job.id, reason);
+          setDeleteOpen(false);
+          router.push('/jobs');
           router.refresh();
         }}
       />

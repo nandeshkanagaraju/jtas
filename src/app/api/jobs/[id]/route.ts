@@ -1,6 +1,7 @@
 /**
  * GET   /api/jobs/:id — detail, scoped by the same visibility rule as the list
  * PATCH /api/jobs/:id — edit
+ * DELETE /api/jobs/:id — delete a cancelled job or a draft, with a reason
  *
  * A member asking for a job they have no subtask on gets NOT_FOUND rather than
  * FORBIDDEN: confirming that a job code exists is itself information.
@@ -8,9 +9,9 @@
 import { handler, ok, parseJson } from '@/lib/api/respond';
 import { assertCan } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
-import { getJob, loadJobForWrite, updateJob } from '@/lib/services/jobs';
+import { deleteJob, getJob, loadJobForWrite, updateJob } from '@/lib/services/jobs';
 import { clientIp } from '@/lib/utils/request';
-import { updateJobSchema } from '@/lib/validation/job';
+import { jobReasonSchema, updateJobSchema } from '@/lib/validation/job';
 
 import { jobResource } from '../job-resource';
 
@@ -50,5 +51,25 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
 
     return ok({ job: await getJob(session, updated.id) });
+  })(request);
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  return handler(async (req) => {
+    const session = await requireActiveSession();
+    const { id } = await context.params;
+
+    const job = await loadJobForWrite(id);
+    assertCan(session, 'job:delete', await jobResource(job.id, job.createdById));
+
+    const { reason } = await parseJson(req, jobReasonSchema);
+    await deleteJob(
+      job,
+      reason,
+      { id: session.id, role: session.role },
+      { ipAddress: clientIp(req) },
+    );
+
+    return ok({ deleted: true });
   })(request);
 }

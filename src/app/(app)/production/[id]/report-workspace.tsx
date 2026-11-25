@@ -53,7 +53,11 @@ function Workspace() {
   const [confirm, setConfirm] = useState<'submit' | 'approve' | null>(null);
   const [tab, setTab] = useState(report.status === 'DRAFT' && report.can.edit ? 'hourly' : 'final');
 
-  const missing = report.machines.reduce((sum, machine) => sum + machine.missingSlots.length, 0);
+  // Unfilled machines are reported as not running; only started ones must be complete.
+  const missing = report.machines
+    .filter((machine) => machine.recorded)
+    .reduce((sum, machine) => sum + machine.missingSlots.length, 0);
+  const notRunning = report.machines.filter((machine) => !machine.recorded).length;
 
   async function act() {
     const action = confirm;
@@ -179,13 +183,19 @@ function Workspace() {
           </DialogHeader>
           <ul className="text-sm">
             <li>
-              {report.machines.length} machines · achieved {report.totals.achievedQty} ·{' '}
-              {pct(report.totals.efficiencyPct)}
+              {report.machines.length - notRunning} of {report.machines.length} machines running ·
+              achieved {report.totals.achievedQty} · {pct(report.totals.efficiencyPct)}
             </li>
             {report.warningCount > 0 ? (
               <li className="text-risk">
                 {report.warningCount} figure{report.warningCount === 1 ? '' : 's'} differ from the
                 formula and will be shown{confirm === 'submit' ? ' to Planning' : ' to the MD'}.
+              </li>
+            ) : null}
+            {confirm === 'submit' && notRunning > 0 ? (
+              <li className="text-muted-foreground">
+                {notRunning} machine{notRunning === 1 ? '' : 's'} with nothing recorded will be
+                reported as not running.
               </li>
             ) : null}
             {confirm === 'submit' && missing > 0 ? (

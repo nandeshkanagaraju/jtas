@@ -104,41 +104,59 @@ export function IdleTab() {
             </tr>
           </thead>
           <tbody>
-            {lines.map((line) => (
-              <tr key={line.id} className="border-border border-t align-top">
-                <td className="px-3 py-2">
-                  <span className="font-mono font-semibold">{line.machineCode}</span>
-                  {line.result.idle.overridden && !disabled ? (
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1 text-[11px]"
-                      onClick={() =>
-                        void run(() => updateLineRequest(report.id, line.id, { idleEntered: null }))
-                      }
-                    >
-                      <RotateCcw className="size-3" aria-hidden />
-                      from hours
-                    </button>
-                  ) : null}
-                </td>
-                {IDLE_REASONS.map((reason) => (
-                  <td key={reason} className="px-1.5 py-2 text-right">
-                    <IdleCell
-                      line={line}
-                      reason={reason}
-                      disabled={disabled}
-                      onCommit={(minutes) => commit(line, reason, minutes)}
-                    />
+            {lines.map((line) =>
+              !line.recorded ? (
+                <tr
+                  key={line.id}
+                  className="border-border text-muted-foreground border-t align-top"
+                >
+                  <td className="px-3 py-2 font-mono font-semibold">{line.machineCode}</td>
+                  <td colSpan={IDLE_REASONS.length + 1} className="px-1.5 py-2 text-xs italic">
+                    Not running — nothing recorded. Mark it idle all shift from Set-up on the Hourly
+                    page, or write the reason here.
                   </td>
-                ))}
-                <td className="px-2 py-2 pt-3.5 text-right font-mono font-semibold tabular-nums">
-                  {line.result.idleHours}
-                </td>
-                <td className="px-3 py-2">
-                  <RemarkCell line={line} disabled={disabled} />
-                </td>
-              </tr>
-            ))}
+                  <td className="px-3 py-2">
+                    <RemarkCell line={line} disabled={disabled} />
+                  </td>
+                </tr>
+              ) : (
+                <tr key={line.id} className="border-border border-t align-top">
+                  <td className="px-3 py-2">
+                    <span className="font-mono font-semibold">{line.machineCode}</span>
+                    {line.result.idle.overridden && !disabled ? (
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1 text-[11px]"
+                        onClick={() =>
+                          void run(() =>
+                            updateLineRequest(report.id, line.id, { idleEntered: null }),
+                          )
+                        }
+                      >
+                        <RotateCcw className="size-3" aria-hidden />
+                        from hours
+                      </button>
+                    ) : null}
+                  </td>
+                  {IDLE_REASONS.map((reason) => (
+                    <td key={reason} className="px-1.5 py-2 text-right">
+                      <IdleCell
+                        line={line}
+                        reason={reason}
+                        disabled={disabled}
+                        onCommit={(minutes) => commit(line, reason, minutes)}
+                      />
+                    </td>
+                  ))}
+                  <td className="px-2 py-2 pt-3.5 text-right font-mono font-semibold tabular-nums">
+                    {line.result.idleHours}
+                  </td>
+                  <td className="px-3 py-2">
+                    <RemarkCell line={line} disabled={disabled} />
+                  </td>
+                </tr>
+              ),
+            )}
           </tbody>
           <tfoot className="border-border bg-muted/30 border-t font-medium">
             <tr>

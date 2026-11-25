@@ -134,6 +134,8 @@ export interface HourDto {
 
 export interface LineDto {
   id: string;
+  /** At least one hour is recorded on this line. */
+  recorded: boolean;
   machineId: string;
   machineCode: string;
   position: number;
@@ -166,6 +168,11 @@ export interface MachineDto {
   id: string;
   code: string;
   lines: LineDto[];
+  /**
+   * False for a machine with no hour recorded on any line: it is reported as
+   * not running and left out of the totals, the warnings and the hour check.
+   */
+  recorded: boolean;
   missingSlots: number[];
 }
 
@@ -257,6 +264,9 @@ function lineDto(
     availableHours,
   );
 
+  // A line with no hours is a machine that did not run: nothing to check yet.
+  if (hours.length === 0) result.warnings = [];
+
   const late = hours.filter((hour) => hour.late).length;
   if (late > 0) {
     result.warnings.push({
@@ -268,6 +278,7 @@ function lineDto(
 
   return {
     id: line.id,
+    recorded: hours.length > 0,
     machineId: line.machineId,
     machineCode: line.machine.code,
     position: line.position,
@@ -325,11 +336,13 @@ async function toDto(report: ReportRecord, user: ProductionSubject, now: Date): 
       lines: lines.map((line) =>
         lineDto(line, available.get(line.id) ?? 0, report.shiftStart, report.shiftHours),
       ),
+      recorded: lines.some((line) => line.hours.length > 0),
       missingSlots: missingSlots(lines, report.shiftHours),
     });
   }
 
-  const flat = machines.flatMap((machine) => machine.lines);
+  // Only what was recorded counts: a machine left unfilled did not run.
+  const flat = machines.flatMap((machine) => machine.lines).filter((line) => line.recorded);
   let idle: IdleMinutes = {};
   for (const line of flat) {
     for (const reason of IDLE_REASONS) {
@@ -518,26 +531,36 @@ export async function openReport(
       },
     });
 
-    // The last part each machine ran, with a part on it, carries over.
+    // Every machine of the book is listed. The last operator and part each
+    // machine had carry over; the supervisor changes only what changed, and a
+    // machine left unfilled is reported as not running.
     const carried = new Map<string, NonNullable<typeof previous>['lines'][number]>();
     for (const line of previous?.lines ?? []) {
-      if (line.partLabel && !carried.has(line.machineId)) carried.set(line.machineId, line);
+      if ((line.partLabel || line.operatorName) && !carried.has(line.machineId)) {
+        carried.set(line.machineId, line);
+      }
     }
-    for (const line of carried.values()) {
-      await tx.productionLine.create({
-        data: {
+    const machines = await tx.productionMachine.findMany({
+      where: { section: input.section, isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true },
+    });
+    await tx.productionLine.createMany({
+      data: machines.map((machine) => {
+        const line = carried.get(machine.id);
+        return {
           reportId: created.id,
-          machineId: line.machineId,
-          operatorName: line.operatorName,
-          partId: line.partId,
-          partLabel: line.partLabel,
-          operation: line.operation,
-          cycleSec: line.cycleSec,
-          loadSec: line.loadSec,
-          standardCycleSec: line.standardCycleSec,
-        },
-      });
-    }
+          machineId: machine.id,
+          operatorName: line?.operatorName ?? null,
+          partId: line?.partId ?? null,
+          partLabel: line?.partLabel ?? null,
+          operation: line?.operation ?? null,
+          cycleSec: line?.cycleSec ?? null,
+          loadSec: line?.loadSec ?? null,
+          standardCycleSec: line?.standardCycleSec ?? null,
+        };
+      }),
+    });
     return created;
   });
 
@@ -696,6 +719,7 @@ const LINE_FIELD_LABELS: Record<keyof UpdateLineInput, string> = {
   ncReason: 'Reason for NC part',
   remarks: 'Remarks',
   warningNote: 'Note on warnings',
+  idleAllShift: 'Idle all shift',
 };
 
 export async function updateLine(
@@ -723,7 +747,7 @@ export async function updateLine(
     for (const key of Object.keys(input) as Array<keyof UpdateLineInput>) {
       const value = input[key];
       if (value === undefined) continue;
-      if (key === 'partId') continue; // handled below with its defaults
+      if (key === 'partId' || key === 'idleAllShift') continue; // handled below
       const before = (line as Record<string, unknown>)[key];
       if (key === 'idleEntered') {
         data.idleEntered = value === null ? Prisma.DbNull : (value as Prisma.InputJsonValue);
@@ -758,6 +782,35 @@ export async function updateLine(
     }
 
     await tx.productionLine.update({ where: { id: lineId }, data });
+
+    if (input.idleAllShift) {
+      const reason = input.idleAllShift;
+      const recorded = await tx.productionHour.findMany({
+        where: { line: { reportId, machineId: line.machineId } },
+        select: { slot: true },
+      });
+      if (recorded.length > 0) {
+        throw conflict(
+          `${line.machine.code} already has hours recorded. Record the idle time hour by hour.`,
+        );
+      }
+      await tx.productionHour.createMany({
+        data: shiftSlots(report.shiftHours).map((slot) => ({
+          lineId,
+          slot: slot.slot,
+          qty: 0,
+          idle: { [reason]: slot.minutes },
+          recordedById: user.id,
+        })),
+      });
+      changes.push({
+        lineId,
+        label: `${line.machine.code} · Idle all shift`,
+        before: null,
+        after: IDLE_REASON_LABELS[reason],
+      });
+    }
+
     await recordChanges(tx, report, user, changes);
     return { id: lineId };
   });
@@ -771,6 +824,14 @@ export async function deleteLine(user: ProductionSubject, reportId: string, line
       include: { machine: { select: { code: true } } },
     });
     if (!line || line.reportId !== reportId) throw notFound('Line');
+    const siblings = await tx.productionLine.count({
+      where: { reportId, machineId: line.machineId },
+    });
+    if (siblings <= 1) {
+      throw conflict(
+        `${line.machine.code} stays on the report. Leave it unfilled if it did not run.`,
+      );
+    }
     await tx.productionLine.delete({ where: { id: lineId } });
     await recordChanges(tx, report, user, [
       {
@@ -920,8 +981,13 @@ export async function submitReport(user: ProductionSubject, reportId: string, no
   }
 
   const dto = await toDto(report, user, now);
+  if (!dto.machines.some((machine) => machine.recorded)) {
+    throw validationError('Record at least one machine before submitting.');
+  }
+  // A machine left unfilled is reported as not running; one that was started
+  // must have every hour.
   const gaps = dto.machines
-    .filter((machine) => machine.missingSlots.length > 0)
+    .filter((machine) => machine.recorded && machine.missingSlots.length > 0)
     .map(
       (machine) =>
         `${machine.code} (${machine.missingSlots.map((s) => dto.slots[s]?.label).join(', ')})`,

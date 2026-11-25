@@ -94,6 +94,11 @@ export const updateLineSchema = z.object({
   ncReason: text(300),
   remarks: text(500),
   warningNote: text(500),
+  /**
+   * Marks a machine that has nothing recorded as idle the whole shift for this
+   * reason: every hour is recorded with no pieces.
+   */
+  idleAllShift: z.enum(IDLE_REASONS).optional(),
 });
 export type UpdateLineInput = z.infer<typeof updateLineSchema>;
 

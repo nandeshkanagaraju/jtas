@@ -2,8 +2,8 @@
  * `pnpm production:provision [--yes] [--reset-passwords]` — sets up the daily
  * production report:
  *
- *   - the machines in each book (CNC book: CNC-01…22, TMC-01, DRILLING-01/02,
- *     THREAD ROLLING-01; VMC book: VMC-01…10)
+ *   - the machines in each book (CNC-01…20 and VMC-01…10); any other machine
+ *     already in the table is switched off, so it stops appearing on new shifts
  *   - the Cycle Time Master from `prisma/seed-data/production-parts.ts`
  *     (a part already there is left alone, so edits made since survive)
  *   - the two test supervisor logins, one per book
@@ -70,8 +70,13 @@ async function main() {
         });
       }
     }
+    const retired = await prisma.productionMachine.updateMany({
+      where: { code: { notIn: [...BOOK_MACHINES.CNC, ...BOOK_MACHINES.VMC] }, isActive: true },
+      data: { isActive: false },
+    });
     console.log(
-      `  machines: ${BOOK_MACHINES.CNC.length} in the CNC book, ${BOOK_MACHINES.VMC.length} in the VMC book`,
+      `  machines: ${BOOK_MACHINES.CNC.length} in the CNC book, ${BOOK_MACHINES.VMC.length} in the VMC book` +
+        (retired.count ? `, ${retired.count} other machine(s) switched off` : ''),
     );
 
     // --- Cycle Time Master --------------------------------------------------

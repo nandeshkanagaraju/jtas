@@ -125,12 +125,14 @@ function TextCell({
   disabled,
   onCommit,
   className,
+  placeholder,
 }: {
   value: string | null;
   label: string;
   disabled: boolean;
   onCommit: (value: string | null) => void;
   className?: string;
+  placeholder?: string;
 }) {
   const [text, setText] = useState(value ?? '');
   useEffect(() => setText(value ?? ''), [value]);
@@ -138,6 +140,7 @@ function TextCell({
   return (
     <Input
       aria-label={label}
+      placeholder={placeholder}
       value={text}
       onChange={(event) => setText(event.target.value)}
       onBlur={() => {
@@ -191,6 +194,29 @@ export function FinalTab() {
           {lines.map((line) => {
             const r = line.result;
             const warnings = r.warnings.filter((w) => w.level === 'warning');
+            if (!line.recorded) {
+              return (
+                <tbody key={line.id} className="border-border text-muted-foreground border-t">
+                  <tr className="align-top">
+                    <td className="px-3 py-2 font-mono font-semibold">{line.machineCode}</td>
+                    <td className="px-2 py-2">{line.operatorName ?? '—'}</td>
+                    <td className="px-2 py-2">{line.partLabel ?? '—'}</td>
+                    <td colSpan={6} className="px-2 py-2 text-xs italic">
+                      Not running — nothing recorded this shift
+                    </td>
+                    <td colSpan={3} className="px-3 py-2">
+                      <TextCell
+                        value={line.remarks}
+                        label={`${line.machineCode} reason not running`}
+                        placeholder="Reason not running"
+                        disabled={disabled}
+                        onCommit={(v) => save(line, { remarks: v })}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              );
+            }
             return (
               <tbody key={line.id} className="border-border border-t">
                 <tr className="align-top">
@@ -316,8 +342,8 @@ export function FinalTab() {
           <tfoot className="border-border bg-muted/30 border-t font-medium">
             <tr>
               <td className="px-3 py-2" colSpan={5}>
-                Shift total · {report.machines.length} machine
-                {report.machines.length === 1 ? '' : 's'}
+                Shift total · {report.machines.filter((m) => m.recorded).length} of{' '}
+                {report.machines.length} machines running
               </td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">
                 {report.totals.planQty}

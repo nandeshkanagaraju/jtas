@@ -22,6 +22,7 @@ export function ReviewTab() {
       .filter((line) => line.result.warnings.length > 0)
       .map((line) => ({ machine: machine.code, line })),
   );
+  const notRunning = report.machines.filter((machine) => !machine.recorded);
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -60,6 +61,29 @@ export function ReviewTab() {
       </section>
 
       <div className="space-y-5">
+        <section aria-labelledby="idle-machines-heading" className="space-y-2">
+          <h3 id="idle-machines-heading" className="font-semibold">
+            Not running
+            <span className="text-muted-foreground ml-2 text-sm font-normal">
+              {notRunning.length} of {report.machines.length} machines
+            </span>
+          </h3>
+          {notRunning.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Every machine has hours recorded.</p>
+          ) : (
+            <ul className="border-border bg-card divide-border divide-y rounded-xl border text-sm">
+              {notRunning.map((machine) => (
+                <li key={machine.id} className="flex gap-3 px-3 py-2">
+                  <span className="font-mono font-semibold">{machine.code}</span>
+                  <span className="text-muted-foreground">
+                    {machine.lines.find((line) => line.remarks)?.remarks ?? 'No reason given'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section aria-labelledby="remarks-heading" className="space-y-2">
           <h3 id="remarks-heading" className="font-semibold">
             Shift remarks

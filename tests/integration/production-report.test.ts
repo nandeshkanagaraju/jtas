@@ -74,6 +74,8 @@ beforeEach(async () => {
     data: { code: 'CNC-07', section: 'CNC', sortOrder: 7 },
   });
   machineId = machine.id;
+  // A second machine nobody fills in: it is pre-loaded and reported as not running.
+  await testDb.productionMachine.create({ data: { code: 'CNC-08', section: 'CNC', sortOrder: 8 } });
   const part = await testDb.productionPart.create({
     data: {
       section: 'CNC',
@@ -119,42 +121,61 @@ async function fillShift(reportId: string, lineId: string) {
   }
 }
 
+/** The pre-loaded line of CNC-07 on a report. */
+async function cnc07Line(reportId: string) {
+  const report = await getReport(cncSupervisor, reportId);
+  const machine = report.machines.find((m) => m.code === 'CNC-07');
+  if (!machine) throw new Error('CNC-07 is not on the report');
+  return machine.lines[0];
+}
+
 describe('production report', () => {
+  it('opens with every machine of the book listed', async () => {
+    const { id } = await openReport(cncSupervisor, { date: DATE, shift: 'DAY', section: 'CNC' });
+    const report = await getReport(cncSupervisor, id);
+    expect(report.machines.map((m) => [m.code, m.recorded, m.lines.length])).toEqual([
+      ['CNC-07', false, 1],
+      ['CNC-08', false, 1],
+    ]);
+    expect(report.warningCount).toBe(0);
+  });
+
   it('works out the book from the hours, and carries a typed-over figure as a warning to approval', async () => {
     const { id } = await openReport(cncSupervisor, { date: DATE, shift: 'DAY', section: 'CNC' });
-    await addLine(cncSupervisor, id, {
-      machineId,
+    const lineId = (await cnc07Line(id)).id;
+    await updateLine(cncSupervisor, id, lineId, {
       operatorName: 'Govind',
       partId,
-      partLabel: undefined,
       cycleSec: 77,
       loadSec: 10,
     });
-    let report = await getReport(cncSupervisor, id);
-    const lineId = report.machines[0].lines[0].id;
 
     await fillShift(id, lineId);
-    report = await getReport(cncSupervisor, id);
-    const line = report.machines[0].lines[0];
+    let report = await getReport(cncSupervisor, id);
+    const line = await cnc07Line(id);
+    expect(line.partLabel).toBe('Inner Metal-1 | RJ-0581-11');
     expect(line.result.pcsPerHour.value).toBe(41);
     expect(line.result.planQty.value).toBe(471);
     expect(line.result.runHours.value).toBe(6.5);
     expect(line.result.actualPlanQty.value).toBe(266);
     expect(line.result.achievedQty.value).toBe(236);
     expect(line.result.warnings.map((w) => w.code)).toContain('CYCLE_VS_STANDARD');
+    // CNC-08 was never filled: not running, and not in the totals.
+    expect(report.machines.find((m) => m.code === 'CNC-08')?.recorded).toBe(false);
+    expect(report.totals.planQty).toBe(471);
 
     // The supervisor insists on a different achieved figure.
     await updateLine(cncSupervisor, id, lineId, {
       achievedQtyEntered: 250,
       warningNote: 'Recount',
     });
-    report = await getReport(cncSupervisor, id);
-    expect(report.machines[0].lines[0].result.achievedQty).toEqual({
+    expect((await cnc07Line(id)).result.achievedQty).toEqual({
       computed: 236,
       value: 250,
       overridden: true,
     });
 
+    // The unfilled machine does not hold the report back.
     await submitReport(cncSupervisor, id);
     expect(mailsOfType('PRODUCTION_REPORT_SUBMITTED').map((m) => m.to)).toEqual([
       'marketing@jaraaglobal.in',
@@ -180,21 +201,51 @@ describe('production report', () => {
     report = await getReport(md, id);
     expect(report.status).toBe('APPROVED');
     expect(report.can).toEqual({ edit: false, submit: false, approve: false });
+
+    // The next shift opens with CNC-07's operator and part carried over.
+    const next = await openReport(cncSupervisor, { date: DATE, shift: 'NIGHT', section: 'CNC' });
+    const carried = await cnc07Line(next.id);
+    expect([carried.operatorName, carried.partLabel, carried.cycleSec, carried.recorded]).toEqual([
+      'Govind',
+      'Inner Metal-1 | RJ-0581-11',
+      77,
+      false,
+    ]);
   });
 
-  it('will not submit until every hour of every machine is recorded', async () => {
+  it('needs something recorded, and every hour of a machine that was started', async () => {
     const { id } = await openReport(cncSupervisor, { date: DATE, shift: 'DAY', section: 'CNC' });
-    await addLine(cncSupervisor, id, {
-      machineId,
-      partId,
-      cycleSec: 77,
-      loadSec: 10,
-      operatorName: null,
-      partLabel: undefined,
+    await expect(submitReport(cncSupervisor, id)).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+      message: 'Record at least one machine before submitting.',
     });
+
+    const lineId = (await cnc07Line(id)).id;
+    await recordHour(
+      cncSupervisor,
+      id,
+      lineId,
+      0,
+      { qty: 30, idle: {}, note: null },
+      new Date('2026-11-21T00:00:00Z'),
+    );
     await expect(submitReport(cncSupervisor, id)).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
     });
+  });
+
+  it('marks a machine idle for the whole shift from its set-up', async () => {
+    const { id } = await openReport(cncSupervisor, { date: DATE, shift: 'DAY', section: 'CNC' });
+    const lineId = (await cnc07Line(id)).id;
+    await updateLine(cncSupervisor, id, lineId, {
+      idleAllShift: 'NO_LOAD',
+      remarks: 'No material',
+    });
+    const line = await cnc07Line(id);
+    expect(line.recorded).toBe(true);
+    expect(line.result.idleHours).toBe(11.5);
+    expect(line.result.idle.value).toEqual({ NO_LOAD: 690 });
+    await submitReport(cncSupervisor, id);
   });
 
   it('keeps each person to their part of it', async () => {
@@ -214,15 +265,7 @@ describe('production report', () => {
 
   it('does not let an hour be recorded before it starts', async () => {
     const { id } = await openReport(cncSupervisor, { date: DATE, shift: 'DAY', section: 'CNC' });
-    await addLine(cncSupervisor, id, {
-      machineId,
-      partId,
-      cycleSec: 77,
-      loadSec: 10,
-      operatorName: null,
-      partLabel: undefined,
-    });
-    const lineId = (await getReport(cncSupervisor, id)).machines[0].lines[0].id;
+    const lineId = (await cnc07Line(id)).id;
     await expect(
       recordHour(
         cncSupervisor,
@@ -233,5 +276,12 @@ describe('production report', () => {
         new Date('2026-11-20T04:00:00Z'),
       ),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('adds a second line on a machine for a part change', async () => {
+    const { id } = await openReport(cncSupervisor, { date: DATE, shift: 'DAY', section: 'CNC' });
+    await addLine(cncSupervisor, id, { machineId, partId, cycleSec: 77, loadSec: 10 });
+    const report = await getReport(cncSupervisor, id);
+    expect(report.machines.find((m) => m.code === 'CNC-07')?.lines).toHaveLength(2);
   });
 });

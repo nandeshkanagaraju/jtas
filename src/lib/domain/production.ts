@@ -75,15 +75,13 @@ export function slotLabel(shift: ProductionShiftValue, slot: ShiftSlot): string 
 // Machines, operations, idle reasons
 // ---------------------------------------------------------------------------
 
-/** The machines in each book, in the book's order. */
+/**
+ * The machines in each book, in the book's order: 20 CNC and 10 VMC. Every
+ * shift opens with all of them listed; a machine left unfilled is reported as
+ * not running.
+ */
 export const BOOK_MACHINES: Record<ProductionSectionValue, string[]> = {
-  CNC: [
-    ...Array.from({ length: 22 }, (_, i) => `CNC-${String(i + 1).padStart(2, '0')}`),
-    'TMC-01',
-    'DRILLING-01',
-    'DRILLING-02',
-    'THREAD ROLLING-01',
-  ],
+  CNC: Array.from({ length: 20 }, (_, i) => `CNC-${String(i + 1).padStart(2, '0')}`),
   VMC: Array.from({ length: 10 }, (_, i) => `VMC-${String(i + 1).padStart(2, '0')}`),
 };
 

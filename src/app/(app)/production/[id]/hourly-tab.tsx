@@ -65,15 +65,14 @@ export function HourlyTab() {
         {report.can.edit ? (
           <Button onClick={() => setAdding(true)}>
             <Plus className="size-4" aria-hidden />
-            Add machine
+            Part change
           </Button>
         ) : null}
       </div>
 
       {report.machines.length === 0 ? (
         <div className="border-border bg-card text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
-          No machines on this shift yet. Add each machine that is running, with its operator and
-          part.
+          No machines in this book yet. Ask the administrator to run the production set-up.
         </div>
       ) : null}
 
@@ -87,7 +86,11 @@ export function HourlyTab() {
             <h3 id={`machine-${machine.id}`} className="font-mono text-base font-semibold">
               {machine.code}
             </h3>
-            {machine.missingSlots.length > 0 ? (
+            {!machine.recorded ? (
+              <span className="text-muted-foreground text-xs">
+                Not running — fill it in when it starts, or mark it idle in Set-up
+              </span>
+            ) : machine.missingSlots.length > 0 ? (
               <span className="text-muted-foreground text-xs">
                 {machine.missingSlots.length} hour{machine.missingSlots.length === 1 ? '' : 's'} not
                 recorded
@@ -108,6 +111,7 @@ export function HourlyTab() {
                       .flatMap((other) => other.hours.map((h) => h.slot)),
                   )
                 }
+                canRemove={machine.lines.length > 1}
                 onEdit={() => setEditing(line)}
                 onHour={(slot) => setHour({ line, slot })}
               />
@@ -143,11 +147,14 @@ function setupText(line: LineDto): string {
 
 function LineBlock({
   line,
+  canRemove,
   otherLineSlots,
   onEdit,
   onHour,
 }: {
   line: LineDto;
+  /** Only a part-change line comes off; every machine of the book stays listed. */
+  canRemove: boolean;
   otherLineSlots: Set<number>;
   onEdit: () => void;
   onHour: (slot: number) => void;
@@ -160,7 +167,7 @@ function LineBlock({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-medium">
-            {line.partLabel ?? <span className="text-muted-foreground">Idle — no part</span>}
+            {line.partLabel ?? <span className="text-muted-foreground">No part set</span>}
             {line.operation ? (
               <span className="text-muted-foreground"> · Op {line.operationLabel}</span>
             ) : null}
@@ -181,22 +188,24 @@ function LineBlock({
               <Pencil className="size-4" aria-hidden />
               Set-up
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={`Remove ${line.machineCode} ${line.partLabel ?? ''} from this shift`}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    `Remove ${line.machineCode} ${line.partLabel ?? ''} and its hours from this shift?`,
-                  )
-                ) {
-                  void run(() => deleteLineRequest(report.id, line.id), 'Removed.');
-                }
-              }}
-            >
-              <Trash2 className="size-4" aria-hidden />
-            </Button>
+            {canRemove ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Remove ${line.machineCode} ${line.partLabel ?? ''} from this shift`}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Remove ${line.machineCode} ${line.partLabel ?? ''} and its hours from this shift?`,
+                    )
+                  ) {
+                    void run(() => deleteLineRequest(report.id, line.id), 'Removed.');
+                  }
+                }}
+              >
+                <Trash2 className="size-4" aria-hidden />
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -486,6 +495,9 @@ function LineDialog({
     [report.machines],
   );
   const chosen = parts.find((part) => part.id === partId);
+  const machineRecorded = line
+    ? (report.machines.find((machine) => machine.id === line.machineId)?.recorded ?? false)
+    : false;
 
   async function save() {
     setError(null);
@@ -517,7 +529,14 @@ function LineDialog({
       loadSec: numberOrNull(load),
     };
     const ok = line
-      ? await run(() => updateLineRequest(report.id, line.id, common), 'Set-up saved.')
+      ? await run(
+          () =>
+            updateLineRequest(report.id, line.id, {
+              ...common,
+              ...(idleReason ? { idleAllShift: idleReason } : {}),
+            }),
+          'Set-up saved.',
+        )
       : await run(
           () =>
             addLineRequest(report.id, {
@@ -525,7 +544,7 @@ function LineDialog({
               ...common,
               idleAllShift: idleReason || null,
             }),
-          'Machine added.',
+          'Part change added.',
         );
     if (ok) onOpenChange(false);
   }
@@ -535,12 +554,12 @@ function LineDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {line ? `${line.machineCode} set-up` : 'Add a machine to this shift'}
+            {line ? `${line.machineCode} set-up` : 'Part change on a machine'}
           </DialogTitle>
           <DialogDescription>
             {line
               ? 'Change the operator, part or cycle time. The hours already recorded stay.'
-              : 'A machine that changes part during the shift gets a second line: add it again.'}
+              : 'Every machine is already listed. Use this when a machine changes part during the shift: the new part gets its own line and hours.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -688,7 +707,7 @@ function LineDialog({
             ) : null}
           </div>
 
-          {!line ? (
+          {!line || !machineRecorded ? (
             <div className="space-y-1.5">
               <Label htmlFor="line-idle">Idle the whole shift? (optional)</Label>
               <select
@@ -716,7 +735,7 @@ function LineDialog({
 
         <DialogFooter>
           <Button onClick={save} disabled={busy}>
-            {line ? 'Save set-up' : 'Add machine'}
+            {line ? 'Save set-up' : 'Add part change'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -55,7 +55,8 @@ export const DEPARTMENT_ACCOUNTS: DepartmentAccount[] = [
     name: 'Chinnarasu',
     email: 'planning@jaraaglobal.in',
     replaces: 'planning@jaraaglobal.com',
-    departmentCode: 'PLANNING',
+    // Swapped with Dhiyaneswar S for now: Chinnarasu does Marketing's work.
+    departmentCode: 'MARKETING',
     passwordName: 'Planning',
   },
   {
@@ -75,7 +76,8 @@ export const DEPARTMENT_ACCOUNTS: DepartmentAccount[] = [
   {
     name: 'Dhiyaneswar S',
     email: 'marketing@jaraaglobal.in',
-    departmentCode: 'MARKETING',
+    // Swapped with Chinnarasu for now: Dhiyaneswar S does Planning's work.
+    departmentCode: 'PLANNING',
     passwordName: 'Marketing',
   },
   {

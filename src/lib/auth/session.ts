@@ -23,7 +23,7 @@ import type { Role } from '@prisma/client';
 
 import { ACCESS_COOKIE } from './cookies';
 import { verifyAccessToken } from './jwt';
-import type { PolicySubject } from './policy';
+import { READ_ALL_JOBS_DEPARTMENTS, type PolicySubject } from './policy';
 
 /**
  * The signed-in user.
@@ -108,8 +108,14 @@ async function loadSessionUser(userId: string): Promise<SessionUser | null> {
       departmentId: true,
       isActive: true,
       mustChangePassword: true,
+      department: { select: { code: true } },
     },
   });
+  if (!user) return null;
 
-  return user ?? null;
+  const { department, ...rest } = user;
+  return {
+    ...rest,
+    readsAllJobs: department ? READ_ALL_JOBS_DEPARTMENTS.has(department.code) : false,
+  };
 }

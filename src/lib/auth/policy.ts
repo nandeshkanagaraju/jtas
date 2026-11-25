@@ -36,7 +36,19 @@ export interface PolicySubject {
   role: Role;
   departmentId: string | null;
   isActive: boolean;
+  /**
+   * Sees every job and its tasks, read-only, without holding a task on it. Set
+   * for the departments in {@link READ_ALL_JOBS_DEPARTMENTS}. It widens viewing
+   * only: every action still checks ownership or participation.
+   */
+  readsAllJobs?: boolean;
 }
+
+/**
+ * Departments that follow every job without working on them. Marketing keeps
+ * customers informed, so it needs to see where each job is.
+ */
+export const READ_ALL_JOBS_DEPARTMENTS: ReadonlySet<string> = new Set(['MARKETING']);
 
 // ---------------------------------------------------------------------------
 // Resources
@@ -277,7 +289,7 @@ export function can<A extends Action>(
     //         "View job he participates in" — MEMBER ✔
     case 'job:view': {
       const job = resource as JobResource;
-      if (isCommand(user) || user.role === 'ADMIN') return true;
+      if (isCommand(user) || user.role === 'ADMIN' || user.readsAllJobs) return true;
       return participatesInJob(user, job);
     }
 
@@ -315,7 +327,7 @@ export function can<A extends Action>(
     case 'comment:view':
     case 'attachment:view': {
       const subtask = resource as SubtaskResource;
-      if (isCommand(user) || user.role === 'ADMIN') return true;
+      if (isCommand(user) || user.role === 'ADMIN' || user.readsAllJobs) return true;
       return ownsSubtask(user, subtask) || participatesInSubtaskJob(user, subtask);
     }
 

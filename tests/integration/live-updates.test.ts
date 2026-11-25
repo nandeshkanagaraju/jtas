@@ -230,3 +230,21 @@ describe('shared live job centre', () => {
     expect(done.job.currentDepartments).toEqual([]);
   });
 });
+
+describe('read-only followers such as Marketing', () => {
+  it('see every job and its stages, but cannot post on them', async () => {
+    const dept = await createTestDepartment({ code: 'MARKETING', sequenceOrder: 11 });
+    const row = await createTestUser({ departmentId: dept.id, name: 'Marketing member' });
+    const marketing = { ...row, readsAllJobs: true };
+
+    const list = await listLiveJobs(marketing, liveJobsQuerySchema.parse({}));
+    expect(list.total).toBe(2);
+
+    const snapshot = await getLiveJob(marketing, job.id, all());
+    expect(snapshot.stages.map((stage) => stage.id)).toEqual([first.id, second.id]);
+    expect(snapshot.stages.every((stage) => !stage.canComment)).toBe(true);
+
+    // Without the flag the same person sees nothing.
+    expect((await listLiveJobs(row, liveJobsQuerySchema.parse({}))).total).toBe(0);
+  });
+});

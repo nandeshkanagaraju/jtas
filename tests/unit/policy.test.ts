@@ -513,3 +513,49 @@ describe('cross-department subtask visibility', () => {
     expect(can(member, 'subtask:view', ownSubtask)).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Read-only followers (Marketing)
+// ---------------------------------------------------------------------------
+
+describe('a department that reads all jobs', () => {
+  const marketing = subject('MEMBER', {
+    id: 'user-marketing',
+    departmentId: 'dept-marketing',
+    readsAllJobs: true,
+  });
+  const job: JobResource = { id: 'job-1', createdById: md.id, participantIds: [member.id] };
+
+  it('sees every job and its tasks without holding one', () => {
+    expect(can(marketing, 'job:view', job)).toBe(true);
+    for (const action of ['subtask:view', 'comment:view', 'attachment:view'] as const) {
+      expect(can(marketing, action, foreignSubtask), action).toBe(true);
+    }
+  });
+
+  it('can do nothing on a job it does not work on', () => {
+    for (const action of [
+      'subtask:updateStatus',
+      'subtask:commit',
+      'subtask:requestExtension',
+      'problem:raise',
+      'comment:create',
+      'attachment:create',
+      'materials:record',
+    ] as const) {
+      expect(can(marketing, action, foreignSubtask), action).toBe(false);
+    }
+    for (const action of ['job:edit', 'job:publish', 'job:hold', 'job:cancel'] as const) {
+      expect(can(marketing, action, job), action).toBe(false);
+    }
+    expect(can(marketing, 'job:list', undefined)).toBe(false);
+  });
+
+  it('is off for an ordinary member', () => {
+    expect(can(otherMember, 'job:view', job)).toBe(false);
+  });
+
+  it('stops when the account is deactivated', () => {
+    expect(can({ ...marketing, isActive: false }, 'job:view', job)).toBe(false);
+  });
+});

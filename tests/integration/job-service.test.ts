@@ -176,6 +176,49 @@ describe('createJob', () => {
 // ACCEPTANCE — draft, edit, cannot publish without subtasks
 // ---------------------------------------------------------------------------
 
+describe('customer point of contact', () => {
+  it('records the department person who alone contacts the customer', async () => {
+    const job = await makeJob({ pointOfContactId: member.id });
+
+    expect(job.pointOfContact).toEqual({
+      id: member.id,
+      name: member.name,
+      department: { name: 'Production' },
+    });
+    const detail = await getJob(md, job.id);
+    expect(detail.pointOfContact).toEqual({
+      id: member.id,
+      name: member.name,
+      department: 'Production',
+    });
+  });
+
+  it('refuses someone with no department, such as the MD', async () => {
+    await expect(makeJob({ pointOfContactId: md.id })).rejects.toMatchObject({
+      code: 'VALIDATION_ERROR',
+    } satisfies Partial<AppError>);
+  });
+
+  it('can still be changed after the job is published', async () => {
+    const job = await makeJob();
+    await addSubtask(job.id);
+    await publishJob(job, { id: md.id, role: 'MD' }, ctx);
+
+    const other = await createTestUser({
+      email: 'other@jaraaglobal.com',
+      departmentId: production.id,
+    });
+    const updated = await updateJob(
+      await loadJobForWrite(job.id),
+      { pointOfContactId: other.id },
+      { id: md.id, role: 'MD' },
+      ctx,
+    );
+
+    expect(updated.pointOfContactId).toBe(other.id);
+  });
+});
+
 describe('acceptance: MD creates a draft, edits it, cannot publish it empty', () => {
   it('edits every field while the job is a draft', async () => {
     const job = await makeJob();

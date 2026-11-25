@@ -13,7 +13,7 @@ import { assertCan } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
 import { createJob, listJobs, toJobSummary } from '@/lib/services/jobs';
 import { clientIp } from '@/lib/utils/request';
-import { createJobSchema, listJobsQuerySchema } from '@/lib/validation/job';
+import { createJobRequestSchema, listJobsQuerySchema } from '@/lib/validation/job';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export const POST = handler(async (request) => {
   const session = await requireActiveSession();
   assertCan(session, 'job:create', undefined);
 
-  const input = await parseJson(request, createJobSchema);
+  const input = await parseJson(request, createJobRequestSchema);
 
   const job = await createJob(
     input,

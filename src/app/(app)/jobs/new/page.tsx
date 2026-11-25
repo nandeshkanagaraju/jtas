@@ -3,6 +3,7 @@ import { forbidden } from 'next/navigation';
 
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
+import { listContactCandidates } from '@/lib/services/jobs';
 
 import { NewJobWizard } from './new-job-wizard';
 
@@ -14,5 +15,5 @@ export default async function NewJobPage() {
   const session = await requireActiveSession();
   if (!can(session, 'job:create', undefined)) forbidden();
 
-  return <NewJobWizard />;
+  return <NewJobWizard contacts={await listContactCandidates()} />;
 }

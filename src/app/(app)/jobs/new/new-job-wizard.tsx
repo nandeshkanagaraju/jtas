@@ -4,7 +4,7 @@ import { T } from '@/lib/i18n/provider';
 
 import { useRouter } from 'next/navigation';
 
-import { JobForm } from '@/app/(app)/jobs/components/job-form';
+import { JobForm, type ContactOption } from '@/app/(app)/jobs/components/job-form';
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
 import { createJobRequest } from '@/lib/api/jobs-client';
@@ -19,7 +19,7 @@ import type { CreateJobInput } from '@/lib/validation/job';
  * survives a closed tab or a dropped connection — and the MD can come back to
  * `/jobs/{id}/plan` to finish it.
  */
-export function NewJobWizard() {
+export function NewJobWizard({ contacts }: { contacts: ContactOption[] }) {
   const router = useRouter();
 
   async function handleSubmit(values: CreateJobInput) {
@@ -43,12 +43,13 @@ export function NewJobWizard() {
         description={
           <T>
             {
-              'Only the title and the overall deadline are required — the rest can be filled in while the job is still a draft.'
+              'The title, the customer point of contact and the overall deadline are required — the rest can be filled in while the job is still a draft.'
             }
           </T>
         }
       >
         <JobForm
+          contacts={contacts}
           submitLabel="Save draft and continue"
           onSubmit={handleSubmit}
           onCancel={() => router.push('/jobs')}

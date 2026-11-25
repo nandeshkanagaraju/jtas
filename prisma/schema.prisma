@@ -184,6 +184,7 @@ model User {
   updatedAt          DateTime    @updatedAt
 
   createdJobs       Job[]              @relation("JobCreator")
+  contactForJobs    Job[]              @relation("JobPointOfContact")
   assignedSubtasks  Subtask[]          @relation("SubtaskAssignee")
   pushSubscriptions PushSubscription[]
   notifications     Notification[]
@@ -293,11 +294,18 @@ model Job {
   /// by construction — without this flag the sweeper would chase every row of
   /// it, which is thousands of real emails the moment SMTP points at a relay.
   /// The sweeper and the digest both exclude it.
-  isDemo      Boolean  @default(false)
+  isDemo      Boolean @default(false)
   createdById String
-  createdBy   User     @relation("JobCreator", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User    @relation("JobCreator", fields: [createdById], references: [id])
+
+  /// The one department person who speaks to the customer about this job.
+  /// Nobody else contacts the customer. Chosen when the job is created; null
+  /// only on jobs created before this existed.
+  pointOfContactId String?
+  pointOfContact   User?   @relation("JobPointOfContact", fields: [pointOfContactId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   /// Deleted from every screen by the MD, deputy or a job manager. Only a
   /// cancelled job or a draft can be deleted. The row is kept, so the audit

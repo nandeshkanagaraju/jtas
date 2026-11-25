@@ -4,7 +4,17 @@ import { T } from '@/lib/i18n/provider';
 
 import Link from 'next/link';
 
-import { Ban, ChevronDown, Pause, Pencil, Play, ScrollText, Send, Trash2 } from 'lucide-react';
+import {
+  Ban,
+  ChevronDown,
+  Pause,
+  Pencil,
+  Phone,
+  Play,
+  ScrollText,
+  Send,
+  Trash2,
+} from 'lucide-react';
 
 import { JobProgress, JobStatusBadge, PriorityBadge } from '@/app/(app)/jobs/components/job-badges';
 import { PageHeader } from '@/components/shared/page-header';
@@ -231,6 +241,33 @@ export function JobHeader({
           />
         </dl>
       </div>
+
+      {job.pointOfContact ? (
+        <div className="border-border bg-card flex items-start gap-3 rounded-lg border p-4">
+          <Phone className="text-muted-foreground mt-0.5 size-4 shrink-0" aria-hidden />
+          <div className="min-w-0 text-sm">
+            <p className="field-label">
+              <T>{'Customer point of contact'}</T>
+            </p>
+            <p className="text-foreground mt-0.5 font-medium">
+              {job.pointOfContact.name}
+              {job.pointOfContact.department ? (
+                <span className="text-muted-foreground font-normal">
+                  {' '}
+                  · {job.pointOfContact.department}
+                </span>
+              ) : null}
+            </p>
+            <p className="text-muted-foreground mt-0.5">
+              <T>{'Only this person contacts the customer about this job. Nobody else does.'}</T>
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-risk text-sm">
+          <T>{'No customer point of contact has been chosen for this job yet.'}</T>
+        </p>
+      )}
 
       {job.description ? (
         <p className="text-foreground max-w-prose text-sm whitespace-pre-wrap">{job.description}</p>

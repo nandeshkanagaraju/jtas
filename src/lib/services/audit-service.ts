@@ -26,6 +26,11 @@ export type AuditAction =
   | 'ACCOUNT_LOCKED'
   | 'TOKEN_REFRESHED'
   | 'TOKEN_REUSE_DETECTED'
+  // Sign-in by approved email link.
+  | 'SIGN_IN_LINK_REQUESTED'
+  | 'SIGN_IN_LINK_REQUEST_IGNORED'
+  | 'SIGN_IN_LINK_APPROVED'
+  | 'SIGN_IN_LINK_REJECTED'
   // Later modules extend this union as they land.
   | 'USER_CREATED'
   | 'USER_UPDATED'

@@ -26,7 +26,7 @@ import { appRedirectUrl } from '@/lib/auth/redirect-url';
  * redirect to `/login` at that moment would fail too — leaving the browser's
  * own error page instead of an explanation.
  */
-const PUBLIC_PATHS = new Set(['/login', '/offline']);
+const PUBLIC_PATHS = new Set(['/login', '/login/link', '/offline']);
 
 /** The only page a user who owes a password change may open. */
 const CHANGE_PASSWORD_PATH = '/change-password';

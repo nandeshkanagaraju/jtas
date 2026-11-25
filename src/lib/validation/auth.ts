@@ -57,3 +57,14 @@ export const changePasswordSchema = z
   });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+/** Asking for a sign-in link: just the address, and whether to stay signed in. */
+export const signInLinkRequestSchema = z.object({
+  email: emailSchema,
+  rememberDevice: z.boolean().optional().default(false),
+});
+
+export type SignInLinkRequestInput = z.infer<typeof signInLinkRequestSchema>;
+
+/** The opaque secrets the browser holds: a poll handle or a mailed link token. */
+export const signInSecretSchema = z.string().trim().min(20).max(200);

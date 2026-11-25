@@ -163,6 +163,9 @@ describe('every API route is behind the gate', () => {
    */
   const EXEMPT: Record<string, string> = {
     'auth/login/route.ts': 'issues the session in the first place',
+    'auth/sign-in-link/request/route.ts': 'asks for a sign-in link before there is a session',
+    'auth/sign-in-link/status/route.ts': 'the waiting login page polls it with no session',
+    'auth/sign-in-link/consume/route.ts': 'issues the session from an approved link',
     'auth/logout/route.ts': 'signing out must never be blocked',
     'auth/refresh/route.ts': 'rotates the token, no user action',
     'auth/me/route.ts': 'the client reads the flag from here',

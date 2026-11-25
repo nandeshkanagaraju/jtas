@@ -9,6 +9,7 @@ import {
   Settings,
   Users,
   Radio,
+  KeyRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -25,7 +26,8 @@ export interface NavItem {
     | 'settings'
     | 'audit'
     | 'updates'
-    | 'billing';
+    | 'billing'
+    | 'sign-in';
   /** Open-problem count. Omitted or zero shows nothing. */
   badge?: number;
   /** The count is late-red once anything has been waiting a day. */
@@ -43,6 +45,7 @@ export const NAV_ICONS: Record<NavItem['icon'], LucideIcon> = {
   audit: ScrollText,
   updates: Radio,
   billing: ReceiptIndianRupee,
+  'sign-in': KeyRound,
 };
 
 /** Daily routes, in the order the MD sees them. Members simply lack some. */
@@ -56,7 +59,7 @@ export const PRIMARY_ORDER = [
   '/reports',
 ] as const;
 
-export const ADMIN_HREFS = new Set(['/users', '/audit', '/settings']);
+export const ADMIN_HREFS = new Set(['/users', '/sign-in-requests', '/audit', '/settings']);
 
 export function sortPrimary(items: NavItem[]): NavItem[] {
   return [...items].sort(
@@ -80,4 +83,5 @@ export const NAV_LABELS: Record<string, string> = {
   '/notifications': 'Notifications',
   '/updates': 'Live updates',
   '/billing': 'Billing',
+  '/sign-in-requests': 'Sign-in requests',
 };

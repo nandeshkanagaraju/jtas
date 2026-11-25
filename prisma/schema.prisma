@@ -188,11 +188,55 @@ model User {
   refreshTokens     RefreshToken[]
   telegramLinkCodes TelegramLinkCode[]
   telegramPendings  TelegramPending[]
+  signInRequests    SignInRequest[]
 
   materialCounts MaterialCount[] @relation("MaterialCountRecordedBy")
   invoices       Invoice[]       @relation("InvoiceCreatedBy")
 
   @@index([role, isActive])
+}
+
+/// Where a sign-in-link request stands.
+enum SignInRequestStatus {
+  /// Waiting for the developer to accept or decline.
+  PENDING
+  /// Accepted: a one-time link was mailed to the person.
+  APPROVED
+  /// Declined by the developer.
+  REJECTED
+  /// The mailed link was used to sign in.
+  USED
+  /// Replaced by a newer request from the same person, or never answered.
+  EXPIRED
+}
+
+/// A request to sign in by emailed link instead of a password.
+///
+/// The person types their email on the login page; the developer accepts it
+/// in the app; a single-use link goes to that person's mailbox. Only hashes of
+/// the browser's polling handle and of the link are stored.
+model SignInRequest {
+  id             String              @id @default(cuid())
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         SignInRequestStatus @default(PENDING)
+  /// SHA-256 of the handle the requesting browser polls with.
+  pollHash       String              @unique
+  /// SHA-256 of the mailed link token. Set on approval.
+  linkHash       String?             @unique
+  rememberDevice Boolean             @default(false)
+  ipAddress      String?
+  userAgent      String?
+  /// A pending request nobody answered by now is treated as expired.
+  expiresAt      DateTime
+  decidedAt      DateTime?
+  decidedById    String?
+  linkExpiresAt  DateTime?
+  usedAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId, status])
 }
 
 /// Refresh-token families (SDD section 8.2). Rotation on use; reuse of a

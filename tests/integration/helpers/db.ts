@@ -39,6 +39,7 @@ export async function resetAuthTables(): Promise<void> {
   await testDb.auditLog.deleteMany();
   await testDb.notification.deleteMany();
   await testDb.refreshToken.deleteMany();
+  await testDb.signInRequest.deleteMany();
   await testDb.problem.deleteMany();
   await testDb.deadlineChange.deleteMany();
   await testDb.extensionRequest.deleteMany();

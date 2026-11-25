@@ -8,6 +8,8 @@ import { can } from '@/lib/auth/policy';
 import { listNotifications } from '@/lib/notifications/notification-service';
 import { listProblems } from '@/lib/services/problems';
 import { getSession } from '@/lib/auth/session';
+import { canApproveSignIn } from '@/lib/auth/developer';
+import { pendingSignInRequestCount } from '@/lib/services/auth';
 
 /**
  * Shell for every signed-in screen. Resolves the session once and hands it to
@@ -90,6 +92,17 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
 
   if (can(session, 'user:view', undefined)) {
     nav.push({ href: '/users', label: 'Users', icon: 'users' });
+  }
+
+  // The developer answers sign-in-link requests; the badge is what is waiting.
+  if (canApproveSignIn(session)) {
+    nav.push({
+      href: '/sign-in-requests',
+      label: 'Sign-in requests',
+      icon: 'sign-in',
+      badge: await pendingSignInRequestCount(),
+      badgeUrgent: true,
+    });
   }
 
   // M9 governance. Both are MD and ADMIN; the deputy is deliberately excluded

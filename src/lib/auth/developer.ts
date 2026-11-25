@@ -22,6 +22,16 @@ function developerEmails(): Set<string> {
   );
 }
 
+/** Every configured developer address, lowercased. */
+export function developerEmailList(): string[] {
+  return [...developerEmails()];
+}
+
+/** May this person accept or decline sign-in-link requests? */
+export function canApproveSignIn(user: Pick<PasswordSubject, 'email'>): boolean {
+  return isDeveloper(user);
+}
+
 export function isDeveloper(user: Pick<PasswordSubject, 'email'>): boolean {
   return developerEmails().has(user.email.trim().toLowerCase());
 }

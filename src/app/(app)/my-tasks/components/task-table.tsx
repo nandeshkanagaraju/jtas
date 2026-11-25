@@ -20,6 +20,7 @@ import type { MyTaskDto, MyTasksDto } from '@/lib/api/my-tasks-client';
 import { BUCKET_ORDER, type BucketName } from '@/lib/domain/task-buckets';
 import { textClass } from '@/lib/ui/tone';
 import { cn } from '@/lib/utils';
+import { completionLabel } from '@/lib/utils/relative-time';
 import { formatIST } from '@/lib/utils/time';
 
 import { ProblemForm, type Severity } from './problem-form';
@@ -262,7 +263,13 @@ function Row({
             <p className={cn('tabular-nums', overdue && 'text-late')}>
               {formatIST(new Date(task.deadline), 'd MMM, h:mm a')}
             </p>
-            <Countdown deadline={task.deadline} className="text-xs" />
+            {done && task.completedAt ? (
+              // Finished work is measured against its deadline, not against
+              // today: a task done on time must not read "5 days late".
+              <FinishedLabel deadline={task.deadline} completedAt={task.completedAt} />
+            ) : (
+              <Countdown deadline={task.deadline} className="text-xs" />
+            )}
           </>
         ) : task.commitmentDueAt ? (
           <p className="text-muted-foreground text-xs">
@@ -318,5 +325,14 @@ function Row({
         )}
       </td>
     </tr>
+  );
+}
+
+function FinishedLabel({ deadline, completedAt }: { deadline: string; completedAt: string }) {
+  const label = completionLabel(new Date(deadline), new Date(completedAt));
+  return (
+    <p className={cn('text-xs', label.overdue ? 'text-late font-medium' : 'text-ok')}>
+      <T>{label.text.charAt(0).toUpperCase() + label.text.slice(1)}</T>
+    </p>
   );
 }

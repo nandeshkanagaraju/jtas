@@ -25,6 +25,7 @@ import { formatIST } from '@/lib/utils/time';
 
 import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 import { CommentThread } from '@/components/collaboration/comment-thread';
+import { MaterialCountPanel } from '@/components/collaboration/material-count-panel';
 
 import { CommitmentPanel } from './commitment-panel';
 import { ExtensionPanel } from './extension-panel';
@@ -38,6 +39,10 @@ export interface TaskPermissions {
   comment: boolean;
   /** M10: only the person accountable for the subtask puts files on it (FR-34). */
   attach: boolean;
+  /** This task's department (Production, Quality, QA) reports material counts. */
+  countsMaterials: boolean;
+  /** The holder, the MD or the Deputy may add a count. */
+  recordMaterials: boolean;
 }
 
 export function TaskDetail({
@@ -369,6 +374,19 @@ export function TaskDetail({
                 <T>{'Add progress update'}</T>
               </Button>
             )
+          ) : null}
+
+          {permissions.countsMaterials ? (
+            <Panel
+              title={<T>{'Accepted and rejected material'}</T>}
+              description={<T>{'Record what passed and what was rejected, batch by batch.'}</T>}
+              bodyClassName="p-4"
+            >
+              <MaterialCountPanel
+                subtaskId={subtask.id}
+                canRecord={permissions.recordMaterials && !cancelled}
+              />
+            </Panel>
           ) : null}
 
           {permissions.requestExtension && subtask.deadline && !done && !cancelled ? (

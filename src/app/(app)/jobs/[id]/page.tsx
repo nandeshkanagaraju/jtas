@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
 import { getJob } from '@/lib/services/jobs';
+import { jobMaterialTotals } from '@/lib/services/material-service';
 
 import { JobDetail } from './job-detail';
 
@@ -36,10 +37,12 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const { id } = await params;
 
   const job = await getJob(session, id);
+  const materials = await jobMaterialTotals(job.id);
 
   return (
     <JobDetail
       currentUserId={session.id}
+      materials={materials}
       job={{
         ...job,
         overallDeadline: job.overallDeadline.toISOString(),

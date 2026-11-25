@@ -370,6 +370,7 @@ async function clear() {
     await prisma.problem.deleteMany({ where: { subtask: { jobId: { in: ids } } } });
     await prisma.deadlineChange.deleteMany({ where: { subtask: { jobId: { in: ids } } } });
     await prisma.extensionRequest.deleteMany({ where: { subtask: { jobId: { in: ids } } } });
+    await prisma.materialCount.deleteMany({ where: { subtask: { jobId: { in: ids } } } });
     await prisma.subtask.updateMany({ where: { jobId: { in: ids } }, data: { dependsOnId: null } });
     await prisma.subtask.deleteMany({ where: { jobId: { in: ids } } });
     await prisma.job.deleteMany({ where: { id: { in: ids } } });

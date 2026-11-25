@@ -5,6 +5,7 @@ import { requireActiveSession } from '@/lib/auth/session';
 import { forbidden } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { listExtensionRequests } from '@/lib/services/extension-service';
+import { recordsMaterials } from '@/lib/services/material-service';
 import { getSubtask } from '@/lib/services/subtasks';
 
 import { TaskDetail } from './task-detail';
@@ -77,6 +78,10 @@ export default async function TaskPage({
     // M10: commenting is scoped to the job, attaching to the subtask.
     comment: can(session, 'comment:create', resource),
     attach: can(session, 'attachment:create', resource),
+    // Production, Quality and QA report what passed and what failed.
+    countsMaterials: recordsMaterials(subtask.department.code),
+    recordMaterials:
+      recordsMaterials(subtask.department.code) && can(session, 'materials:record', resource),
   };
 
   const extensionRequests = permissions.requestExtension ? await listExtensionRequests(id) : [];

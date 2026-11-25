@@ -73,6 +73,7 @@ export type AuditAction =
   // M10 — collaboration. Attachments are soft-deleted (architecture rule 6),
   // so ATTACHMENT_DELETED records a hiding, never a removal.
   | 'COMMENT_ADDED'
+  | 'MATERIAL_COUNT_RECORDED'
   | 'ATTACHMENT_UPLOADED'
   | 'ATTACHMENT_DELETED'
   | 'TELEGRAM_LINKED'

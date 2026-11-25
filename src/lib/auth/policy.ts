@@ -136,6 +136,8 @@ export type Action =
   | 'problem:resolve'
   // Collaboration (M10)
   | 'comment:create'
+  /** Report accepted/rejected material counts on a Production, Quality or QA task. */
+  | 'materials:record'
   | 'comment:view'
   | 'attachment:create'
   | 'attachment:view'
@@ -182,6 +184,7 @@ export interface ResourceFor {
   'problem:resolve': ProblemResource;
 
   'comment:create': SubtaskResource;
+  'materials:record': SubtaskResource;
   'comment:view': SubtaskResource;
   'attachment:create': SubtaskResource;
   'attachment:view': SubtaskResource;
@@ -385,6 +388,17 @@ export function can<A extends Action>(
      * call asking whether material has arrived. Letting them see the answer but
      * not ask the question leaves the phone call in place.
      */
+    // The department doing the work reports what passed and what failed; the MD
+    // and Deputy may correct the record. Admin runs the system, not the floor.
+    // Whether the task's department counts materials at all is decided by
+    // `recordsMaterials`, not here.
+    case 'materials:record': {
+      const subtask = resource as SubtaskResource;
+      if (user.role === 'ADMIN') return false;
+      if (isCommand(user)) return true;
+      return ownsSubtask(user, subtask);
+    }
+
     case 'comment:create': {
       const subtask = resource as SubtaskResource;
       if (user.role === 'ADMIN') return false;

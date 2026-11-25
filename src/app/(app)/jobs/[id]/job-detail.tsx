@@ -41,14 +41,26 @@ const FROZEN_AFTER_PUBLISH = (
   ['partNumber', 'drawingNumber', 'quantity', 'overallDeadline'] as const
 ).filter((field) => !(EDITABLE_AFTER_PUBLISH as readonly string[]).includes(field));
 
+export interface JobMaterialTotalDto {
+  subtaskId: string;
+  subtaskTitle: string;
+  department: string;
+  accepted: number;
+  rejected: number;
+  reports: number;
+}
+
 export function JobDetail({
   job,
   permissions,
   currentUserId,
+  materials = [],
 }: {
   job: JobRowDto;
   permissions: JobPermissions;
   currentUserId: string;
+  /** Accepted/rejected totals per Production, Quality and QA task. */
+  materials?: JobMaterialTotalDto[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -162,6 +174,60 @@ export function JobDetail({
         currentUserId={currentUserId}
         onJobChanged={() => router.refresh()}
       />
+
+      {materials.length > 0 ? (
+        <Panel
+          title={<T>{'Accepted and rejected material'}</T>}
+          description={
+            <T>
+              {job.quantity
+                ? `Totals reported by each department against the job quantity of ${job.quantity}.`
+                : 'Totals reported by each department.'}
+            </T>
+          }
+          bodyClassName="p-0"
+        >
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-muted-foreground text-left text-xs">
+              <tr>
+                <th className="px-4 py-2 font-medium">
+                  <T>{'Department'}</T>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <T>{'Accepted'}</T>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <T>{'Rejected'}</T>
+                </th>
+                <th className="px-4 py-2 text-right font-medium">
+                  <T>{'Reports'}</T>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-border divide-y">
+              {materials.map((row) => (
+                <tr key={row.subtaskId}>
+                  <td className="px-4 py-2.5">
+                    <Link href={`/tasks/${row.subtaskId}`} className="font-medium hover:underline">
+                      {row.department}
+                    </Link>
+                    <span className="text-muted-foreground block text-xs">{row.subtaskTitle}</span>
+                  </td>
+                  <td className="text-ok px-4 py-2.5 text-right font-mono tabular-nums">
+                    {row.accepted}
+                  </td>
+                  <td className="text-late px-4 py-2.5 text-right font-mono tabular-nums">
+                    {row.rejected}
+                  </td>
+                  <td className="text-muted-foreground px-4 py-2.5 text-right tabular-nums">
+                    {row.reports}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
+      ) : null}
 
       {/* The customer drawing and the PO belong to the job, not to any one
           department's step (build spec M10.4). */}

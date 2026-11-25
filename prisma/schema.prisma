@@ -182,6 +182,8 @@ model User {
   telegramLinkCodes TelegramLinkCode[]
   telegramPendings  TelegramPending[]
 
+  materialCounts MaterialCount[] @relation("MaterialCountRecordedBy")
+
   @@index([role, isActive])
 }
 
@@ -293,6 +295,7 @@ model Subtask {
   problems          Problem[]
   comments          Comment[]
   attachments       Attachment[]
+  materialCounts    MaterialCount[]
   deadlineChanges   DeadlineChange[]
   extensionRequests ExtensionRequest[]
 
@@ -360,6 +363,23 @@ model Comment {
   userId    String
   body      String
   createdAt DateTime @default(now())
+
+  @@index([subtaskId, createdAt])
+}
+
+/// Accepted and rejected material counts reported on a Production, Quality or
+/// QA task. Append-only: each row is one report (a shift, a batch); the task's
+/// totals are the sum. A wrong entry is corrected by a new one, never edited.
+model MaterialCount {
+  id           String   @id @default(cuid())
+  subtaskId    String
+  subtask      Subtask  @relation(fields: [subtaskId], references: [id])
+  acceptedQty  Int
+  rejectedQty  Int
+  note         String?
+  recordedById String
+  recordedBy   User     @relation("MaterialCountRecordedBy", fields: [recordedById], references: [id])
+  createdAt    DateTime @default(now())
 
   @@index([subtaskId, createdAt])
 }

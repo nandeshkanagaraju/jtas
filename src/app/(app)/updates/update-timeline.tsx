@@ -32,6 +32,7 @@ const ACTIONS: Record<string, string> = {
   SUBTASK_COMMITMENT_MISSED: 'Deadline commitment missed',
   SUBTASK_OVERDUE_ESCALATED: 'Overdue reminder',
   COMMENT_ADDED: 'Posted a message',
+  MATERIAL_COUNT_RECORDED: 'Recorded accepted and rejected material',
   ATTACHMENT_UPLOADED: 'Shared a file',
   ATTACHMENT_DELETED: 'Removed a file',
   PROBLEM_RAISED: 'Reported a problem',

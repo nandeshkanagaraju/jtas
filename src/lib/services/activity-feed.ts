@@ -120,6 +120,11 @@ export async function jobActivityFeed(
       body = commentById.get(String(after.commentId ?? '')) ?? null;
     }
 
+    if (entry.action === 'MATERIAL_COUNT_RECORDED') {
+      const note = typeof after.note === 'string' && after.note ? ` · ${after.note}` : '';
+      body = `Accepted ${String(after.acceptedQty ?? 0)} · Rejected ${String(after.rejectedQty ?? 0)}${note}`;
+    }
+
     if (entry.action.startsWith('ATTACHMENT_')) {
       body = String(after.fileName ?? before.fileName ?? '') || null;
     }

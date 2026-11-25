@@ -272,6 +272,7 @@ async function main() {
         prisma.deadlineChange.deleteMany({ where: { subtask: { jobId: { in: ids } } } }),
         prisma.extensionRequest.deleteMany({ where: { subtask: { jobId: { in: ids } } } }),
         prisma.comment.deleteMany({ where: { subtask: { jobId: { in: ids } } } }),
+        prisma.materialCount.deleteMany({ where: { subtask: { jobId: { in: ids } } } }),
         prisma.attachment.deleteMany({
           where: { OR: [{ jobId: { in: ids } }, { subtask: { jobId: { in: ids } } }] },
         }),

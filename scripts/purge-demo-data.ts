@@ -265,6 +265,7 @@ async function apply(plan: Awaited<ReturnType<typeof inventory>>) {
       await tx.extensionRequest.deleteMany({ where: { subtaskId: { in: plan.demoSubtaskIds } } });
       await tx.deadlineChange.deleteMany({ where: { subtaskId: { in: plan.demoSubtaskIds } } });
       await tx.comment.deleteMany({ where: { subtaskId: { in: plan.demoSubtaskIds } } });
+      await tx.materialCount.deleteMany({ where: { subtaskId: { in: plan.demoSubtaskIds } } });
       await tx.problem.deleteMany({ where: { subtaskId: { in: plan.demoSubtaskIds } } });
       await tx.attachment.deleteMany({
         where: {

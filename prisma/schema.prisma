@@ -183,6 +183,7 @@ model User {
   telegramPendings  TelegramPending[]
 
   materialCounts MaterialCount[] @relation("MaterialCountRecordedBy")
+  invoices       Invoice[]       @relation("InvoiceCreatedBy")
 
   @@index([role, isActive])
 }
@@ -238,6 +239,7 @@ model Job {
 
   subtasks    Subtask[]
   attachments Attachment[]
+  invoices    Invoice[]
 
   @@index([status, overallDeadline])
   @@index([jobCode])
@@ -382,6 +384,27 @@ model MaterialCount {
   createdAt    DateTime @default(now())
 
   @@index([subtaskId, createdAt])
+}
+
+/// A customer invoice raised by Accounts against a job. A job may be invoiced
+/// in parts (partial dispatches). Money is stored in paise and GST in basis
+/// points (1800 = 18%) so totals never pick up floating-point error.
+model Invoice {
+  id             String   @id @default(cuid())
+  jobId          String
+  job            Job      @relation(fields: [jobId], references: [id])
+  invoiceNumber  String   @unique
+  invoiceDate    DateTime
+  quantity       Int
+  ratePaise      Int
+  gstBasisPoints Int
+  note           String?
+  createdById    String
+  createdBy      User     @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+
+  @@index([jobId, invoiceDate])
+  @@index([invoiceDate])
 }
 
 model Attachment {

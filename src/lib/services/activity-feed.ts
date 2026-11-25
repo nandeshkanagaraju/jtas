@@ -120,6 +120,11 @@ export async function jobActivityFeed(
       body = commentById.get(String(after.commentId ?? '')) ?? null;
     }
 
+    // Invoice number and quantity only: the feed is read by every department.
+    if (entry.action === 'INVOICE_RECORDED') {
+      body = `Invoice ${String(after.invoiceNumber ?? '')} · ${String(after.quantity ?? 0)} pcs`;
+    }
+
     if (entry.action === 'MATERIAL_COUNT_RECORDED') {
       const note = typeof after.note === 'string' && after.note ? ` · ${after.note}` : '';
       body = `Accepted ${String(after.acceptedQty ?? 0)} · Rejected ${String(after.rejectedQty ?? 0)}${note}`;

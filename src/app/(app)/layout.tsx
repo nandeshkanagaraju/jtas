@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { AppShell } from '@/components/shared/app-shell';
 import { NAV_LABELS, type NavItem } from '@/components/shared/main-nav';
+import { canManageBilling } from '@/lib/services/billing-service';
 import { Toaster } from '@/components/ui/sonner';
 import { can } from '@/lib/auth/policy';
 import { listNotifications } from '@/lib/notifications/notification-service';
@@ -77,6 +78,11 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
   // department scorecards it opens on. Admin exports through the API instead.
   if (can(session, 'dashboard:department', undefined)) {
     nav.push({ href: '/reports', label: 'Reports', icon: 'reports' });
+  }
+
+  // Accounts, the MD and the Deputy: invoices and what is ready to bill.
+  if (await canManageBilling(session)) {
+    nav.push({ href: '/billing', label: 'Billing', icon: 'billing' });
   }
 
   nav.push({ href: '/my-tasks', label: 'My tasks', icon: 'my-tasks' });

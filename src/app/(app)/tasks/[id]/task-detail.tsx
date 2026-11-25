@@ -26,6 +26,7 @@ import { formatIST } from '@/lib/utils/time';
 import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 import { CommentThread } from '@/components/collaboration/comment-thread';
 import { MaterialCountPanel } from '@/components/collaboration/material-count-panel';
+import { BillingPanel } from '@/components/collaboration/billing-panel';
 
 import { CommitmentPanel } from './commitment-panel';
 import { ExtensionPanel } from './extension-panel';
@@ -43,6 +44,8 @@ export interface TaskPermissions {
   countsMaterials: boolean;
   /** The holder, the MD or the Deputy may add a count. */
   recordMaterials: boolean;
+  /** An Accounts task, seen by Accounts, the MD or the Deputy: show the job's invoices. */
+  billing: boolean;
 }
 
 export function TaskDetail({
@@ -374,6 +377,16 @@ export function TaskDetail({
                 <T>{'Add progress update'}</T>
               </Button>
             )
+          ) : null}
+
+          {permissions.billing ? (
+            <Panel
+              title={<T>{'Billing'}</T>}
+              description={<T>{'Invoices on this job, against what final inspection accepted.'}</T>}
+              bodyClassName="p-4"
+            >
+              <BillingPanel jobId={subtask.jobId} />
+            </Panel>
           ) : null}
 
           {permissions.countsMaterials ? (

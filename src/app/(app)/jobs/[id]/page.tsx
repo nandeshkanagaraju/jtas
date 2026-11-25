@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
 import { getJob } from '@/lib/services/jobs';
+import { canManageBilling } from '@/lib/services/billing-service';
 import { jobMaterialTotals } from '@/lib/services/material-service';
 
 import { JobDetail } from './job-detail';
@@ -37,12 +38,16 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const { id } = await params;
 
   const job = await getJob(session, id);
-  const materials = await jobMaterialTotals(job.id);
+  const [materials, canBill] = await Promise.all([
+    jobMaterialTotals(job.id),
+    canManageBilling(session),
+  ]);
 
   return (
     <JobDetail
       currentUserId={session.id}
       materials={materials}
+      canBill={canBill && job.status !== 'DRAFT'}
       job={{
         ...job,
         overallDeadline: job.overallDeadline.toISOString(),

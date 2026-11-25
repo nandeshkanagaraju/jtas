@@ -26,6 +26,7 @@ import type { CreateJobInput } from '@/lib/validation/job';
 
 import { JobHeader, type JobPermissions } from './job-header';
 import { ReasonDialog } from './reason-dialog';
+import { BillingPanel } from '@/components/collaboration/billing-panel';
 import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 
 import { ActivityPanel } from './activity-panel';
@@ -55,12 +56,15 @@ export function JobDetail({
   permissions,
   currentUserId,
   materials = [],
+  canBill = false,
 }: {
   job: JobRowDto;
   permissions: JobPermissions;
   currentUserId: string;
   /** Accepted/rejected totals per Production, Quality and QA task. */
   materials?: JobMaterialTotalDto[];
+  /** Accounts, the MD and the Deputy see invoices and amounts. */
+  canBill?: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -226,6 +230,18 @@ export function JobDetail({
               ))}
             </tbody>
           </table>
+        </Panel>
+      ) : null}
+
+      {canBill ? (
+        <Panel
+          title={<T>{'Billing'}</T>}
+          description={
+            <T>{'Invoices raised on this job. Visible to Accounts, the MD and the Deputy only.'}</T>
+          }
+          bodyClassName="p-4"
+        >
+          <BillingPanel jobId={job.id} />
         </Panel>
       ) : null}
 

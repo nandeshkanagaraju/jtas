@@ -5,6 +5,7 @@ import { requireActiveSession } from '@/lib/auth/session';
 import { forbidden } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { listExtensionRequests } from '@/lib/services/extension-service';
+import { canManageBilling } from '@/lib/services/billing-service';
 import { recordsMaterials } from '@/lib/services/material-service';
 import { getSubtask } from '@/lib/services/subtasks';
 
@@ -80,6 +81,8 @@ export default async function TaskPage({
     attach: can(session, 'attachment:create', resource),
     // Production, Quality and QA report what passed and what failed.
     countsMaterials: recordsMaterials(subtask.department.code),
+    // Accounts raises invoices from its own task; the panel is job-wide.
+    billing: subtask.department.code === 'ACCOUNTS' && (await canManageBilling(session)),
     recordMaterials:
       recordsMaterials(subtask.department.code) && can(session, 'materials:record', resource),
   };

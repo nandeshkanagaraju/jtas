@@ -277,6 +277,7 @@ async function main() {
           where: { OR: [{ jobId: { in: ids } }, { subtask: { jobId: { in: ids } } }] },
         }),
         prisma.subtask.deleteMany({ where: { jobId: { in: ids } } }),
+        prisma.invoice.deleteMany({ where: { jobId: { in: ids } } }),
         prisma.job.deleteMany({ where: { id: { in: ids } } }),
       ]);
     }

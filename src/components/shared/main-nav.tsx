@@ -4,6 +4,7 @@ import {
   Briefcase,
   LayoutDashboard,
   ListTodo,
+  ReceiptIndianRupee,
   ScrollText,
   Settings,
   Users,
@@ -23,7 +24,8 @@ export interface NavItem {
     | 'reports'
     | 'settings'
     | 'audit'
-    | 'updates';
+    | 'updates'
+    | 'billing';
   /** Open-problem count. Omitted or zero shows nothing. */
   badge?: number;
   /** The count is late-red once anything has been waiting a day. */
@@ -40,12 +42,14 @@ export const NAV_ICONS: Record<NavItem['icon'], LucideIcon> = {
   settings: Settings,
   audit: ScrollText,
   updates: Radio,
+  billing: ReceiptIndianRupee,
 };
 
 /** Daily routes, in the order the MD sees them. Members simply lack some. */
 export const PRIMARY_ORDER = [
   '/dashboard',
   '/jobs',
+  '/billing',
   '/updates',
   '/problems',
   '/my-tasks',
@@ -75,4 +79,5 @@ export const NAV_LABELS: Record<string, string> = {
   '/tasks': 'My work',
   '/notifications': 'Notifications',
   '/updates': 'Live updates',
+  '/billing': 'Billing',
 };

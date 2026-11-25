@@ -74,6 +74,7 @@ export type AuditAction =
   // so ATTACHMENT_DELETED records a hiding, never a removal.
   | 'COMMENT_ADDED'
   | 'MATERIAL_COUNT_RECORDED'
+  | 'INVOICE_RECORDED'
   | 'ATTACHMENT_UPLOADED'
   | 'ATTACHMENT_DELETED'
   | 'TELEGRAM_LINKED'

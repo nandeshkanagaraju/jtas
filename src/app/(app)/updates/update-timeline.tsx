@@ -33,6 +33,7 @@ const ACTIONS: Record<string, string> = {
   SUBTASK_OVERDUE_ESCALATED: 'Overdue reminder',
   COMMENT_ADDED: 'Posted a message',
   MATERIAL_COUNT_RECORDED: 'Recorded accepted and rejected material',
+  INVOICE_RECORDED: 'Raised an invoice',
   ATTACHMENT_UPLOADED: 'Shared a file',
   ATTACHMENT_DELETED: 'Removed a file',
   PROBLEM_RAISED: 'Reported a problem',

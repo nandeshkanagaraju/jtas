@@ -273,6 +273,7 @@ async function apply(plan: Awaited<ReturnType<typeof inventory>>) {
         },
       });
       await tx.subtask.deleteMany({ where: { id: { in: plan.demoSubtaskIds } } });
+      await tx.invoice.deleteMany({ where: { jobId: { in: plan.demoJobIds } } });
       await tx.job.deleteMany({ where: { id: { in: plan.demoJobIds } } });
     },
     { timeout: 120_000 },

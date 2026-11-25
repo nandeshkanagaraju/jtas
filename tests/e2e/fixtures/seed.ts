@@ -77,7 +77,7 @@ export async function seedE2E(): Promise<SeededWorld> {
     // this honest about what the suite destroys.
     await prisma.$executeRawUnsafe(`
       TRUNCATE TABLE
-        "Notification", "AuditLog", "Comment", "MaterialCount", "Attachment",
+        "Notification", "AuditLog", "Comment", "MaterialCount", "Invoice", "Attachment",
         "DeadlineChange", "ExtensionRequest", "Problem", "Subtask",
         "Job", "JobCodeCounter", "RefreshToken", "JobTemplateItem",
         "JobTemplate", "Holiday", "Setting", "User", "Department"

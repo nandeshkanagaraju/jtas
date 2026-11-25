@@ -34,6 +34,10 @@ export async function resetAuthTables(): Promise<void> {
    */
   invalidateSettings();
 
+  // Production reports reference users; lines, hours and changes cascade.
+  await testDb.productionReport.deleteMany();
+  await testDb.productionPart.deleteMany();
+  await testDb.productionMachine.deleteMany();
   await testDb.telegramPending.deleteMany();
   await testDb.telegramLinkCode.deleteMany();
   await testDb.auditLog.deleteMany();

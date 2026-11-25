@@ -84,13 +84,27 @@ export type AuditAction =
   | 'ATTACHMENT_UPLOADED'
   | 'ATTACHMENT_DELETED'
   | 'TELEGRAM_LINKED'
-  | 'TELEGRAM_UNLINKED';
+  | 'TELEGRAM_UNLINKED'
+  // Daily production report
+  | 'PRODUCTION_REPORT_SUBMITTED'
+  | 'PRODUCTION_REPORT_APPROVED'
+  | 'PRODUCTION_REPORT_EDITED'
+  | 'PRODUCTION_PART_ADDED';
 
 /** Where an action was taken. A chat id is weaker than a signed-in session. */
 export type AuditSource = 'WEB' | 'TELEGRAM';
 
 export type AuditEntityType =
-  'USER' | 'JOB' | 'SUBTASK' | 'PROBLEM' | 'SETTING' | 'SESSION' | 'HOLIDAY' | 'TEMPLATE';
+  | 'USER'
+  | 'JOB'
+  | 'SUBTASK'
+  | 'PROBLEM'
+  | 'SETTING'
+  | 'SESSION'
+  | 'HOLIDAY'
+  | 'TEMPLATE'
+  | 'PRODUCTION_REPORT'
+  | 'PRODUCTION_PART';
 
 export interface AuditInput {
   /** Null for a failed login, where the actor is not yet identified. */

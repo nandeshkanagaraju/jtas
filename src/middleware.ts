@@ -41,7 +41,16 @@ function landingPath(role: AccessClaims['role']): string {
       return '/users';
     case 'MEMBER':
       return '/my-tasks';
+    case 'SUPERVISOR':
+      return PRODUCTION_PATH;
   }
+}
+
+/** The production entry pages: all a shop-floor supervisor may open. */
+const PRODUCTION_PATH = '/production';
+
+function isProductionPath(pathname: string): boolean {
+  return pathname === PRODUCTION_PATH || pathname.startsWith(`${PRODUCTION_PATH}/`);
 }
 
 function redirect(request: NextRequest, path: string): NextResponse {
@@ -116,6 +125,18 @@ export async function middleware(request: NextRequest) {
   // --- Role landing -------------------------------------------------------
   if (pathname === '/') {
     return withCsp(redirect(request, landingPath(claims.role)));
+  }
+
+  // --- Supervisors stay on the production pages ---------------------------
+  // JTAS is for staff; a supervisor is sent to the production entry instead
+  // of being shown a refusal. The pages and every API still check the role
+  // themselves (`can()` refuses a supervisor everything).
+  if (
+    claims.role === 'SUPERVISOR' &&
+    !isProductionPath(pathname) &&
+    pathname !== CHANGE_PASSWORD_PATH
+  ) {
+    return withCsp(redirect(request, PRODUCTION_PATH));
   }
 
   return proceed();

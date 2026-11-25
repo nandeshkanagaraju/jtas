@@ -5,14 +5,14 @@
  * person cannot read another's notifications.
  */
 import { handler, ok } from '@/lib/api/respond';
-import { requireActiveSession } from '@/lib/auth/session';
+import { ALL_ROLES_WITH_SUPERVISOR, requireActiveSession } from '@/lib/auth/session';
 import { listNotifications } from '@/lib/notifications/notification-service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const GET = handler(async (request) => {
-  const session = await requireActiveSession();
+  const session = await requireActiveSession(ALL_ROLES_WITH_SUPERVISOR);
   const url = new URL(request.url);
 
   return ok(

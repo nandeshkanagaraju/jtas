@@ -73,7 +73,7 @@ function refreshKey(): Uint8Array {
 export interface AccessClaims {
   /** User id. */
   sub: string;
-  role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER';
+  role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' | 'SUPERVISOR';
   departmentId: string | null;
   mustChangePassword: boolean;
 }
@@ -180,7 +180,15 @@ function toAccessClaims(payload: JWTPayload): AccessClaims | null {
   const { sub, role, departmentId, mustChangePassword } = payload;
 
   if (typeof sub !== 'string') return null;
-  if (role !== 'MD' && role !== 'DEPUTY_MD' && role !== 'ADMIN' && role !== 'MEMBER') return null;
+  if (
+    role !== 'MD' &&
+    role !== 'DEPUTY_MD' &&
+    role !== 'ADMIN' &&
+    role !== 'MEMBER' &&
+    role !== 'SUPERVISOR'
+  ) {
+    return null;
+  }
   if (departmentId !== null && typeof departmentId !== 'string') return null;
   if (typeof mustChangePassword !== 'boolean') return null;
 

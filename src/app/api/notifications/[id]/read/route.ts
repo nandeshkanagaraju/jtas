@@ -5,7 +5,7 @@
  * guessed id simply matches nothing.
  */
 import { handler, ok } from '@/lib/api/respond';
-import { requireActiveSession } from '@/lib/auth/session';
+import { ALL_ROLES_WITH_SUPERVISOR, requireActiveSession } from '@/lib/auth/session';
 import { notFound } from '@/lib/errors';
 import { markRead } from '@/lib/notifications/notification-service';
 
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return handler(async () => {
-    const session = await requireActiveSession();
+    const session = await requireActiveSession(ALL_ROLES_WITH_SUPERVISOR);
     const { id } = await context.params;
 
     const marked = await markRead(session.id, id);

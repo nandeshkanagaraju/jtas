@@ -88,12 +88,20 @@ const foreignNotification: NotificationResource = { id: 'notif-2', userId: md.id
 const mdAccount: UserResource = { id: md.id, role: 'MD' };
 const memberAccount: UserResource = { id: member.id, role: 'MEMBER' };
 
-const ROLES: Role[] = ['MD', 'DEPUTY_MD', 'ADMIN', 'MEMBER'];
-const SUBJECTS: Record<Role, PolicySubject> = {
+/** The JTAS roles of the SDD matrix. A production supervisor has no JTAS capability at all. */
+type MatrixRole = Exclude<Role, 'SUPERVISOR'>;
+const ROLES: MatrixRole[] = ['MD', 'DEPUTY_MD', 'ADMIN', 'MEMBER'];
+const SUBJECTS: Record<MatrixRole, PolicySubject> = {
   MD: md,
   DEPUTY_MD: deputy,
   ADMIN: admin,
   MEMBER: member,
+};
+const supervisor: PolicySubject = {
+  id: 'supervisor-1',
+  role: 'SUPERVISOR',
+  departmentId: null,
+  isActive: true,
 };
 
 /**
@@ -104,8 +112,9 @@ function expectMatrixRow<A extends Action>(
   capability: string,
   action: A,
   resource: Parameters<typeof can<A>>[2],
-  expected: Record<Role, boolean>,
+  expected: Record<MatrixRole, boolean>,
 ) {
+  expect(can(supervisor, action, resource), `${capability} (${action}) for SUPERVISOR`).toBe(false);
   for (const role of ROLES) {
     const actual = can(SUBJECTS[role], action, resource);
     expect(

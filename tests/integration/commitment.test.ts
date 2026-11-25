@@ -32,7 +32,7 @@ function session(user: {
   role: SessionUser['role'];
   departmentId: string | null;
 }): SessionUser {
-  return { ...user, isActive: true, mustChangePassword: false };
+  return { ...user, isActive: true, mustChangePassword: false, productionSection: null };
 }
 
 beforeEach(async () => {

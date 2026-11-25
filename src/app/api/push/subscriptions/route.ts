@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { handler, noContent, ok, parseJson } from '@/lib/api/respond';
-import { requireActiveSession } from '@/lib/auth/session';
+import { ALL_ROLES_WITH_SUPERVISOR, requireActiveSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { conflict, forbidden } from '@/lib/errors';
 import { pushConfig } from '@/lib/push/config';
@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const GET = handler(async () => {
-  const user = await requireActiveSession();
+  const user = await requireActiveSession(ALL_ROLES_WITH_SUPERVISOR);
   const family = await pushSessionFamily(user.id);
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId: user.id, sessionFamilyId: family },
@@ -28,7 +28,7 @@ export const GET = handler(async () => {
 
 export const POST = handler(async (request) => {
   requireSameOrigin(request);
-  const user = await requireActiveSession();
+  const user = await requireActiveSession(ALL_ROLES_WITH_SUPERVISOR);
   if (!pushConfig()) throw conflict('Push notifications are not configured yet.');
   if (await prisma.user.count({ where: { id: user.id, isDemo: true } })) throw forbidden();
   const input = await parseJson(request, subscriptionSchema);
@@ -45,7 +45,7 @@ export const POST = handler(async (request) => {
 
 export const DELETE = handler(async (request) => {
   requireSameOrigin(request);
-  const user = await requireActiveSession();
+  const user = await requireActiveSession(ALL_ROLES_WITH_SUPERVISOR);
   const input = await parseJson(request, z.object({ endpoint: endpointSchema }));
   await prisma.pushSubscription.deleteMany({
     where: { userId: user.id, endpoint: input.endpoint },
@@ -55,7 +55,7 @@ export const DELETE = handler(async (request) => {
 
 export const PATCH = handler(async (request) => {
   requireSameOrigin(request);
-  const user = await requireActiveSession();
+  const user = await requireActiveSession(ALL_ROLES_WITH_SUPERVISOR);
   const family = await pushSessionFamily(user.id);
   const input = await parseJson(
     request,

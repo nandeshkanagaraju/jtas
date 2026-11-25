@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { emailSchema } from './auth';
 import { paginationSchema, searchSchema } from './common';
 
-export const roleSchema = z.enum(['MD', 'DEPUTY_MD', 'ADMIN', 'MEMBER']);
+export const roleSchema = z.enum(['MD', 'DEPUTY_MD', 'ADMIN', 'MEMBER', 'SUPERVISOR']);
 export type RoleValue = z.infer<typeof roleSchema>;
 
 /** Roles that belong to a department. */

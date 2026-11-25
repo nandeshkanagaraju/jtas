@@ -28,7 +28,7 @@ import {
 } from '@/lib/validation/auth';
 
 interface LoginResponse {
-  user: { role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' };
+  user: { role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' | 'SUPERVISOR' };
   mustChangePassword: boolean;
 }
 
@@ -38,6 +38,7 @@ type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'USED';
 export function landingPath(role: LoginResponse['user']['role']): string {
   if (role === 'ADMIN') return '/users';
   if (role === 'MEMBER') return '/my-tasks';
+  if (role === 'SUPERVISOR') return '/production';
   return '/dashboard';
 }
 

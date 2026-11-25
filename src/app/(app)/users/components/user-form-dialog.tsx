@@ -44,7 +44,7 @@ import { ROLE_LABELS } from './user-badges';
 /** Sentinel for the Select, which cannot hold an empty string as a value. */
 const NO_DEPARTMENT = '__none__';
 
-const ASSIGNABLE_ROLES: RoleValue[] = ['MEMBER', 'DEPUTY_MD', 'ADMIN', 'MD'];
+const ASSIGNABLE_ROLES: RoleValue[] = ['MEMBER', 'SUPERVISOR', 'DEPUTY_MD', 'ADMIN', 'MD'];
 
 /**
  * Create and edit share one dialog, because they share one shape. The only

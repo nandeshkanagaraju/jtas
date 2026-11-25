@@ -73,6 +73,12 @@ export const DEPARTMENT_ACCOUNTS: DepartmentAccount[] = [
     passwordName: 'Maintenance',
   },
   {
+    name: 'Dhiyaneswar S',
+    email: 'marketing@jaraaglobal.in',
+    departmentCode: 'MARKETING',
+    passwordName: 'Marketing',
+  },
+  {
     name: 'HR',
     email: 'hr@jaraaglobal.in',
     replaces: 'hr@jaraaglobal.com',

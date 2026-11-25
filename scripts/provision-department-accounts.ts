@@ -12,8 +12,12 @@
  * 0600, git-ignored) so the organisation has one place to look them up.
  *
  * Against anything but a local `_dev`/`_test` database it asks for `--yes`.
+ *
+ * `--only <email>` (repeatable) touches just those accounts, so a new login can
+ * be added without re-setting every other department's password. Their rows
+ * are merged into the existing credential sheet.
  */
-import { chmodSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import bcrypt from 'bcryptjs';
@@ -25,6 +29,19 @@ import { BCRYPT_COST } from '../src/lib/auth/password';
 import { assertLocalDisposableDatabase, parseDatabaseUrl } from './lib/database-url';
 
 const CREDENTIALS_FILE = '.department-credentials.txt';
+
+/** The addresses given with `--only`, lowercased. Empty means every account. */
+function onlyEmails(argv: string[]): Set<string> {
+  const picked = new Set<string>();
+  argv.forEach((arg, index) => {
+    if (arg === '--only') {
+      const value = argv[index + 1];
+      if (!value || value.startsWith('--')) fail('--only needs an email address after it.');
+      picked.add(value.trim().toLowerCase());
+    }
+  });
+  return picked;
+}
 
 function fail(message: string): never {
   console.error(`\n${message}\n`);
@@ -118,14 +135,23 @@ async function main() {
     );
   }
 
+  const only = onlyEmails(process.argv);
+  const accounts = only.size
+    ? DEPARTMENT_ACCOUNTS.filter((a) => only.has(a.email.toLowerCase()))
+    : DEPARTMENT_ACCOUNTS;
+  if (accounts.length !== (only.size || DEPARTMENT_ACCOUNTS.length)) {
+    const known = new Set(DEPARTMENT_ACCOUNTS.map((a) => a.email.toLowerCase()));
+    fail(
+      `Not in prisma/seed-data/department-accounts.ts: ${[...only].filter((e) => !known.has(e)).join(', ')}`,
+    );
+  }
+
   const prisma = new PrismaClient();
   const sheet: Array<{ name: string; department: string; email: string; password: string }> = [];
 
   try {
     // Departments the roster needs, created if this database predates them.
-    const codes = new Set(
-      DEPARTMENT_ACCOUNTS.flatMap((a) => (a.departmentCode ? [a.departmentCode] : [])),
-    );
+    const codes = new Set(accounts.flatMap((a) => (a.departmentCode ? [a.departmentCode] : [])));
     for (const dept of SEED_DEPARTMENTS.filter((d) => codes.has(d.code))) {
       await prisma.department.upsert({
         where: { code: dept.code },
@@ -136,7 +162,7 @@ async function main() {
     const departments = await prisma.department.findMany({ where: { code: { in: [...codes] } } });
     const byCode = new Map(departments.map((d) => [d.code, d]));
 
-    for (const account of DEPARTMENT_ACCOUNTS) {
+    for (const account of accounts) {
       const department = account.departmentCode ? byCode.get(account.departmentCode) : null;
       if (account.departmentCode && !department) {
         fail(`Unknown department code ${account.departmentCode}.`);
@@ -213,6 +239,19 @@ async function main() {
   });
 
   const path = resolve(process.cwd(), CREDENTIALS_FILE);
+
+  // With --only, keep the other accounts' rows already in the sheet.
+  const kept: string[] = [];
+  if (only.size && existsSync(path)) {
+    const lines = readFileSync(path, 'utf8').split('\n');
+    const start = lines.findIndex((line) => /^-+$/.test(line)) + 1;
+    if (start > 0) {
+      for (const line of lines.slice(start)) {
+        if (line.trim() && !sheet.some((r) => line.includes(` ${r.email} `))) kept.push(line);
+      }
+    }
+  }
+
   writeFileSync(
     path,
     [
@@ -222,6 +261,7 @@ async function main() {
       '',
       header,
       '-'.repeat(header.length),
+      ...kept,
       ...sheet.map(row),
       '',
     ].join('\n'),
@@ -229,7 +269,9 @@ async function main() {
   );
   chmodSync(path, 0o600);
 
-  console.log(`\n${sheet.length} department accounts ready on ${target.host}/${target.database}.`);
+  console.log(
+    `\n${sheet.length} department account${sheet.length === 1 ? '' : 's'} ready on ${target.host}/${target.database}.`,
+  );
   console.log(`Credential sheet: ${path} (mode 0600, git-ignored).`);
 }
 

@@ -21,4 +21,5 @@ export const SEED_DEPARTMENTS: SeedDepartment[] = [
   // Not stages of the CNC flow; they sit after it on the timeline.
   { code: 'QA', name: 'QA', sequenceOrder: 9 },
   { code: 'MAINTENANCE', name: 'Maintenance', sequenceOrder: 10 },
+  { code: 'MARKETING', name: 'Marketing', sequenceOrder: 11 },
 ];

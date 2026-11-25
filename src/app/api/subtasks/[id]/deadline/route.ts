@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   return handler(async (req) => {
-    const session = await requireActiveSession(['MD', 'DEPUTY_MD']);
+    const session = await requireActiveSession();
     const { id } = await context.params;
 
     const existing = await loadSubtaskForWrite(id);

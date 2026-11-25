@@ -44,7 +44,7 @@ export interface JobListResult {
 export function visibilityFilter(user: SessionUser): Prisma.JobWhereInput {
   if (user.role === 'MD' || user.role === 'DEPUTY_MD' || user.role === 'ADMIN') return {};
   // Read-only followers such as Marketing see every job (see `readsAllJobs`).
-  if (user.readsAllJobs) return {};
+  if (user.readsAllJobs || user.managesJobs) return {};
 
   return {
     OR: [{ subtasks: { some: { assigneeId: user.id } } }, { createdById: user.id }],

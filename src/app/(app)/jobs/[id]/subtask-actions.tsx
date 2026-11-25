@@ -18,19 +18,25 @@ export type ActionPanelName = 'none' | 'deadline' | 'reassign' | 'hold' | 'cance
 export function SubtaskActions({
   subtask,
   busy,
+  canApprove,
+  canResolveProblems,
   onPanel,
   onApprove,
   onUnhold,
 }: {
   subtask: SubtaskDto;
   busy: boolean;
+  /** The MD and deputy; a job manager does not approve work. */
+  canApprove: boolean;
+  /** The MD and deputy; a job manager does not decide problems. */
+  canResolveProblems: boolean;
   onPanel: (panel: ActionPanelName) => void;
   onApprove: () => void;
   onUnhold: () => void;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {subtask.status === 'AWAITING_APPROVAL' ? (
+      {canApprove && subtask.status === 'AWAITING_APPROVAL' ? (
         <>
           <Button size="sm" disabled={busy} onClick={onApprove}>
             <T>{'Approve '}</T>
@@ -41,7 +47,7 @@ export function SubtaskActions({
         </>
       ) : null}
 
-      {subtask.status === 'PROBLEM' ? (
+      {canResolveProblems && subtask.status === 'PROBLEM' ? (
         <Button size="sm" disabled={busy} onClick={() => onPanel('hold')}>
           <T>{'Resolve problem '}</T>
         </Button>

@@ -559,3 +559,64 @@ describe('a department that reads all jobs', () => {
     expect(can({ ...marketing, isActive: false }, 'job:view', job)).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Job managers (JOB_MANAGER_EMAILS)
+// ---------------------------------------------------------------------------
+
+describe('a job manager', () => {
+  const manager = subject('MEMBER', {
+    id: 'user-job-manager',
+    departmentId: 'dept-planning',
+    managesJobs: true,
+  });
+  const job: JobResource = { id: 'job-1', createdById: md.id, participantIds: [member.id] };
+  const problem: ProblemResource = { id: 'p-1', raisedById: member.id, subtask: foreignSubtask };
+
+  it('creates and maintains every job like the MD', () => {
+    expect(can(manager, 'job:create', undefined)).toBe(true);
+    expect(can(manager, 'job:list', undefined)).toBe(true);
+    for (const action of [
+      'job:view',
+      'job:edit',
+      'job:publish',
+      'job:hold',
+      'job:cancel',
+    ] as const) {
+      expect(can(manager, action, job), action).toBe(true);
+    }
+    expect(can(manager, 'subtask:create', job)).toBe(true);
+    for (const action of [
+      'subtask:view',
+      'subtask:edit',
+      'subtask:reassign',
+      'subtask:changeDeadline',
+      'comment:create',
+      'attachment:create',
+    ] as const) {
+      expect(can(manager, action, foreignSubtask), action).toBe(true);
+    }
+  });
+
+  it('does not approve work, decide problems or time, or touch administration', () => {
+    expect(can(manager, 'subtask:approve', foreignSubtask)).toBe(false);
+    expect(can(manager, 'problem:resolve', problem)).toBe(false);
+    expect(can(manager, 'subtask:updateStatus', foreignSubtask)).toBe(false);
+    expect(can(manager, 'materials:record', foreignSubtask)).toBe(false);
+    for (const action of [
+      'user:manage',
+      'user:view',
+      'settings:manage',
+      'settings:view',
+      'audit:view',
+      'dashboard:md',
+      'report:export',
+    ] as const) {
+      expect(can(manager, action, undefined as never), action).toBe(false);
+    }
+  });
+
+  it('loses everything when deactivated', () => {
+    expect(can({ ...manager, isActive: false }, 'job:create', undefined)).toBe(false);
+  });
+});

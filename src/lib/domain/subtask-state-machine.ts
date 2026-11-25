@@ -38,6 +38,11 @@ export type TransitionActor = Role | 'SYSTEM';
 
 export interface TransitionContext {
   actorRole: TransitionActor;
+  /**
+   * A job manager (`JOB_MANAGER_EMAILS`) may pause, resume and cancel work like
+   * the MD. Approvals and problem decisions stay with the MD and deputy.
+   */
+  managesJobs?: boolean;
   /** True when the actor holds this subtask. */
   isAssignee: boolean;
   /** FR-25: when set, "completed" becomes `AWAITING_APPROVAL` instead. */
@@ -227,7 +232,7 @@ export function transition(
       if (!ACTIVE_STATUSES.includes(current)) {
         return fail('INVALID_TRANSITION', 'This subtask cannot be put on hold from here.');
       }
-      if (!isCommand(ctx.actorRole)) {
+      if (!isCommand(ctx.actorRole) && !ctx.managesJobs) {
         return fail('GUARD_FAILED', 'Only the MD or the deputy can put work on hold.');
       }
       if (!ctx.reasonProvided) {
@@ -248,7 +253,7 @@ export function transition(
       if (current !== 'ON_HOLD') {
         return fail('INVALID_TRANSITION', 'This subtask is not on hold.');
       }
-      if (!isCommand(ctx.actorRole)) {
+      if (!isCommand(ctx.actorRole) && !ctx.managesJobs) {
         return fail('GUARD_FAILED', 'Only the MD or the deputy can resume work.');
       }
       return allow(ctx.dependency === 'INCOMPLETE' ? 'BLOCKED' : 'PENDING');
@@ -260,7 +265,7 @@ export function transition(
       if (!ACTIVE_STATUSES.includes(current) && current !== 'ON_HOLD') {
         return fail('INVALID_TRANSITION', 'This subtask cannot be cancelled from here.');
       }
-      if (!isCommand(ctx.actorRole)) {
+      if (!isCommand(ctx.actorRole) && !ctx.managesJobs) {
         return fail('GUARD_FAILED', 'Only the MD or the deputy can cancel a subtask.');
       }
       if (!ctx.reasonProvided) {

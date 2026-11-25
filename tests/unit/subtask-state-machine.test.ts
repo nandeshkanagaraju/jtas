@@ -475,3 +475,20 @@ describe('availableActions', () => {
     expect(availableActions('CANCELLED', asMd())).toEqual([]);
   });
 });
+
+describe('a job manager (not the assignee)', () => {
+  const asManager = (o: Partial<TransitionContext> = {}) =>
+    ctx({ actorRole: 'MEMBER', isAssignee: false, managesJobs: true, ...o });
+
+  it('may hold, resume and cancel work', () => {
+    expect(transition('IN_PROGRESS', 'HOLD', asManager())).toMatchObject({ ok: true });
+    expect(transition('ON_HOLD', 'UNHOLD', asManager())).toMatchObject({ ok: true });
+    expect(transition('PENDING', 'CANCEL', asManager())).toMatchObject({ ok: true });
+  });
+
+  it('may not approve, reject or resolve a problem', () => {
+    expect(transition('AWAITING_APPROVAL', 'APPROVE', asManager())).toMatchObject({ ok: false });
+    expect(transition('AWAITING_APPROVAL', 'REJECT', asManager())).toMatchObject({ ok: false });
+    expect(transition('PROBLEM', 'RESOLVE_PROBLEM', asManager())).toMatchObject({ ok: false });
+  });
+});

@@ -56,6 +56,8 @@ export function SubtaskDrawer({
   open,
   onOpenChange,
   candidates,
+  canApprove,
+  canResolveProblems,
   currentUserId,
   onChanged,
 }: {
@@ -64,6 +66,8 @@ export function SubtaskDrawer({
   onOpenChange: (open: boolean) => void;
   /** Active, non-admin users who could take the subtask over. */
   candidates: UserRow[];
+  canApprove: boolean;
+  canResolveProblems: boolean;
   currentUserId: string;
   onChanged: (message?: string) => void;
 }) {
@@ -184,6 +188,8 @@ export function SubtaskDrawer({
               <SubtaskActions
                 subtask={subtask}
                 busy={busy}
+                canApprove={canApprove}
+                canResolveProblems={canResolveProblems}
                 onPanel={setPanel}
                 onApprove={() =>
                   run(

@@ -11,7 +11,7 @@ import { EmptyState, ErrorState } from '@/components/shared/states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
 import { fetchJobSubtasks, type SubtaskDto } from '@/lib/api/subtasks-client';
-import { fetchUsers, type UserRow } from '@/lib/api/users-client';
+import type { UserRow } from '@/lib/api/users-client';
 import { formatIST } from '@/lib/utils/time';
 
 import { SubtaskDrawer } from './subtask-drawer';
@@ -26,17 +26,25 @@ import { SubtaskDrawer } from './subtask-drawer';
 export function SubtaskPanel({
   jobId,
   canManage,
+  canApprove,
+  canResolveProblems,
+  candidates,
   currentUserId,
   onJobChanged,
 }: {
   jobId: string;
-  /** MD and Deputy: whether the drawer offers actions at all. */
+  /** Whoever manages the job: whether the drawer offers actions at all. */
   canManage: boolean;
+  /** The MD and deputy: approve or send back finished work. */
+  canApprove: boolean;
+  /** The MD and deputy: decide problems. */
+  canResolveProblems: boolean;
+  /** Who a task can be reassigned to, loaded by the page. */
+  candidates: UserRow[];
   currentUserId: string;
   onJobChanged: () => void;
 }) {
   const [subtasks, setSubtasks] = useState<SubtaskDto[] | null>(null);
-  const [candidates, setCandidates] = useState<UserRow[]>([]);
   const [selected, setSelected] = useState<SubtaskDto | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -55,15 +63,6 @@ export function SubtaskPanel({
   useEffect(() => {
     void load();
   }, [load]);
-
-  // Reassignment candidates are only needed by the drawer, so they are fetched
-  // once for an MD and never for a member.
-  useEffect(() => {
-    if (!canManage) return;
-    fetchUsers({ status: 'active', pageSize: 100 })
-      .then((result) => setCandidates(result.data.filter((user) => user.role !== 'ADMIN')))
-      .catch(() => setCandidates([]));
-  }, [canManage]);
 
   return (
     <Panel
@@ -118,6 +117,8 @@ export function SubtaskPanel({
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
           candidates={candidates}
+          canApprove={canApprove}
+          canResolveProblems={canResolveProblems}
           currentUserId={currentUserId}
           onChanged={async (message) => {
             setNotice(message ?? null);

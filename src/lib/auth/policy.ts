@@ -42,6 +42,11 @@ export interface PolicySubject {
    * only: every action still checks ownership or participation.
    */
   readsAllJobs?: boolean;
+  /**
+   * Creates and maintains jobs like the MD, without the MD's other powers.
+   * Set for the addresses in `JOB_MANAGER_EMAILS` (see `job-managers.ts`).
+   */
+  managesJobs?: boolean;
 }
 
 /**
@@ -227,6 +232,15 @@ function isCommand(user: PolicySubject): boolean {
   return user.role === 'MD' || user.role === 'DEPUTY_MD';
 }
 
+/**
+ * May create and maintain jobs: the MD and Deputy, plus any job manager. Only
+ * the job-shaped actions use this; approvals, problems and everything
+ * administrative stay on {@link isCommand}.
+ */
+function canManageJobs(user: PolicySubject): boolean {
+  return isCommand(user) || user.managesJobs === true;
+}
+
 /** True when the user holds this subtask. */
 function ownsSubtask(user: PolicySubject, subtask: SubtaskResource): boolean {
   return subtask.assigneeId === user.id;
@@ -277,19 +291,19 @@ export function can<A extends Action>(
     // Matrix: "Create/publish job" — MD ✔ DEPUTY ✔ ADMIN ✖ MEMBER ✖
     case 'job:create':
     case 'job:list':
-      return isCommand(user);
+      return canManageJobs(user);
 
     case 'job:edit':
     case 'job:publish':
     case 'job:hold':
     case 'job:cancel':
-      return isCommand(user);
+      return canManageJobs(user);
 
     // Matrix: "View all jobs" — MD ✔ DEPUTY ✔ ADMIN ✔ (read) MEMBER ✖;
     //         "View job he participates in" — MEMBER ✔
     case 'job:view': {
       const job = resource as JobResource;
-      if (isCommand(user) || user.role === 'ADMIN' || user.readsAllJobs) return true;
+      if (canManageJobs(user) || user.role === 'ADMIN' || user.readsAllJobs) return true;
       return participatesInJob(user, job);
     }
 
@@ -298,6 +312,9 @@ export function can<A extends Action>(
     case 'subtask:create':
     case 'subtask:edit':
     case 'subtask:reassign':
+      return canManageJobs(user);
+
+    // Approving is the MD's judgement on the work, not job upkeep.
     case 'subtask:approve':
       return isCommand(user);
 
@@ -305,7 +322,7 @@ export function can<A extends Action>(
     // A member's legitimate route to more time is subtask:requestExtension
     // (FR-33, improvement I-11), never editing the deadline himself (FR-35).
     case 'subtask:changeDeadline':
-      return isCommand(user);
+      return canManageJobs(user);
 
     // The assignee names the date once, when their turn arrives. The MD sets
     // or moves a date through subtask:changeDeadline, not through this.
@@ -327,7 +344,7 @@ export function can<A extends Action>(
     case 'comment:view':
     case 'attachment:view': {
       const subtask = resource as SubtaskResource;
-      if (isCommand(user) || user.role === 'ADMIN' || user.readsAllJobs) return true;
+      if (canManageJobs(user) || user.role === 'ADMIN' || user.readsAllJobs) return true;
       return ownsSubtask(user, subtask) || participatesInSubtaskJob(user, subtask);
     }
 
@@ -414,7 +431,8 @@ export function can<A extends Action>(
     case 'comment:create': {
       const subtask = resource as SubtaskResource;
       if (user.role === 'ADMIN') return false;
-      if (isCommand(user)) return true;
+      // Whoever runs the job can ask a question on any of its tasks.
+      if (canManageJobs(user)) return true;
       return ownsSubtask(user, subtask) || participatesInSubtaskJob(user, subtask);
     }
 
@@ -428,7 +446,8 @@ export function can<A extends Action>(
     case 'attachment:create': {
       const subtask = resource as SubtaskResource;
       if (user.role === 'ADMIN') return false;
-      if (isCommand(user)) return true;
+      // Drawings and specs are part of setting a job up.
+      if (canManageJobs(user)) return true;
       return ownsSubtask(user, subtask);
     }
 

@@ -28,6 +28,10 @@ export interface JobPermissions {
   cancel: boolean;
   /** Whether to offer the audit trace (MD and ADMIN — SDD 6.3). */
   viewAudit: boolean;
+  /** Approve or send back finished work: the MD and deputy only. */
+  approve: boolean;
+  /** Decide a problem raised on a task: the MD and deputy only. */
+  resolveProblems: boolean;
 }
 
 /**

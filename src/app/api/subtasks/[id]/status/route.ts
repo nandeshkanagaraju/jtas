@@ -74,7 +74,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const result = await changeStatus(
       id,
       input,
-      { id: session.id, role: session.role },
+      { id: session.id, role: session.role, managesJobs: session.managesJobs },
       { ipAddress: clientIp(req) },
     );
 

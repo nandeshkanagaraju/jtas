@@ -5,6 +5,7 @@ import { requireActiveSession } from '@/lib/auth/session';
 import { getJob } from '@/lib/services/jobs';
 import { canManageBilling } from '@/lib/services/billing-service';
 import { jobMaterialTotals } from '@/lib/services/material-service';
+import { listUsers } from '@/lib/services/users';
 
 import { JobDetail } from './job-detail';
 
@@ -38,9 +39,19 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const { id } = await params;
 
   const job = await getJob(session, id);
-  const [materials, canBill] = await Promise.all([
+  const jobRef = { id: job.id, createdById: job.createdBy.id, participantIds: [] };
+  const canEdit = can(session, 'job:edit', jobRef);
+  // Role-only decisions; the subtask fields are not consulted.
+  const anySubtask = { id: '', jobId: job.id, assigneeId: '', departmentId: '' };
+
+  const [materials, canBill, candidates] = await Promise.all([
     jobMaterialTotals(job.id),
     canManageBilling(session),
+    // Reassignment candidates, loaded here so the drawer does not need the
+    // Users API, which a job manager (or the deputy) may not call.
+    canEdit
+      ? listUsers({ page: 1, pageSize: 100, status: 'active', sort: 'name', direction: 'asc' })
+      : null,
   ]);
 
   return (
@@ -48,6 +59,14 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       currentUserId={session.id}
       materials={materials}
       canBill={canBill && job.status !== 'DRAFT'}
+      candidates={(candidates?.data ?? [])
+        .filter((user) => user.role !== 'ADMIN')
+        .map((user) => ({
+          ...user,
+          lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+          lockedUntil: user.lockedUntil?.toISOString() ?? null,
+          createdAt: user.createdAt.toISOString(),
+        }))}
       job={{
         ...job,
         overallDeadline: job.overallDeadline.toISOString(),
@@ -57,11 +76,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         updatedAt: job.updatedAt.toISOString(),
       }}
       permissions={{
-        edit: can(session, 'job:edit', {
-          id: job.id,
-          createdById: job.createdBy.id,
-          participantIds: [],
-        }),
+        edit: canEdit,
         publish: can(session, 'job:publish', {
           id: job.id,
           createdById: job.createdBy.id,
@@ -78,6 +93,12 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           participantIds: [],
         }),
         viewAudit: can(session, 'audit:view', undefined),
+        approve: can(session, 'subtask:approve', anySubtask),
+        resolveProblems: can(session, 'problem:resolve', {
+          id: '',
+          raisedById: '',
+          subtask: anySubtask,
+        }),
       }}
     />
   );

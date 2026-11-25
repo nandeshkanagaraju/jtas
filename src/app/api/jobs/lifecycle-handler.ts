@@ -33,7 +33,7 @@ export function jobLifecycleRoute(options: {
     context: { params: Promise<{ id: string }> },
   ): Promise<NextResponse> {
     return handler(async (req) => {
-      const session = await requireActiveSession(['MD', 'DEPUTY_MD']);
+      const session = await requireActiveSession();
       const { id } = await context.params;
 
       const job = await loadJobForWrite(id);

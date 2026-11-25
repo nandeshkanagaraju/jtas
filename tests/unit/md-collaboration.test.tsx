@@ -130,6 +130,8 @@ describe('MD collaboration', () => {
         open
         onOpenChange={() => undefined}
         candidates={[]}
+        canApprove
+        canResolveProblems
         currentUserId="md-1"
         onChanged={() => undefined}
       />,

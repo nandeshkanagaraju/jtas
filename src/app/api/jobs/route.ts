@@ -26,7 +26,7 @@ export const GET = handler(async (request) => {
 });
 
 export const POST = handler(async (request) => {
-  const session = await requireActiveSession(['MD', 'DEPUTY_MD']);
+  const session = await requireActiveSession();
   assertCan(session, 'job:create', undefined);
 
   const input = await parseJson(request, createJobSchema);

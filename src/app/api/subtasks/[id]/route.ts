@@ -32,7 +32,7 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   return handler(async (req) => {
-    const session = await requireActiveSession(['MD', 'DEPUTY_MD']);
+    const session = await requireActiveSession();
     const { id } = await context.params;
 
     const existing = await loadSubtaskForWrite(id);

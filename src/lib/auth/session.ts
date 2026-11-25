@@ -23,6 +23,7 @@ import type { Role } from '@prisma/client';
 
 import { ACCESS_COOKIE } from './cookies';
 import { verifyAccessToken } from './jwt';
+import { isJobManager } from './job-managers';
 import { READ_ALL_JOBS_DEPARTMENTS, type PolicySubject } from './policy';
 
 /**
@@ -117,5 +118,6 @@ async function loadSessionUser(userId: string): Promise<SessionUser | null> {
   return {
     ...rest,
     readsAllJobs: department ? READ_ALL_JOBS_DEPARTMENTS.has(department.code) : false,
+    managesJobs: isJobManager(rest),
   };
 }

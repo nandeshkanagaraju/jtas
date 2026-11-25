@@ -31,6 +31,7 @@ import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 
 import { ActivityPanel } from './activity-panel';
 import { SubtaskPanel } from './subtask-panel';
+import type { UserRow } from '@/lib/api/users-client';
 
 /** Converts a stored UTC instant back into the naive IST value the form edits. */
 function toIstFormValue(iso: string): string {
@@ -57,6 +58,7 @@ export function JobDetail({
   currentUserId,
   materials = [],
   canBill = false,
+  candidates = [],
 }: {
   job: JobRowDto;
   permissions: JobPermissions;
@@ -65,6 +67,8 @@ export function JobDetail({
   materials?: JobMaterialTotalDto[];
   /** Accounts, the MD and the Deputy see invoices and amounts. */
   canBill?: boolean;
+  /** Who a task can be reassigned to; empty unless the viewer manages the job. */
+  candidates?: UserRow[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -175,6 +179,9 @@ export function JobDetail({
       <SubtaskPanel
         jobId={job.id}
         canManage={permissions.edit}
+        canApprove={permissions.approve}
+        canResolveProblems={permissions.resolveProblems}
+        candidates={candidates}
         currentUserId={currentUserId}
         onJobChanged={() => router.refresh()}
       />

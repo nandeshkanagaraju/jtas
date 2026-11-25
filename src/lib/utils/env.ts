@@ -49,6 +49,11 @@ const envSchema = z.object({
    * their own password and set any account's password; see `lib/auth/developer`.
    */
   DEVELOPER_EMAILS: z.string().optional(),
+  /**
+   * Comma-separated sign-in emails of members who may create and maintain jobs
+   * like the MD, without the MD's other powers. See `lib/auth/job-managers`.
+   */
+  JOB_MANAGER_EMAILS: z.string().optional(),
   /** Daily send ceiling. Defaults to 250, under Brevo's free 300. */
   MAIL_DAILY_CAP: z.coerce.number().int().positive().default(250),
 

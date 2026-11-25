@@ -85,6 +85,7 @@ export async function changeStatus(
 
   const result = transition(subtask.status, input.action as SubtaskAction, {
     actorRole: actor.role as TransitionActor,
+    managesJobs: actor.managesJobs === true,
     isAssignee: subtask.assigneeId === actor.id,
     requiresApproval: subtask.requiresApproval,
     dependency: await dependencyState(prisma, subtask.dependsOnId),

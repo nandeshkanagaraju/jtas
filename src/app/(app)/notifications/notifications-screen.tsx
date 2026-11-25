@@ -51,6 +51,8 @@ const TYPE_LABELS: Record<string, string> = {
   PREDECESSOR_DATE_CHANGED: 'Upstream date moved',
   JOB_COMPLETED: 'Job complete',
   DAILY_DIGEST_MD: 'Daily summary',
+  UPSTREAM_DATE_UPDATE: 'Plan ahead',
+  DEPARTMENT_LOOKAHEAD: 'Coming your way',
 };
 
 export function NotificationsScreen({

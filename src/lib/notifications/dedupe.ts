@@ -171,3 +171,16 @@ export function predecessorDateChangedKey(
 export function commentMentionKey(commentId: string, userId: string): string {
   return `comment:${commentId}:MENTION:${userId}`;
 }
+
+/**
+ * An upstream date heads-up, keyed on the upstream task and its date, so each
+ * new date tells a downstream department once.
+ */
+export function upstreamDateUpdateKey(subtaskId: string, deadline: Date, userId: string): string {
+  return `subtask:${subtaskId}:UPSTREAM_DATE:${deadline.getTime()}:${userId}`;
+}
+
+/** The morning "coming your way" mail: once per person per IST day. */
+export function lookaheadKey(userId: string, istDateKey: string): string {
+  return `lookahead:${userId}:${istDateKey}`;
+}

@@ -29,7 +29,8 @@ describe.each(TEMPLATE_KINDS)('%s', (kind) => {
     // useful in a list of forty.
     expect(subject.startsWith('[JTAS] ')).toBe(true);
     expect(subject.length).toBeLessThanOrEqual(120);
-    if (kind !== 'DAILY_DIGEST_MD') {
+    // The two morning mails cover many jobs, so no single job code belongs in them.
+    if (kind !== 'DAILY_DIGEST_MD' && kind !== 'DEPARTMENT_LOOKAHEAD') {
       expect(subject).toMatch(/JGE-\d{4}-\d{4}/);
     }
   });
@@ -115,7 +116,7 @@ describe('a 15-minute lead', () => {
 
 describe('the whole set', () => {
   it('covers every mail template', () => {
-    expect(TEMPLATE_KINDS).toHaveLength(18);
+    expect(TEMPLATE_KINDS).toHaveLength(20);
     expect(Object.keys(SAMPLES).sort()).toEqual([...TEMPLATE_KINDS].sort());
   });
 

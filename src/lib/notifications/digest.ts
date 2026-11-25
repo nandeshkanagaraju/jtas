@@ -13,7 +13,7 @@ import { moduleLogger } from '@/lib/utils/logger';
 import { istDateKey, istMinutesOfDay, parseClockTime } from '@/lib/utils/time';
 
 import { loadDigestTime } from './config';
-import { digestKey } from './dedupe';
+import { digestKey, lookaheadKey } from './dedupe';
 import { enqueue } from './notification-service';
 
 const log = moduleLogger('digest');
@@ -86,5 +86,47 @@ export async function queueDailyDigest(now: Date = new Date()): Promise<number> 
     log.info({ dateKey, recipients: created }, 'daily digest queued');
   }
 
+  return created;
+}
+
+/**
+ * Queues the morning "coming your way" mail (option B), once per person per day.
+ *
+ * Sent at the same time as the MD's digest, to every active member who has a
+ * task still waiting on earlier steps of a live job. The content is assembled
+ * when it is sent, so a job that moved overnight is shown where it is now; if
+ * by then nothing is heading their way, nothing is sent.
+ *
+ * @returns how many mails were queued.
+ */
+export async function queueDepartmentLookahead(now: Date = new Date()): Promise<number> {
+  const digestTime = await loadDigestTime();
+  if (!isWithinDigestWindow(now, digestTime)) return 0;
+
+  const waiting = await prisma.subtask.findMany({
+    where: {
+      status: 'BLOCKED',
+      assignee: { isActive: true, role: 'MEMBER' },
+      job: { status: { notIn: ['CANCELLED', 'ON_HOLD', 'DRAFT', 'COMPLETED'] }, isDemo: false },
+    },
+    select: { assigneeId: true },
+    distinct: ['assigneeId'],
+  });
+  if (waiting.length === 0) return 0;
+
+  const dateKey = istDateKey(now);
+
+  const created = await enqueue(prisma, {
+    type: 'DEPARTMENT_LOOKAHEAD',
+    userIds: waiting.map((row) => row.assigneeId),
+    entityType: 'JOB',
+    entityId: `lookahead:${dateKey}`,
+    subject: `Coming your way – ${dateKey}`,
+    body: 'Jobs heading towards your department, and when to expect them.',
+    dedupeKeyFor: (userId) => lookaheadKey(userId, dateKey),
+    scheduledFor: now,
+  });
+
+  if (created > 0) log.info({ dateKey, recipients: created }, 'department look-ahead queued');
   return created;
 }

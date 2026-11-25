@@ -299,6 +299,12 @@ export async function buildPayload(
       };
     }
 
+    case 'UPSTREAM_DATE_UPDATE':
+      return buildUpstreamDatePayload(notification.entityId, notification.userId);
+
+    case 'DEPARTMENT_LOOKAHEAD':
+      return buildLookaheadPayload(notification.userId, now);
+
     case 'DAILY_DIGEST_MD':
       return buildDigestPayload(now);
 
@@ -411,5 +417,159 @@ export async function buildDigestPayload(now: Date = new Date()): Promise<Templa
       severity: problem.severity,
       description: problem.description,
     })),
+  };
+}
+
+const STATUS_WORDS: Record<string, string> = {
+  PENDING: 'Ready to start',
+  IN_PROGRESS: 'In progress',
+  PROBLEM: 'Problem reported',
+  AWAITING_APPROVAL: 'With the MD',
+  ON_HOLD: 'On hold',
+  BLOCKED: 'Waiting',
+};
+
+/**
+ * Option A, built when the mail is sent: the upstream task's date, the
+ * reader's own step on the same route, and the departments in between.
+ */
+export async function buildUpstreamDatePayload(
+  upstreamId: string,
+  readerId: string,
+): Promise<TemplatePayload | null> {
+  const context = await subtaskContext(upstreamId);
+  if (!context || !context._raw.deadline) return null;
+
+  // Walk down the route (at most three steps) to the reader's own task.
+  const chain: Array<{ id: string; title: string; assigneeId: string; department: string }> = [];
+  let frontier = [upstreamId];
+  let mine: (typeof chain)[number] | null = null;
+  for (let depth = 1; depth <= 3 && !mine && frontier.length > 0; depth++) {
+    const rows = await prisma.subtask.findMany({
+      where: { dependsOnId: { in: frontier } },
+      select: { id: true, title: true, assigneeId: true, department: { select: { name: true } } },
+    });
+    mine =
+      rows
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          assigneeId: r.assigneeId,
+          department: r.department.name,
+        }))
+        .find((r) => r.assigneeId === readerId) ?? null;
+    if (!mine && rows[0])
+      chain.push({
+        id: rows[0].id,
+        title: rows[0].title,
+        assigneeId: rows[0].assigneeId,
+        department: rows[0].department.name,
+      });
+    frontier = rows.map((r) => r.id);
+  }
+  if (!mine) return null;
+
+  const [reader, change] = await Promise.all([
+    prisma.user.findUnique({ where: { id: readerId }, select: { name: true } }),
+    prisma.deadlineChange.findFirst({
+      where: { subtaskId: upstreamId, newDeadline: context._raw.deadline },
+      orderBy: { createdAt: 'desc' },
+      select: { oldDeadline: true },
+    }),
+  ]);
+
+  return {
+    kind: 'UPSTREAM_DATE_UPDATE',
+    ...context,
+    readerName: reader?.name ?? 'there',
+    readerSubtaskId: mine.id,
+    readerStepTitle: mine.title,
+    readerDepartment: mine.department,
+    stepsBetween: chain.map((row) => row.department),
+    previousDeadlineIst: change?.oldDeadline ? ist(change.oldDeadline) : null,
+  };
+}
+
+/**
+ * Option B, built fresh each morning: every task of the reader's that is still
+ * waiting on earlier steps, where its job is now, and when it should arrive.
+ * Returns null (nothing is sent) when nothing is heading their way.
+ */
+export async function buildLookaheadPayload(
+  readerId: string,
+  now: Date = new Date(),
+): Promise<TemplatePayload | null> {
+  const reader = await prisma.user.findUnique({
+    where: { id: readerId },
+    select: { name: true, department: { select: { name: true } } },
+  });
+  if (!reader) return null;
+
+  const waiting = await prisma.subtask.findMany({
+    where: {
+      assigneeId: readerId,
+      status: 'BLOCKED',
+      job: { status: { notIn: ['CANCELLED', 'ON_HOLD', 'DRAFT', 'COMPLETED'] }, isDemo: false },
+    },
+    select: {
+      id: true,
+      title: true,
+      dependsOnId: true,
+      job: { select: { id: true, jobCode: true, title: true } },
+    },
+  });
+  if (waiting.length === 0) return null;
+
+  const rows = [];
+  for (const task of waiting) {
+    // Walk up the route to the step the job is at now.
+    let stepsAway = 0;
+    let cursor = task.dependsOnId;
+    let predecessorDeadline: Date | null = null;
+    let current: { title: string; status: string; department: string } | null = null;
+    while (cursor) {
+      const step = await prisma.subtask.findUnique({
+        where: { id: cursor },
+        select: {
+          status: true,
+          title: true,
+          deadline: true,
+          dependsOnId: true,
+          department: { select: { name: true } },
+        },
+      });
+      if (!step) break;
+      stepsAway += 1;
+      if (stepsAway === 1) predecessorDeadline = step.deadline;
+      if (step.status !== 'BLOCKED') {
+        current = { title: step.title, status: step.status, department: step.department.name };
+        break;
+      }
+      cursor = step.dependsOnId;
+    }
+    rows.push({
+      jobId: task.job.id,
+      jobCode: task.job.jobCode,
+      jobTitle: task.job.title,
+      readerSubtaskId: task.id,
+      readerStepTitle: task.title,
+      nowAt: current
+        ? `${current.department} · ${STATUS_WORDS[current.status] ?? current.status}`
+        : 'Not started',
+      stepsAway,
+      expectedIst: predecessorDeadline
+        ? `around ${ist(predecessorDeadline)}`
+        : 'date not committed yet',
+      sortKey: predecessorDeadline?.getTime() ?? Number.MAX_SAFE_INTEGER,
+    });
+  }
+  rows.sort((a, b) => a.sortKey - b.sortKey || a.stepsAway - b.stepsAway);
+
+  return {
+    kind: 'DEPARTMENT_LOOKAHEAD',
+    dateIst: formatIST(now, 'd MMM yyyy'),
+    readerName: reader.name,
+    readerDepartmentName: reader.department?.name ?? 'your department',
+    rows: rows.map(({ sortKey: _sortKey, ...row }) => row),
   };
 }

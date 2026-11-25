@@ -366,6 +366,25 @@ export function plainTextFor(
           ),
         ),
       );
+    case 'UPSTREAM_DATE_UPDATE':
+      return clip(
+        lines(
+          `Plan ahead: ${payload.jobCode}`,
+          `${payload.departmentName} ${payload.previousDeadlineIst ? 'moved its date to' : 'expects to finish by'} ${payload.deadlineIst}.`,
+          `Your step: ${payload.readerStepTitle} (after ${payload.stepsBetween.join(', ') || 'them'}).`,
+          'Nothing to do yet. You will be told when it is your turn.',
+        ),
+      );
+    case 'DEPARTMENT_LOOKAHEAD':
+      return clip(
+        lines(
+          `Coming your way ${payload.dateIst}`,
+          ...payload.rows.map(
+            (row) =>
+              `${row.jobCode} · ${row.readerStepTitle} · now at ${row.nowAt} · ${row.expectedIst}`,
+          ),
+        ),
+      );
     case 'DAILY_DIGEST_MD':
       return clip(
         lines(

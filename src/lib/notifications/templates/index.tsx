@@ -10,7 +10,8 @@ import { plainTextSelectors, render } from '@react-email/render';
 
 import { formatElapsed } from '@/lib/utils/duration';
 
-import { jobLink, problemInboxLink, subtaskLink } from './links';
+import { jobLink, myTasksLink, problemInboxLink, subtaskLink } from './links';
+import { DepartmentLookaheadEmail, UpstreamDateUpdateEmail } from './planning-mails';
 import {
   ApprovalRequiredEmail,
   CommitmentMadeEmail,
@@ -74,6 +75,10 @@ function subjectFor(payload: TemplatePayload): string {
       return `[JTAS] Completed: ${payload.jobCode} – ${payload.jobTitle}`;
     case 'DAILY_DIGEST_MD':
       return `[JTAS] Daily summary – ${payload.dateIst}`;
+    case 'UPSTREAM_DATE_UPDATE':
+      return `[JTAS] Plan ahead: ${payload.jobCode} – ${payload.departmentName} ${payload.previousDeadlineIst ? 'now' : 'expects'} ${payload.deadlineIst}`;
+    case 'DEPARTMENT_LOOKAHEAD':
+      return `[JTAS] Coming your way – ${payload.rows.length} job${payload.rows.length === 1 ? '' : 's'} – ${payload.dateIst}`;
   }
 }
 
@@ -116,6 +121,10 @@ function elementFor(payload: TemplatePayload): React.ReactElement {
       return <JobCompletedEmail {...payload} />;
     case 'DAILY_DIGEST_MD':
       return <DailyDigestEmail {...payload} />;
+    case 'UPSTREAM_DATE_UPDATE':
+      return <UpstreamDateUpdateEmail {...payload} />;
+    case 'DEPARTMENT_LOOKAHEAD':
+      return <DepartmentLookaheadEmail {...payload} />;
   }
 }
 
@@ -164,6 +173,10 @@ function linkLine(payload: TemplatePayload): string {
       return `Problem inbox: ${problemInboxLink()}`;
     case 'JOB_COMPLETED':
       return `Open the job: ${jobLink(payload.jobId)}`;
+    case 'UPSTREAM_DATE_UPDATE':
+      return `Open your task: ${subtaskLink(payload.readerSubtaskId)}`;
+    case 'DEPARTMENT_LOOKAHEAD':
+      return `Open My work: ${myTasksLink()}`;
     default:
       return `Open the task: ${subtaskLink(payload.subtaskId)}`;
   }
@@ -188,6 +201,8 @@ export const TEMPLATE_KINDS: TemplateKind[] = [
   'READY_TO_START',
   'JOB_COMPLETED',
   'DAILY_DIGEST_MD',
+  'UPSTREAM_DATE_UPDATE',
+  'DEPARTMENT_LOOKAHEAD',
 ];
 
 export * from './types';

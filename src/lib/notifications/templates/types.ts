@@ -162,7 +162,48 @@ export interface DailyDigestPayload {
   openProblems: Array<DigestRow & { severity: ProblemSeverity; description: string }>;
 }
 
+/**
+ * An earlier step on the reader's route has a date (option A). The context is
+ * the upstream task; `reader*` describes the reader's own step.
+ */
+export interface UpstreamDateUpdatePayload extends SubtaskContext {
+  kind: 'UPSTREAM_DATE_UPDATE';
+  readerName: string;
+  readerSubtaskId: string;
+  readerStepTitle: string;
+  readerDepartment: string;
+  /** Departments between the upstream step and the reader's, in route order. */
+  stepsBetween: string[];
+  /** The date before this change, when the MD moved it; null for a first commitment. */
+  previousDeadlineIst: string | null;
+}
+
+export interface LookaheadRow {
+  jobId: string;
+  jobCode: string;
+  jobTitle: string;
+  readerSubtaskId: string;
+  readerStepTitle: string;
+  /** The step the job is at now, e.g. "Store · In progress". */
+  nowAt: string;
+  /** How many steps still come before the reader's. */
+  stepsAway: number;
+  /** When the work is expected to reach the reader, or a reason it is unknown. */
+  expectedIst: string;
+}
+
+/** The morning "coming your way" mail for one department member (option B). */
+export interface DepartmentLookaheadPayload {
+  kind: 'DEPARTMENT_LOOKAHEAD';
+  dateIst: string;
+  readerName: string;
+  readerDepartmentName: string;
+  rows: LookaheadRow[];
+}
+
 export type TemplatePayload =
+  | UpstreamDateUpdatePayload
+  | DepartmentLookaheadPayload
   | AssignedPayload
   | ReminderPayload
   | OverdueMemberPayload

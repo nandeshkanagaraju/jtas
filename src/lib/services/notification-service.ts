@@ -16,6 +16,7 @@ import type { Db } from '@/lib/db/prisma';
 import {
   approvalRequiredKey,
   commitmentMadeKey,
+  upstreamDateUpdateKey,
   deadlineChangedKey,
   predecessorDateChangedKey,
   extensionRequestedKey,
@@ -190,6 +191,75 @@ export async function notifyExtensionRequested(db: Db, extensionRequestId: strin
   });
 }
 
+/** How far down the route a date heads-up travels: the next three departments. */
+export const HEADS_UP_DEPTH = 3;
+
+/**
+ * The open tasks two and three steps after `subtaskId` on its route.
+ *
+ * The very next step is left out on purpose: it already gets
+ * COMMITMENT_MADE or PREDECESSOR_DATE_CHANGED, and a second mail about the
+ * same date would be noise.
+ */
+export async function laterDownstream(db: Db, subtaskId: string) {
+  const found: Array<{ id: string; assigneeId: string; depth: number }> = [];
+  let frontier = [subtaskId];
+  for (let depth = 1; depth <= HEADS_UP_DEPTH && frontier.length > 0; depth++) {
+    const rows = await db.subtask.findMany({
+      where: { dependsOnId: { in: frontier } },
+      select: { id: true, assigneeId: true, status: true },
+    });
+    if (depth >= 2) {
+      for (const row of rows) {
+        if (row.status !== 'COMPLETED' && row.status !== 'CANCELLED') {
+          found.push({ id: row.id, assigneeId: row.assigneeId, depth });
+        }
+      }
+    }
+    frontier = rows.map((row) => row.id);
+  }
+  return found;
+}
+
+/**
+ * Tells the departments further down the route that an earlier step now has a
+ * date, so they can plan their own work before it reaches them (option A).
+ *
+ * Called with the same date events as the next-department mails; never on a
+ * plain "start", because a start without a date tells nobody when to expect
+ * the work.
+ */
+export async function notifyUpstreamDateUpdate(db: Db, subtaskId: string): Promise<void> {
+  const subtask = await db.subtask.findUnique({
+    where: { id: subtaskId },
+    select: { deadline: true, title: true, job: { select: { isDemo: true } } },
+  });
+  if (!subtask?.deadline || subtask.job.isDemo) return;
+
+  const next = await db.subtask.findMany({
+    where: { dependsOnId: subtaskId },
+    select: { assigneeId: true },
+  });
+  const alreadyTold = new Set(next.map((row) => row.assigneeId));
+  const later = (await laterDownstream(db, subtaskId)).filter(
+    (row) => !alreadyTold.has(row.assigneeId),
+  );
+  const userIds = [...new Set(later.map((row) => row.assigneeId))];
+  if (userIds.length === 0) return;
+
+  const deadline = subtask.deadline;
+
+  await enqueue(db, {
+    type: 'UPSTREAM_DATE_UPDATE',
+    userIds,
+    entityType: 'SUBTASK',
+    entityId: subtaskId,
+    subject: 'An earlier step on your route has a date',
+    body: `${subtask.title} has a finish date. Your step comes after it.`,
+    dedupeKeyFor: (userId) => upstreamDateUpdateKey(subtaskId, deadline, userId),
+  });
+}
+
 /**
  * Tells the assignee of the next task that a date was committed, so they can
  * prepare. They are not asked to commit yet. Their own window starts when
@@ -219,6 +289,7 @@ export async function notifyCommitmentMade(db: Db, subtaskId: string): Promise<v
     body: `${subtask.title} has a finish date. You are next.`,
     dedupeKeyFor: (userId) => commitmentMadeKey(subtaskId, deadline, userId),
   });
+  await notifyUpstreamDateUpdate(db, subtaskId);
 }
 
 /**
@@ -252,6 +323,7 @@ export async function notifyPredecessorDateChanged(db: Db, subtaskId: string): P
     body: 'The date you are planning against has changed.',
     dedupeKeyFor: (userId) => predecessorDateChangedKey(subtaskId, deadline, userId),
   });
+  await notifyUpstreamDateUpdate(db, subtaskId);
 }
 
 /**

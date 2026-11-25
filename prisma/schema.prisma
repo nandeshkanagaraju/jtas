@@ -98,6 +98,13 @@ enum NotifType {
   COMMITMENT_MADE
   /// The MD moved a date. Sent to the assignee of the next task, with both dates.
   PREDECESSOR_DATE_CHANGED
+  /// A date was committed or moved upstream. Sent to the departments two and
+  /// three steps further down the route, so they can plan ahead. (The very
+  /// next department already gets COMMITMENT_MADE or PREDECESSOR_DATE_CHANGED.)
+  UPSTREAM_DATE_UPDATE
+  /// The morning "coming your way" mail: every job heading towards this
+  /// department, where it is now, and when it is expected to arrive.
+  DEPARTMENT_LOOKAHEAD
 }
 
 /// Who fixed a subtask's date. A null deadline has no origin.

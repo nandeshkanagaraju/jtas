@@ -22,6 +22,9 @@ enum Role {
   DEPUTY_MD
   ADMIN
   MEMBER
+  /// Shop-floor supervisor. Signs in only to the production entry pages
+  /// (/production); every JTAS page and action is closed to this role.
+  SUPERVISOR
 }
 
 enum JobStatus {
@@ -192,6 +195,14 @@ model User {
 
   materialCounts MaterialCount[] @relation("MaterialCountRecordedBy")
   invoices       Invoice[]       @relation("InvoiceCreatedBy")
+
+  /// For a SUPERVISOR: the book they keep. Null lets them keep both.
+  productionSection         ProductionSection?
+  productionReports         ProductionReport[] @relation("ProductionReportSupervisor")
+  approvedProductionReports ProductionReport[] @relation("ProductionReportApprover")
+  productionPartsAdded      ProductionPart[]   @relation("ProductionPartAddedBy")
+  productionHours           ProductionHour[]   @relation("ProductionHourRecordedBy")
+  productionChanges         ProductionChange[] @relation("ProductionChangeBy")
 
   @@index([role, isActive])
 }
@@ -657,4 +668,174 @@ model JobTemplateItem {
   order                Int
 
   @@index([templateId, order])
+}
+
+// ---------------------------------------------------------------------------
+// Daily production report (the CNC / VMC book, JGE/PROD/F/03)
+//
+// A supervisor records every hour of a shift per machine. The final report is
+// worked out from those hours; any figure typed over it is kept beside the
+// worked-out one, so the approver sees "expected X, entered Y". The approver
+// (Planning) approves, and the MD is mailed. The arithmetic lives in
+// src/lib/domain/production.ts.
+// ---------------------------------------------------------------------------
+
+/// Which book: the CNC book (CNC, TMC, drilling, thread rolling) or the VMC book.
+enum ProductionSection {
+  CNC
+  VMC
+}
+
+enum ProductionShift {
+  DAY
+  NIGHT
+}
+
+/// DRAFT while the supervisor fills it; SUBMITTED waits for the approver, who
+/// may still correct it; APPROVED is final and has been mailed to the MD.
+enum ProductionReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+}
+
+model ProductionMachine {
+  id        String            @id @default(cuid())
+  /// As printed in the book: "CNC-01", "VMC-10", "DRILLING-02".
+  code      String            @unique
+  section   ProductionSection
+  sortOrder Int
+  isActive  Boolean           @default(true)
+  lines     ProductionLine[]
+
+  @@index([section, sortOrder])
+}
+
+/// One row of the Cycle Time Master: a part and one of its operations.
+model ProductionPart {
+  id               String            @id @default(cuid())
+  customer         String?
+  partName         String
+  partNumber       String?
+  /// 1 = Op I (CNC-10 / VMC-10), 2 = Op II (…-20), and so on.
+  operation        Int
+  section          ProductionSection
+  /// Standard cycle time in seconds, loading included. Null when the master
+  /// has no figure yet.
+  standardCycleSec Float?
+  isActive         Boolean           @default(true)
+  /// Set when a supervisor added the part from the floor; the approver sees it.
+  addedById        String?
+  addedBy          User?             @relation("ProductionPartAddedBy", fields: [addedById], references: [id])
+  createdAt        DateTime          @default(now())
+  lines            ProductionLine[]
+
+  @@index([section, isActive])
+}
+
+/// One page of the book: one section, one shift, one date.
+model ProductionReport {
+  id           String                 @id @default(cuid())
+  /// The IST calendar date the shift started on.
+  date         DateTime               @db.Date
+  shift        ProductionShift
+  section      ProductionSection
+  status       ProductionReportStatus @default(DRAFT)
+  /// The first hour of the shift, in UTC.
+  shiftStart   DateTime
+  /// Hours the shift is planned for (11.5 CNC, 11 VMC at creation).
+  shiftHours   Float
+  remarks      String?
+  supervisorId String
+  supervisor   User                   @relation("ProductionReportSupervisor", fields: [supervisorId], references: [id])
+  submittedAt  DateTime?
+  approvedAt   DateTime?
+  approvedById String?
+  approvedBy   User?                  @relation("ProductionReportApprover", fields: [approvedById], references: [id])
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  lines        ProductionLine[]
+  changes      ProductionChange[]
+
+  @@unique([date, shift, section])
+  @@index([status, date])
+}
+
+/// A machine running one part in a shift. A part change mid-shift is a second
+/// line on the same machine.
+model ProductionLine {
+  id                   String            @id @default(cuid())
+  reportId             String
+  report               ProductionReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  machineId            String
+  machine              ProductionMachine @relation(fields: [machineId], references: [id])
+  position             Int               @default(0)
+  operatorName         String?
+  partId               String?
+  part                 ProductionPart?   @relation(fields: [partId], references: [id])
+  /// The part as the book names it. Null for a machine idle all shift.
+  partLabel            String?
+  operation            Int?
+  /// Machining seconds and loading seconds: the book's "55+10".
+  cycleSec             Float?
+  loadSec              Float?
+  /// The master's figure when the line was set up, kept so a later change to
+  /// the master does not rewrite an old report's warnings.
+  standardCycleSec     Float?
+  /// Typed over the worked-out figure on the final report. Null = not typed over.
+  pcsPerHourEntered    Int?
+  planQtyEntered       Int?
+  actualPlanQtyEntered Int?
+  achievedQtyEntered   Int?
+  runHoursEntered      Float?
+  /// Idle minutes by reason, replacing the hourly totals: {"NO_POWER": 30}.
+  idleEntered          Json?
+  reworkQty            Int               @default(0)
+  rejectionQty         Int               @default(0)
+  ncReason             String?
+  remarks              String?
+  /// The supervisor's reason for keeping figures that differ from the formula.
+  warningNote          String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  hours                ProductionHour[]
+
+  @@index([reportId])
+}
+
+/// One hour of one line: pieces made and any idle time, by reason.
+model ProductionHour {
+  id           String         @id @default(cuid())
+  lineId       String
+  line         ProductionLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  /// 0 = the first hour of the shift.
+  slot         Int
+  qty          Int            @default(0)
+  /// Idle minutes by reason: {"NO_POWER": 30, "CLEANING": 15}.
+  idle         Json           @default("{}")
+  note         String?
+  recordedById String
+  recordedBy   User           @relation("ProductionHourRecordedBy", fields: [recordedById], references: [id])
+  /// When the hour was first recorded; an hour recorded long after it ended is shown as late.
+  recordedAt   DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([lineId, slot])
+}
+
+/// A figure changed after the report was submitted (by the approver).
+model ProductionChange {
+  id          String           @id @default(cuid())
+  reportId    String
+  report      ProductionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  lineId      String?
+  /// "CNC-07 · Achieved Qty"
+  label       String
+  before      String?
+  after       String?
+  changedById String
+  changedBy   User             @relation("ProductionChangeBy", fields: [changedById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@index([reportId, createdAt])
 }

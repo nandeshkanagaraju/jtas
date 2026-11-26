@@ -20,7 +20,7 @@ export interface Actor {
    * Carried through to the subtask service at publish, so a deputy's actions
    * are recorded as a deputy's rather than mislabelled as the MD's.
    */
-  role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER';
+  role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' | 'SUPERVISOR';
 }
 
 /**

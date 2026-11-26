@@ -288,6 +288,10 @@ export function can<A extends Action>(
   // (FR-70: deactivate, never delete).
   if (!user.isActive) return false;
 
+  // A production supervisor keeps the production book and nothing else; JTAS
+  // is for staff. The production pages have their own rules (services/production/access).
+  if (user.role === 'SUPERVISOR') return false;
+
   switch (action) {
     // --- Jobs ------------------------------------------------------------
     // Matrix: "Create/publish job" — MD ✔ DEPUTY ✔ ADMIN ✖ MEMBER ✖

@@ -8,6 +8,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   DEPUTY_MD: 'Deputy MD',
   ADMIN: 'Administrator',
   MEMBER: 'Member',
+  SUPERVISOR: 'Production supervisor',
 };
 
 export function RoleBadge({ role }: { role: Role }) {

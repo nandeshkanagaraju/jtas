@@ -11,7 +11,7 @@ export interface RequestContext {
 
 export interface Actor {
   id: string;
-  role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER';
+  role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' | 'SUPERVISOR';
   /** A job manager; see `lib/auth/job-managers`. */
   managesJobs?: boolean;
 }

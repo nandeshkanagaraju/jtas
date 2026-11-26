@@ -19,7 +19,7 @@ import { cookies } from 'next/headers';
 
 import { prisma } from '@/lib/db/prisma';
 import { forbidden, unauthenticated } from '@/lib/errors';
-import type { Role } from '@prisma/client';
+import type { ProductionSection, Role } from '@prisma/client';
 
 import { ACCESS_COOKIE } from './cookies';
 import { verifyAccessToken } from './jwt';
@@ -40,6 +40,8 @@ export interface SessionUser extends PolicySubject {
   departmentId: string | null;
   isActive: boolean;
   mustChangePassword: boolean;
+  /** For a supervisor: the production book they keep. Null for both. */
+  productionSection: ProductionSection | null;
 }
 
 /**
@@ -81,6 +83,19 @@ export async function requireAuth(roles?: readonly Role[]): Promise<SessionUser>
 }
 
 /**
+ * Every role, the production supervisor included. A route passes this to
+ * {@link requireActiveSession} when a supervisor may call it: the production
+ * routes, and the inbox and push settings the page shell uses.
+ */
+export const ALL_ROLES_WITH_SUPERVISOR: readonly Role[] = [
+  'MD',
+  'DEPUTY_MD',
+  'ADMIN',
+  'MEMBER',
+  'SUPERVISOR',
+];
+
+/**
  * Like {@link requireAuth}, but also refuses anyone who still owes a password
  * change. Applied to every route except change-password and logout, so a user
  * cannot skip the forced change by calling the API directly (FR-03).
@@ -92,6 +107,12 @@ export async function requireActiveSession(roles?: readonly Role[]): Promise<Ses
 
   if (user.mustChangePassword) {
     throw forbidden('You must change your password before continuing.');
+  }
+
+  // A production supervisor is kept to the production book: a JTAS route
+  // refuses them unless it names the role.
+  if (user.role === 'SUPERVISOR' && !roles?.includes('SUPERVISOR')) {
+    throw forbidden('This account keeps the production report only.');
   }
 
   return user;
@@ -109,6 +130,7 @@ async function loadSessionUser(userId: string): Promise<SessionUser | null> {
       departmentId: true,
       isActive: true,
       mustChangePassword: true,
+      productionSection: true,
       department: { select: { code: true } },
     },
   });

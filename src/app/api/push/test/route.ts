@@ -2,7 +2,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import webpush from 'web-push';
 import { z } from 'zod';
 import { handler, ok, parseJson } from '@/lib/api/respond';
-import { requireActiveSession } from '@/lib/auth/session';
+import { ALL_ROLES_WITH_SUPERVISOR, requireActiveSession } from '@/lib/auth/session';
 import { rateLimiter } from '@/lib/auth/rate-limit';
 import { prisma } from '@/lib/db/prisma';
 import { conflict, rateLimited } from '@/lib/errors';
@@ -12,7 +12,7 @@ import { endpointSchema } from '@/lib/push/validation';
 
 export const POST = handler(async (request) => {
   requireSameOrigin(request);
-  const user = await requireActiveSession();
+  const user = await requireActiveSession(ALL_ROLES_WITH_SUPERVISOR);
   const limit = await rateLimiter.hit(`push-test:${user.id}`, 3, 60);
   if (!limit.allowed)
     throw rateLimited('Please wait before sending another test.', limit.retryAfterSeconds);

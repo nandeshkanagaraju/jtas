@@ -24,11 +24,12 @@ import { checkPasswordPolicy, passwordStrength } from '@/lib/auth/password-polic
 import { cn } from '@/lib/utils';
 import { changePasswordSchema, type ChangePasswordInput } from '@/lib/validation/auth';
 
-type Role = 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER';
+type Role = 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' | 'SUPERVISOR';
 
 function landingPath(role: Role): string {
   if (role === 'ADMIN') return '/users';
   if (role === 'MEMBER') return '/my-tasks';
+  if (role === 'SUPERVISOR') return '/production';
   return '/dashboard';
 }
 

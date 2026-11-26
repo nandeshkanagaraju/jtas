@@ -13,7 +13,7 @@ import { ApiError, apiPost } from '@/lib/api/client';
 import { landingPath } from '../login-form';
 
 interface LoginResponse {
-  user: { role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' };
+  user: { role: 'MD' | 'DEPUTY_MD' | 'ADMIN' | 'MEMBER' | 'SUPERVISOR' };
   mustChangePassword: boolean;
 }
 

@@ -10,6 +10,7 @@ import { listProblems } from '@/lib/services/problems';
 import { getSession } from '@/lib/auth/session';
 import { canApproveSignIn } from '@/lib/auth/developer';
 import { pendingSignInRequestCount } from '@/lib/services/auth';
+import { canSeeProduction } from '@/lib/services/production/access';
 
 /**
  * Shell for every signed-in screen. Resolves the session once and hands it to
@@ -52,8 +53,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
  * with the page — an MD should see the queue length in the first paint, not
  * after a round trip.
  */
-async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSession>>>) {
+async function buildNav(
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>,
+): Promise<NavItem[]> {
   const nav: NavItem[] = [];
+
+  // A shop-floor supervisor sees the production book and nothing of JTAS.
+  if (session.role === 'SUPERVISOR') {
+    const only: NavItem[] = [
+      { href: '/production', label: NAV_LABELS['/production'], icon: 'shift-reports' },
+    ];
+    return only;
+  }
 
   if (can(session, 'dashboard:md', undefined)) {
     nav.push({ href: '/dashboard', label: 'Dashboard', icon: 'dashboard' });
@@ -80,6 +91,11 @@ async function buildNav(session: NonNullable<Awaited<ReturnType<typeof getSessio
   // department scorecards it opens on. Admin exports through the API instead.
   if (can(session, 'dashboard:department', undefined)) {
     nav.push({ href: '/reports', label: 'Reports', icon: 'reports' });
+  }
+
+  // The daily production report: the approver and the MD and Deputy.
+  if (canSeeProduction(session)) {
+    nav.push({ href: '/production', label: 'Shift reports', icon: 'shift-reports' });
   }
 
   // Accounts, the MD and the Deputy: invoices and what is ready to bill.

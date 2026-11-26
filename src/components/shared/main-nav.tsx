@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   BarChart3,
   Briefcase,
+  ClipboardList,
   LayoutDashboard,
   ListTodo,
   ReceiptIndianRupee,
@@ -27,6 +28,7 @@ export interface NavItem {
     | 'audit'
     | 'updates'
     | 'billing'
+    | 'shift-reports'
     | 'sign-in';
   /** Open-problem count. Omitted or zero shows nothing. */
   badge?: number;
@@ -45,6 +47,7 @@ export const NAV_ICONS: Record<NavItem['icon'], LucideIcon> = {
   audit: ScrollText,
   updates: Radio,
   billing: ReceiptIndianRupee,
+  'shift-reports': ClipboardList,
   'sign-in': KeyRound,
 };
 
@@ -52,6 +55,7 @@ export const NAV_ICONS: Record<NavItem['icon'], LucideIcon> = {
 export const PRIMARY_ORDER = [
   '/dashboard',
   '/jobs',
+  '/production',
   '/billing',
   '/updates',
   '/problems',
@@ -83,5 +87,6 @@ export const NAV_LABELS: Record<string, string> = {
   '/notifications': 'Notifications',
   '/updates': 'Live updates',
   '/billing': 'Billing',
+  '/production': 'Shift reports',
   '/sign-in-requests': 'Sign-in requests',
 };

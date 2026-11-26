@@ -12,11 +12,19 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError, apiFetch, apiPost } from '@/lib/api/client';
 import { formatGstPercent, formatRupees, invoiceAmounts } from '@/lib/domain/money';
-import { addInvoiceSchema } from '@/lib/validation/invoice';
+import {
+  addInvoiceSchema,
+  BILL_TYPE_LABEL,
+  BILL_TYPES,
+  type BillTypeValue,
+} from '@/lib/validation/invoice';
+import { cn } from '@/lib/utils';
 import { formatIST, IST_DATE_PATTERN, istDateKey } from '@/lib/utils/time';
 
 interface InvoiceDto {
   id: string;
+  billType: BillTypeValue;
+  partyName: string | null;
   invoiceNumber: string;
   invoiceDate: string;
   quantity: number;
@@ -36,6 +44,7 @@ interface BillingDto {
   invoicedQuantity: number;
   remaining: number | null;
   totals: { taxablePaise: number; gstPaise: number; totalPaise: number };
+  purchaseTotals: { taxablePaise: number; gstPaise: number; totalPaise: number };
   invoices: InvoiceDto[];
 }
 
@@ -51,14 +60,31 @@ function Figure({ label, value, hint }: { label: string; value: string; hint?: s
   );
 }
 
+/** "Sales" or "Purchase", coloured so the two read apart in a mixed list. */
+export function BillTypeBadge({ type }: { type: BillTypeValue }) {
+  return (
+    <span
+      className={cn(
+        'rounded px-1.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase',
+        type === 'SALES' ? 'bg-ok-soft text-ok' : 'bg-info-soft text-info',
+      )}
+    >
+      <T>{type === 'SALES' ? 'Sales' : 'Purchase'}</T>
+    </span>
+  );
+}
+
 /**
- * Invoices on a job, for Accounts, the MD and the Deputy. The billable figure
- * is what final inspection accepted, less what is already invoiced.
+ * Bills on a job, for Accounts, the MD and the Deputy: sales bills raised to
+ * the customer and purchase bills from suppliers. The billable figure is what
+ * final inspection accepted, less what sales bills have already covered.
  */
 export function BillingPanel({ jobId }: { jobId: string }) {
   const [billing, setBilling] = useState<BillingDto | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState({
+    billType: 'SALES' as BillTypeValue,
+    partyName: '',
     invoiceNumber: '',
     invoiceDate: istDateKey(new Date()),
     quantity: '',
@@ -75,7 +101,9 @@ export function BillingPanel({ jobId }: { jobId: string }) {
       setBilling(data);
       setForm((current) => ({
         ...current,
-        quantity: current.quantity || (data.remaining ? String(data.remaining) : ''),
+        quantity:
+          current.quantity ||
+          (current.billType === 'SALES' && data.remaining ? String(data.remaining) : ''),
       }));
     } catch (cause) {
       setLoadError(cause instanceof ApiError ? cause.message : 'Could not load invoices.');
@@ -91,6 +119,7 @@ export function BillingPanel({ jobId }: { jobId: string }) {
     const parsed = addInvoiceSchema.safeParse({
       ...form,
       invoiceNumber: form.invoiceNumber || 'x',
+      partyName: form.partyName || 'x',
     });
     if (!parsed.success) return null;
     return invoiceAmounts(parsed.data.quantity, parsed.data.rate, parsed.data.gstPercent);
@@ -100,7 +129,7 @@ export function BillingPanel({ jobId }: { jobId: string }) {
     event.preventDefault();
     const parsed = addInvoiceSchema.safeParse(form);
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Check the invoice details.');
+      setError(parsed.error.issues[0]?.message ?? 'Check the bill details.');
       return;
     }
     setSaving(true);
@@ -108,13 +137,16 @@ export function BillingPanel({ jobId }: { jobId: string }) {
     try {
       await apiPost(`/api/jobs/${jobId}/invoices`, {
         ...form,
+        partyName: form.partyName || undefined,
         note: form.note || undefined,
       });
-      toast.success(`Invoice ${parsed.data.invoiceNumber} recorded`);
+      toast.success(
+        `${BILL_TYPE_LABEL[parsed.data.billType]} ${parsed.data.invoiceNumber} recorded`,
+      );
       setForm((current) => ({ ...current, invoiceNumber: '', quantity: '', note: '' }));
       await load();
     } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : 'Could not record the invoice.');
+      setError(cause instanceof ApiError ? cause.message : 'Could not record the bill.');
     } finally {
       setSaving(false);
     }
@@ -130,16 +162,32 @@ export function BillingPanel({ jobId }: { jobId: string }) {
     );
   }
 
-  const { inspection, billableBase, invoicedQuantity, remaining, totals, invoices } = billing;
+  const {
+    inspection,
+    billableBase,
+    invoicedQuantity,
+    remaining,
+    totals,
+    purchaseTotals,
+    invoices,
+  } = billing;
   const estimated = !(inspection && inspection.reports > 0);
   const quantity = Number(form.quantity) || 0;
-  const overBilling = remaining !== null && quantity > remaining;
+  const purchase = form.billType === 'PURCHASE';
+  const overBilling = !purchase && remaining !== null && quantity > remaining;
+  const chooseType = (billType: BillTypeValue) =>
+    setForm((current) => ({
+      ...current,
+      billType,
+      partyName: '',
+      quantity: billType === 'SALES' && remaining ? String(remaining) : '',
+    }));
   const set = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         <Figure
           label="Billable"
           value={billableBase === null ? '—' : String(billableBase)}
@@ -153,14 +201,60 @@ export function BillingPanel({ jobId }: { jobId: string }) {
         />
         <Figure label="Invoiced" value={String(invoicedQuantity)} />
         <Figure label="Still to invoice" value={remaining === null ? '—' : String(remaining)} />
-        <Figure label="Invoiced value" value={formatRupees(totals.totalPaise)} hint="incl. GST" />
+        <Figure label="Sales billed" value={formatRupees(totals.totalPaise)} hint="incl. GST" />
+        <Figure
+          label="Purchase bills"
+          value={formatRupees(purchaseTotals.totalPaise)}
+          hint="incl. GST"
+        />
       </div>
 
-      <form onSubmit={submit} className="space-y-3" aria-label="Record invoice">
+      <form onSubmit={submit} className="space-y-3" aria-label="Record bill">
+        <div
+          role="radiogroup"
+          aria-label="Bill type"
+          className="border-border inline-flex rounded-lg border p-0.5"
+        >
+          {BILL_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              role="radio"
+              aria-checked={form.billType === type}
+              onClick={() => chooseType(type)}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                form.billType === type
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <T>{BILL_TYPE_LABEL[type]}</T>
+            </button>
+          ))}
+        </div>
+        <p className="text-muted-foreground text-xs">
+          <T>
+            {purchase
+              ? "A supplier's bill for this job. It does not count towards what is invoiced to the customer."
+              : 'Raised to the customer for accepted pieces. It counts towards what is still to invoice.'}
+          </T>
+        </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-1.5">
+            <Label htmlFor={`inv-party-${jobId}`}>
+              <T>{purchase ? 'Supplier' : 'Customer (optional)'}</T>
+            </Label>
+            <Input
+              id={`inv-party-${jobId}`}
+              maxLength={120}
+              value={form.partyName}
+              onChange={set('partyName')}
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor={`inv-no-${jobId}`}>
-              <T>{'Invoice number'}</T>
+              <T>{'Bill number'}</T>
             </Label>
             <Input
               id={`inv-no-${jobId}`}
@@ -170,7 +264,7 @@ export function BillingPanel({ jobId }: { jobId: string }) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor={`inv-date-${jobId}`}>
-              <T>{'Invoice date'}</T>
+              <T>{'Bill date'}</T>
             </Label>
             <Input
               id={`inv-date-${jobId}`}
@@ -197,7 +291,7 @@ export function BillingPanel({ jobId }: { jobId: string }) {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor={`inv-rate-${jobId}`}>
-              <T>{'Rate per piece (₹)'}</T>
+              <T>{purchase ? 'Rate (₹)' : 'Rate per piece (₹)'}</T>
             </Label>
             <Input
               id={`inv-rate-${jobId}`}
@@ -257,17 +351,17 @@ export function BillingPanel({ jobId }: { jobId: string }) {
           ) : (
             <ReceiptIndianRupee className="size-4" />
           )}
-          <T>{'Record invoice'}</T>
+          <T>{purchase ? 'Record purchase bill' : 'Record sales bill'}</T>
         </Button>
       </form>
 
       {invoices.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" aria-label="Invoices on this job">
+          <table className="w-full text-sm" aria-label="Bills on this job">
             <thead className="text-muted-foreground text-left text-xs">
               <tr>
                 <th className="py-2 pr-3 font-medium">
-                  <T>{'Invoice'}</T>
+                  <T>{'Bill'}</T>
                 </th>
                 <th className="py-2 pr-3 font-medium">
                   <T>{'Date'}</T>
@@ -290,8 +384,10 @@ export function BillingPanel({ jobId }: { jobId: string }) {
               {invoices.map((invoice) => (
                 <tr key={invoice.id}>
                   <td className="py-2 pr-3">
+                    <BillTypeBadge type={invoice.billType} />{' '}
                     <span className="font-medium">{invoice.invoiceNumber}</span>
                     <span className="text-muted-foreground block text-xs">
+                      {invoice.partyName ? `${invoice.partyName} · ` : ''}
                       {invoice.createdBy.name}
                       {invoice.note ? ` · ${invoice.note}` : ''}
                     </span>
@@ -316,7 +412,7 @@ export function BillingPanel({ jobId }: { jobId: string }) {
         </div>
       ) : (
         <p className="text-muted-foreground text-sm">
-          <T>{'No invoices recorded on this job yet.'}</T>
+          <T>{'No bills recorded on this job yet.'}</T>
         </p>
       )}
     </div>

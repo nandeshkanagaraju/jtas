@@ -9,7 +9,10 @@
 import { prisma } from '@/lib/db/prisma';
 import { conflict, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
-import type { AddMaterialCountInput } from '@/lib/validation/materials';
+import { fromISTInput, istDateKey } from '@/lib/utils/time';
+import { slotMinutes, type AddMaterialCountInput } from '@/lib/validation/materials';
+
+const DAY_MS = 24 * 60 * 60_000;
 
 /** Department codes whose tasks carry accepted/rejected counts. */
 export const MATERIAL_DEPARTMENT_CODES = ['PRODUCTION', 'QUALITY', 'QA'] as const;
@@ -28,6 +31,9 @@ export interface MaterialCountRow {
   acceptedQty: number;
   rejectedQty: number;
   note: string | null;
+  /** The slot an hourly QA report covers; null when none was given. */
+  periodStart: Date | null;
+  periodEnd: Date | null;
   recordedBy: { id: string; name: string };
   createdAt: Date;
 }
@@ -71,6 +77,8 @@ export async function listMaterialCounts(subtaskId: string): Promise<SubtaskMate
         acceptedQty: true,
         rejectedQty: true,
         note: true,
+        periodStart: true,
+        periodEnd: true,
         createdAt: true,
         recordedBy: { select: { id: true, name: true } },
       },
@@ -78,6 +86,23 @@ export async function listMaterialCounts(subtaskId: string): Promise<SubtaskMate
   ]);
 
   return { jobQuantity: subtask.job.quantity, totals: sum(entries), entries };
+}
+
+/**
+ * The slot "HH:mm"–"HH:mm" on the IST day of `now`. A "to" at or before the
+ * "from" ends the next day (a night slot); a slot that would start in the
+ * future is the previous day's (23:00–00:00 sent at 00:20).
+ */
+export function reportPeriod(
+  timeFrom: string,
+  timeTo: string,
+  now: Date = new Date(),
+): { periodStart: Date; periodEnd: Date } {
+  const day = istDateKey(now);
+  let periodStart = fromISTInput(`${day}T${timeFrom}`);
+  if (periodStart.getTime() > now.getTime()) periodStart = new Date(periodStart.getTime() - DAY_MS);
+  const periodEnd = new Date(periodStart.getTime() + slotMinutes(timeFrom, timeTo) * 60_000);
+  return { periodStart, periodEnd };
 }
 
 /**
@@ -117,6 +142,7 @@ export async function addMaterialCount(
         acceptedQty: input.acceptedQty,
         rejectedQty: input.rejectedQty,
         note: input.note ?? null,
+        ...(input.timeFrom && input.timeTo ? reportPeriod(input.timeFrom, input.timeTo) : {}),
         recordedById: actor.id,
       },
       select: {
@@ -124,6 +150,8 @@ export async function addMaterialCount(
         acceptedQty: true,
         rejectedQty: true,
         note: true,
+        periodStart: true,
+        periodEnd: true,
         createdAt: true,
         recordedBy: { select: { id: true, name: true } },
       },
@@ -139,6 +167,12 @@ export async function addMaterialCount(
         acceptedQty: created.acceptedQty,
         rejectedQty: created.rejectedQty,
         note: created.note,
+        ...(created.periodStart && created.periodEnd
+          ? {
+              periodStart: created.periodStart.toISOString(),
+              periodEnd: created.periodEnd.toISOString(),
+            }
+          : {}),
       },
       ipAddress: ctx.ipAddress ?? null,
     });

@@ -26,11 +26,18 @@ let dispatch: { id: string };
 let depts: Record<string, string>;
 
 const invoice = (number: string, quantity: number, date = '2026-11-20') => ({
+  billType: 'SALES' as const,
   invoiceNumber: number,
   invoiceDate: date,
   quantity,
   rate: 125050,
   gstPercent: 1800,
+});
+
+const purchase = (number: string, supplier: string, quantity: number, date = '2026-11-20') => ({
+  ...invoice(number, quantity, date),
+  billType: 'PURCHASE' as const,
+  partyName: supplier,
 });
 
 beforeEach(async () => {
@@ -156,9 +163,65 @@ describe('invoices', () => {
     expect(row).toMatchObject({ entityType: 'JOB', entityId: job.id, actorId: accounts.id });
     expect(row.after).toEqual({
       invoiceId: expect.any(String),
+      billType: 'SALES',
+      billLabel: 'Sales bill',
+      partyName: null,
       invoiceNumber: 'INV-004',
       quantity: 6,
     });
+  });
+
+  it('keeps purchase bills out of what is invoiced, numbered per supplier', async () => {
+    await addMaterialCount(inspection.id, { acceptedQty: 20, rejectedQty: 0 }, anita, ctx);
+    await addInvoice(job.id, invoice('B-1', 5), accounts, ctx);
+    // A supplier may use the same number as our sales series, and as another supplier.
+    await addInvoice(job.id, purchase('B-1', 'Sri Steels', 100), accounts, ctx);
+    await addInvoice(job.id, purchase('B-1', 'Kovai Castings', 40), accounts, ctx);
+    await expect(
+      addInvoice(job.id, purchase('B-1', '  sri   STEELS ', 1), accounts, ctx),
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
+
+    const billing = await jobBilling(job.id);
+    expect(billing).toMatchObject({ billableBase: 20, invoicedQuantity: 5, remaining: 15 });
+    expect(billing.invoices.map((row) => row.billType).sort()).toEqual([
+      'PURCHASE',
+      'PURCHASE',
+      'SALES',
+    ]);
+    expect(billing.purchaseTotals.taxablePaise).toBe(140 * 125050);
+    expect(billing.totals.taxablePaise).toBe(5 * 125050);
+  });
+
+  it('needs a supplier on a purchase bill', async () => {
+    const { addInvoiceSchema } = await import('@/lib/validation/invoice');
+    const parsed = addInvoiceSchema.safeParse({
+      ...purchase('P-1', '', 1),
+      rate: '10',
+      gstPercent: '18',
+    });
+    expect(parsed.success).toBe(false);
+    expect(
+      addInvoiceSchema.parse({
+        ...invoice('S-1', 1),
+        rate: '10',
+        gstPercent: '18',
+        billType: undefined,
+      }).billType,
+    ).toBe('SALES');
+    await expect(
+      testDb.invoice.create({
+        data: {
+          jobId: job.id,
+          billType: 'PURCHASE',
+          invoiceNumber: 'P-2',
+          invoiceDate: new Date(),
+          quantity: 1,
+          ratePaise: 1,
+          gstBasisPoints: 0,
+          createdById: accounts.id,
+        },
+      }),
+    ).rejects.toThrow(); // the database refuses a purchase bill with no supplier too
   });
 
   it('stores the date as the IST calendar day', async () => {
@@ -176,6 +239,7 @@ describe('billing dashboard', () => {
     await addMaterialCount(inspection.id, { acceptedQty: 20, rejectedQty: 4 }, anita, ctx);
     await addInvoice(job.id, invoice('INV-010', 8, '2026-11-20'), accounts, ctx);
     await addInvoice(job.id, invoice('INV-009', 2, '2026-10-31'), accounts, ctx); // last month
+    await addInvoice(job.id, purchase('SUP-7', 'Sri Steels', 50, '2026-11-21'), accounts, ctx);
 
     const dashboard = await billingDashboard(now);
     expect(dashboard.ready).toEqual([
@@ -189,7 +253,13 @@ describe('billing dashboard', () => {
       }),
     ]);
     expect(dashboard.month).toMatchObject({ invoices: 1, quantity: 8, taxablePaise: 1000400 });
-    expect(dashboard.recent.map((row) => row.invoiceNumber)).toEqual(['INV-010', 'INV-009']);
+    expect(dashboard.purchaseMonth).toMatchObject({ invoices: 1, quantity: 50 });
+    expect(dashboard.invoicedJobs).toBe(1);
+    expect(dashboard.recent.map((row) => row.invoiceNumber)).toEqual([
+      'SUP-7',
+      'INV-010',
+      'INV-009',
+    ]);
 
     await addInvoice(job.id, invoice('INV-011', 10, '2026-11-24'), accounts, ctx);
     expect((await billingDashboard(now)).ready).toEqual([]); // fully invoiced

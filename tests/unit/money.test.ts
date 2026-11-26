@@ -35,6 +35,7 @@ describe('invoice money', () => {
         note: '',
       }),
     ).toEqual({
+      billType: 'SALES',
       invoiceNumber: 'INV-001',
       invoiceDate: '2026-11-25',
       quantity: 22,

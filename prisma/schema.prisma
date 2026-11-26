@@ -478,6 +478,10 @@ model MaterialCount {
   acceptedQty  Int
   rejectedQty  Int
   note         String?
+  /// The time slot a report covers (QA's hourly inspection). The date is the
+  /// IST day it was recorded on; null for reports without a slot.
+  periodStart  DateTime?
+  periodEnd    DateTime?
   recordedById String
   recordedBy   User          @relation("MaterialCountRecordedBy", fields: [recordedById], references: [id])
   createdAt    DateTime      @default(now())
@@ -555,11 +559,24 @@ model StoreEntry {
 /// A customer invoice raised by Accounts against a job. A job may be invoiced
 /// in parts (partial dispatches). Money is stored in paise and GST in basis
 /// points (1800 = 18%) so totals never pick up floating-point error.
+/// A sales bill is raised to the customer against the job's accepted pieces; a
+/// purchase bill is a supplier's bill Accounts books against the job.
+enum BillType {
+  SALES
+  PURCHASE
+}
+
 model Invoice {
   id             String   @id @default(cuid())
   jobId          String
   job            Job      @relation(fields: [jobId], references: [id])
-  invoiceNumber  String   @unique
+  billType       BillType @default(SALES)
+  /// The supplier on a purchase bill; the customer (optional) on a sales bill.
+  partyName      String?
+  /// Uniqueness scope for the number: '' for sales bills (our own series), the
+  /// lower-cased supplier for purchase bills (each supplier has its own series).
+  partyKey       String   @default("")
+  invoiceNumber  String
   invoiceDate    DateTime
   quantity       Int
   ratePaise      Int
@@ -569,6 +586,7 @@ model Invoice {
   createdBy      User     @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime @default(now())
 
+  @@unique([billType, partyKey, invoiceNumber])
   @@index([jobId, invoiceDate])
   @@index([invoiceDate])
 }

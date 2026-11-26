@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { can } from '@/lib/auth/policy';
 import {
   addMaterialCount,
+  reportPeriod,
   jobMaterialTotals,
   listMaterialCounts,
   recordsMaterials,
@@ -162,6 +163,53 @@ describe('material counts', () => {
     expect(can(md, 'materials:record', resource)).toBe(true);
     expect(can(anita, 'materials:record', resource)).toBe(false);
     expect(can({ ...md, role: 'ADMIN' }, 'materials:record', resource)).toBe(false);
+  });
+
+  it("stores the hourly slot on today's IST date", async () => {
+    const created = await addMaterialCount(
+      inspection.id,
+      { acceptedQty: 5, rejectedQty: 2, timeFrom: '00:00', timeTo: '00:01' },
+      anita,
+      ctx,
+    );
+    expect(created.periodEnd!.getTime() - created.periodStart!.getTime()).toBe(60_000);
+    const plain = await addMaterialCount(
+      inspection.id,
+      { acceptedQty: 1, rejectedQty: 0 },
+      anita,
+      ctx,
+    );
+    expect(plain.periodStart).toBeNull();
+  });
+
+  it('reads a slot on the day it is sent, rolling night slots over', () => {
+    const now = fromISTInput('2026-11-26T17:45');
+    expect(reportPeriod('16:00', '17:00', now)).toEqual({
+      periodStart: fromISTInput('2026-11-26T16:00'),
+      periodEnd: fromISTInput('2026-11-26T17:00'),
+    });
+    // Sent at 00:20 for last night's 23:00–00:00.
+    expect(reportPeriod('23:00', '00:00', fromISTInput('2026-11-27T00:20'))).toEqual({
+      periodStart: fromISTInput('2026-11-26T23:00'),
+      periodEnd: fromISTInput('2026-11-27T00:00'),
+    });
+  });
+
+  it('needs both times, in order, and not a whole shift by mistake', () => {
+    const base = { acceptedQty: 1, rejectedQty: 0 };
+    expect(addMaterialCountSchema.safeParse({ ...base, timeFrom: '09:00' }).success).toBe(false);
+    expect(
+      addMaterialCountSchema.safeParse({ ...base, timeFrom: '09:00', timeTo: '09:00' }).success,
+    ).toBe(false);
+    expect(
+      addMaterialCountSchema.safeParse({ ...base, timeFrom: '10:00', timeTo: '09:00' }).success,
+    ).toBe(false);
+    expect(
+      addMaterialCountSchema.safeParse({ ...base, timeFrom: '9:00', timeTo: '10:00' }).success,
+    ).toBe(false);
+    expect(
+      addMaterialCountSchema.safeParse({ ...base, timeFrom: '09:00', timeTo: '10:00' }).success,
+    ).toBe(true);
   });
 
   it('rejects empty, negative and fractional quantities', () => {

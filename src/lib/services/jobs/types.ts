@@ -74,7 +74,7 @@ export const JOB_SELECT = {
   accountsIntimatedAt: true,
   accountsIntimationNote: true,
   accountsIntimatedBy: { select: { id: true, name: true } },
-  _count: { select: { invoices: true } },
+  _count: { select: { invoices: { where: { billType: 'SALES' as const } } } },
 } satisfies Prisma.JobSelect;
 
 export type JobRow = Prisma.JobGetPayload<{ select: typeof JOB_SELECT }>;
@@ -99,7 +99,7 @@ export interface JobSummary {
   pointOfContact: { id: string; name: string; department: string | null } | null;
   /** Planning told Accounts the job is ready to invoice; null until then. */
   accountsIntimation: { at: Date; by: string | null; note: string | null } | null;
-  /** How many invoices Accounts has raised on the job. */
+  /** How many sales bills Accounts has raised on the job. */
   invoiceCount: number;
   createdAt: Date;
   updatedAt: Date;

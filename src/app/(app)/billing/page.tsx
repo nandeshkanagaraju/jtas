@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { forbidden } from 'next/navigation';
 
+import { BillTypeBadge } from '@/components/collaboration/billing-panel';
 import { PageHeader } from '@/components/shared/page-header';
 import { Panel } from '@/components/shared/panel';
 import { requireActiveSession } from '@/lib/auth/session';
@@ -12,6 +13,8 @@ import { formatIST, IST_DATE_PATTERN } from '@/lib/utils/time';
 
 export const metadata: Metadata = { title: 'Billing' };
 export const dynamic = 'force-dynamic';
+
+const bills = (count: number) => `${count} bill${count === 1 ? '' : 's'}`;
 
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -33,7 +36,7 @@ export default async function BillingPage() {
   const session = await requireActiveSession();
   if (!(await canManageBilling(session))) forbidden();
 
-  const { ready, recent, month, invoicedJobs } = await billingDashboard();
+  const { ready, recent, month, purchaseMonth, invoicedJobs } = await billingDashboard();
   const piecesToInvoice = ready.reduce((sum, row) => sum + (row.remaining ?? 0), 0);
 
   return (
@@ -41,7 +44,7 @@ export default async function BillingPage() {
       <PageHeader
         eyebrow={<T>{'Accounts'}</T>}
         title={<T>{'Billing'}</T>}
-        lead={<T>{'Jobs ready to invoice, and the invoices raised this month.'}</T>}
+        lead={<T>{'Jobs ready to invoice, and the sales and purchase bills booked this month.'}</T>}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -50,13 +53,21 @@ export default async function BillingPage() {
           value={String(ready.length)}
           hint={`${piecesToInvoice} pcs`}
         />
-        <Tile label="Invoiced this month" value={formatRupees(month.totalPaise)} hint="incl. GST" />
         <Tile
-          label="Invoices this month"
-          value={String(month.invoices)}
-          hint={`${month.quantity} pcs · ${invoicedJobs} jobs`}
+          label="Sales bills this month"
+          value={formatRupees(month.totalPaise)}
+          hint={`${bills(month.invoices)} · ${month.quantity} pcs · ${invoicedJobs} jobs · GST ${formatRupees(month.gstPaise)}`}
         />
-        <Tile label="GST this month" value={formatRupees(month.gstPaise)} />
+        <Tile
+          label="Purchase bills this month"
+          value={formatRupees(purchaseMonth.totalPaise)}
+          hint={`${bills(purchaseMonth.invoices)} · GST ${formatRupees(purchaseMonth.gstPaise)}`}
+        />
+        <Tile
+          label="Net this month"
+          value={formatRupees(month.totalPaise - purchaseMonth.totalPaise)}
+          hint="Sales less purchases, incl. GST"
+        />
       </div>
 
       <Panel
@@ -160,10 +171,10 @@ export default async function BillingPage() {
         )}
       </Panel>
 
-      <Panel title={<T>{'Recent invoices'}</T>} count={recent.length} flush>
+      <Panel title={<T>{'Recent bills'}</T>} count={recent.length} flush>
         {recent.length === 0 ? (
           <p className="text-muted-foreground p-5 text-sm">
-            <T>{'No invoices recorded yet.'}</T>
+            <T>{'No bills recorded yet.'}</T>
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -171,7 +182,10 @@ export default async function BillingPage() {
               <thead className="bg-muted/50 text-muted-foreground text-left text-xs">
                 <tr>
                   <th className="px-5 py-2.5 font-medium">
-                    <T>{'Invoice'}</T>
+                    <T>{'Bill'}</T>
+                  </th>
+                  <th className="px-3 py-2.5 font-medium">
+                    <T>{'Supplier / customer'}</T>
                   </th>
                   <th className="px-3 py-2.5 font-medium">
                     <T>{'Job'}</T>
@@ -190,7 +204,11 @@ export default async function BillingPage() {
               <tbody className="divide-border divide-y">
                 {recent.map((invoice) => (
                   <tr key={invoice.id}>
-                    <td className="px-5 py-3 font-medium">{invoice.invoiceNumber}</td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <BillTypeBadge type={invoice.billType} />{' '}
+                      <span className="font-medium">{invoice.invoiceNumber}</span>
+                    </td>
+                    <td className="text-muted-foreground px-3 py-3">{invoice.partyName ?? '—'}</td>
                     <td className="px-3 py-3">
                       <Link href={`/jobs/${invoice.jobId}`} className="font-mono hover:underline">
                         {invoice.jobCode}

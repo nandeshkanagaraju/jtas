@@ -269,7 +269,11 @@ export function JobDetail({
         <Panel
           title={<T>{'Billing'}</T>}
           description={
-            <T>{'Invoices raised on this job. Visible to Accounts, the MD and the Deputy only.'}</T>
+            <T>
+              {
+                'Sales and purchase bills booked on this job. Visible to Accounts, the MD and the Deputy only.'
+              }
+            </T>
           }
           bodyClassName="p-4"
         >

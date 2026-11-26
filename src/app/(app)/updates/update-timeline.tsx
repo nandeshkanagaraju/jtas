@@ -37,7 +37,7 @@ const ACTIONS: Record<string, string> = {
   BATCHES_PLANNED: 'Planned the batches',
   BATCH_COMPLETED: 'Closed a batch',
   ACCOUNTS_INTIMATED: 'Asked Accounts to invoice',
-  INVOICE_RECORDED: 'Raised an invoice',
+  INVOICE_RECORDED: 'Booked a bill',
   ATTACHMENT_UPLOADED: 'Shared a file',
   ATTACHMENT_DELETED: 'Removed a file',
   PROBLEM_RAISED: 'Reported a problem',

@@ -72,6 +72,7 @@ export const DEPARTMENT_ACCOUNTS: DepartmentAccount[] = [
     email: 'quality@jaraaglobal.in',
     departmentCode: 'QUALITY',
     passwordName: 'Quality',
+    replaces: 'quality@jaraaglobal.com',
   },
   {
     name: 'Kumar',

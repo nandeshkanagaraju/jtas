@@ -47,9 +47,12 @@ function Total({ label, value, tone }: { label: string; value: number; tone: str
 export function MaterialCountPanel({
   subtaskId,
   canRecord,
+  hourly = false,
 }: {
   subtaskId: string;
   canRecord: boolean;
+  /** QA: one report every hour, so show when the last one went in. */
+  hourly?: boolean;
 }) {
   const [materials, setMaterials] = useState<MaterialsDto | null>(null);
   const [accepted, setAccepted] = useState('');
@@ -125,6 +128,9 @@ export function MaterialCountPanel({
 
   const { totals, jobQuantity, entries } = materials;
   const inspected = totals.accepted + totals.rejected;
+  const last = entries[0] ? new Date(entries[0].createdAt) : null;
+  const minutesSince = last ? Math.floor((Date.now() - last.getTime()) / 60_000) : null;
+  const hourDue = minutesSince === null || minutesSince >= 60;
 
   return (
     <div className="space-y-4">
@@ -137,6 +143,27 @@ export function MaterialCountPanel({
           tone="text-foreground"
         />
       </div>
+
+      {hourly ? (
+        <p
+          className={`text-sm ${hourDue && canRecord ? 'text-late font-medium' : 'text-muted-foreground'}`}
+        >
+          {last ? (
+            <>
+              <T>{'Last report'}</T> {formatIST(last, 'h:mm a')} (
+              {minutesSince! < 60
+                ? `${minutesSince} min ago`
+                : `${Math.floor(minutesSince! / 60)} h ${minutesSince! % 60} min ago`}
+              ).{' '}
+              <T>
+                {hourDue ? 'The next hourly report is due now.' : 'Next one due within the hour.'}
+              </T>
+            </>
+          ) : (
+            <T>{'No hourly report yet today. Send the first one now.'}</T>
+          )}
+        </p>
+      ) : null}
 
       {canRecord ? (
         <form onSubmit={submit} className="space-y-3" aria-label="Record material count">
@@ -191,7 +218,7 @@ export function MaterialCountPanel({
             ) : (
               <PackageCheck className="size-4" />
             )}
-            <T>{'Record count'}</T>
+            <T>{hourly ? 'Send hourly report' : 'Record count'}</T>
           </Button>
         </form>
       ) : null}

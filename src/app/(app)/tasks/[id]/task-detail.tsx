@@ -27,10 +27,17 @@ import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 import { CommentThread } from '@/components/collaboration/comment-thread';
 import { MaterialCountPanel } from '@/components/collaboration/material-count-panel';
 import { BillingPanel } from '@/components/collaboration/billing-panel';
+import { BatchPanel } from '@/components/collaboration/batch-panel';
+import { StoreRegisterPanel } from '@/components/collaboration/store-register-panel';
 
 import { CommitmentPanel } from './commitment-panel';
 import { ExtensionPanel } from './extension-panel';
 import { TaskStatusAlerts } from './task-status-alerts';
+import {
+  HOURLY_REPORT_DEPARTMENT_CODE,
+  noDeadlineLabel,
+  worksWithoutDeadline,
+} from '@/lib/domain/department-rules';
 
 export interface TaskPermissions {
   updateStatus: boolean;
@@ -46,6 +53,15 @@ export interface TaskPermissions {
   recordMaterials: boolean;
   /** An Accounts task, seen by Accounts, the MD or the Deputy: show the job's invoices. */
   billing: boolean;
+  /** Production or Quality: the task runs on dated batches. */
+  batches: boolean;
+  /** The holder may plan the batches (once, when their turn arrives). */
+  planBatches: boolean;
+  /** The MD or a job manager may re-plan open batches. */
+  replanBatches: boolean;
+  /** A Store task: the store register replaces attaching invoices. */
+  storeRegister: boolean;
+  recordStore: boolean;
 }
 
 export function TaskDetail({
@@ -85,6 +101,8 @@ export function TaskDetail({
   // else out of PROBLEM, so the buttons would only fail.
   const reported = subtask.status === 'PROBLEM';
   const canAct = permissions.updateStatus && !done && !cancelled && !waiting && !reported;
+  const noDeadline = worksWithoutDeadline(subtask.department.code);
+  const hourly = subtask.department.code === HOURLY_REPORT_DEPARTMENT_CODE;
   const owesCommitment =
     !blocked && !done && !cancelled && !subtask.deadline && !!subtask.commitmentDueAt;
 
@@ -190,7 +208,59 @@ export function TaskDetail({
       </PhoneDisclosure>
       <div className="task-detail-layout">
         <div className="min-w-0 space-y-5">
-          {owesCommitment && subtask.commitmentDueAt ? (
+          {permissions.batches ? (
+            <Panel
+              id={owesCommitment ? 'commitment-panel' : undefined}
+              className={owesCommitment ? 'border-primary' : undefined}
+              title={<T>{owesCommitment ? 'Commit your batch dates' : 'Batches'}</T>}
+              description={
+                owesCommitment && subtask.commitmentDueAt ? (
+                  <>
+                    <T>{'Commit by '}</T>
+                    {formatIST(new Date(subtask.commitmentDueAt))}.{' '}
+                    <T>
+                      {'The whole quantity need not be ready at once: give each batch its date.'}
+                    </T>
+                  </>
+                ) : (
+                  <T>
+                    {'Each batch has its own date. Close it with the accepted and rejected pieces.'}
+                  </T>
+                )
+              }
+              bodyClassName="p-4"
+            >
+              <BatchPanel
+                subtaskId={subtask.id}
+                departmentName={subtask.department.name}
+                canPlan={permissions.planBatches && owesCommitment}
+                canReplan={permissions.replanBatches && !done && !cancelled}
+                canClose={permissions.recordMaterials && !blocked && !done && !cancelled}
+                onChanged={() => router.refresh()}
+              />
+            </Panel>
+          ) : null}
+
+          {permissions.storeRegister ? (
+            <Panel
+              title={<T>{'Store register'}</T>}
+              description={
+                <T>
+                  {
+                    'Type each receipt or issue here instead of attaching the invoice. Production and Planning are told straight away.'
+                  }
+                </T>
+              }
+              bodyClassName="p-4"
+            >
+              <StoreRegisterPanel
+                subtaskId={subtask.id}
+                canRecord={permissions.recordStore && !cancelled}
+              />
+            </Panel>
+          ) : null}
+
+          {owesCommitment && subtask.commitmentDueAt && !permissions.batches ? (
             <CommitmentPanel
               subtaskId={subtask.id}
               jobCode={subtask.jobCode}
@@ -210,6 +280,8 @@ export function TaskDetail({
                   <T>{'Your deadline'}</T>
                 ) : owesCommitment ? (
                   <T>{'Commit a date'}</T>
+                ) : noDeadline ? (
+                  <T>{'How this work is timed'}</T>
                 ) : (
                   <T>{'Deadline'}</T>
                 )}
@@ -222,6 +294,8 @@ export function TaskDetail({
                     formatIST(new Date(subtask.deadline))
                   ) : owesCommitment ? (
                     <T>{'Awaiting your commitment'}</T>
+                  ) : noDeadline ? (
+                    <T>{noDeadlineLabel(subtask.department.code)}</T>
                   ) : (
                     <T>{'No date yet'}</T>
                   )}
@@ -389,20 +463,33 @@ export function TaskDetail({
             </Panel>
           ) : null}
 
-          {permissions.countsMaterials ? (
+          {permissions.countsMaterials && !permissions.batches ? (
             <Panel
-              title={<T>{'Accepted and rejected material'}</T>}
-              description={<T>{'Record what passed and what was rejected, batch by batch.'}</T>}
+              title={
+                <T>{hourly ? 'Hourly inspection report' : 'Accepted and rejected material'}</T>
+              }
+              description={
+                <T>
+                  {hourly
+                    ? 'Send the accepted and rejected pieces every hour. Each report is kept with its time.'
+                    : 'Record what passed and what was rejected, batch by batch.'}
+                </T>
+              }
               bodyClassName="p-4"
             >
               <MaterialCountPanel
                 subtaskId={subtask.id}
                 canRecord={permissions.recordMaterials && !cancelled}
+                hourly={hourly}
               />
             </Panel>
           ) : null}
 
-          {permissions.requestExtension && subtask.deadline && !done && !cancelled ? (
+          {permissions.requestExtension &&
+          subtask.deadline &&
+          !noDeadline &&
+          !done &&
+          !cancelled ? (
             <ExtensionPanel
               subtaskId={subtask.id}
               currentDeadline={subtask.deadline}

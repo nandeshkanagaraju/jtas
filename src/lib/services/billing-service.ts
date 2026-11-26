@@ -270,9 +270,12 @@ export interface ReadyToInvoice {
   inspectionDepartment: string | null;
   /** True when the billable figure is the job quantity because no counts were recorded. */
   estimated: boolean;
-  billableBase: number;
+  /** Null when the job has no quantity and nothing was counted. */
+  billableBase: number | null;
   invoicedQuantity: number;
-  remaining: number;
+  remaining: number | null;
+  /** Planning's "ready to invoice" intimation, when it was sent. */
+  intimation: { at: Date; by: string | null; note: string | null } | null;
 }
 
 export interface RecentInvoice extends InvoiceRow {
@@ -307,13 +310,19 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
     prisma.job.findMany({
       where: {
         status: { notIn: ['DRAFT', 'CANCELLED'] },
+        deletedAt: null,
         OR: [
           { status: 'COMPLETED' },
           { subtasks: { some: { status: 'COMPLETED', department: { code: 'DISPATCH' } } } },
+          // Planning has told Accounts to invoice, whatever Dispatch shows.
+          { accountsIntimatedAt: { not: null } },
         ],
       },
       select: {
         ...BILLING_JOB_SELECT,
+        accountsIntimatedAt: true,
+        accountsIntimationNote: true,
+        accountsIntimatedBy: { select: { name: true } },
         subtasks: {
           select: {
             status: true,
@@ -322,7 +331,10 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
           },
         },
       },
-      orderBy: { overallDeadline: 'asc' },
+      orderBy: [
+        { accountsIntimatedAt: { sort: 'desc', nulls: 'last' } },
+        { overallDeadline: 'asc' },
+      ],
     }),
     prisma.invoice.findMany({
       orderBy: [{ invoiceDate: 'desc' }, { createdAt: 'desc' }],
@@ -338,7 +350,13 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
   const ready: ReadyToInvoice[] = [];
   for (const job of jobs) {
     const billing = toJobBilling(job);
-    if (billing.billableBase === null || !billing.remaining) continue;
+    // Planning's intimation puts a job on the list until something is invoiced,
+    // even when there is no quantity to work the remainder out from.
+    const intimatedOnly =
+      job.accountsIntimatedAt !== null &&
+      billing.billableBase === null &&
+      billing.invoicedQuantity === 0;
+    if (!intimatedOnly && (billing.billableBase === null || !billing.remaining)) continue;
     ready.push({
       jobId: job.id,
       jobCode: job.jobCode,
@@ -352,6 +370,13 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
       billableBase: billing.billableBase,
       invoicedQuantity: billing.invoicedQuantity,
       remaining: billing.remaining,
+      intimation: job.accountsIntimatedAt
+        ? {
+            at: job.accountsIntimatedAt,
+            by: job.accountsIntimatedBy?.name ?? null,
+            note: job.accountsIntimationNote,
+          }
+        : null,
     });
   }
 

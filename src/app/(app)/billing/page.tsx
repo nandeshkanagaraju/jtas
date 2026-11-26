@@ -34,7 +34,7 @@ export default async function BillingPage() {
   if (!(await canManageBilling(session))) forbidden();
 
   const { ready, recent, month, invoicedJobs } = await billingDashboard();
-  const piecesToInvoice = ready.reduce((sum, row) => sum + row.remaining, 0);
+  const piecesToInvoice = ready.reduce((sum, row) => sum + (row.remaining ?? 0), 0);
 
   return (
     <div className="w-full space-y-5">
@@ -62,7 +62,11 @@ export default async function BillingPage() {
       <Panel
         title={<T>{'Ready to invoice'}</T>}
         count={ready.length}
-        description={<T>{'Dispatched or completed jobs with accepted pieces not yet invoiced.'}</T>}
+        description={
+          <T>
+            {'Jobs Planning has sent for invoicing, or dispatched, with pieces not yet invoiced.'}
+          </T>
+        }
         flush
       >
         {ready.length === 0 ? (
@@ -86,8 +90,11 @@ export default async function BillingPage() {
                   <th className="px-3 py-2.5 text-right font-medium">
                     <T>{'To invoice'}</T>
                   </th>
-                  <th className="px-5 py-2.5 font-medium">
+                  <th className="px-3 py-2.5 font-medium">
                     <T>{'Based on'}</T>
+                  </th>
+                  <th className="px-5 py-2.5 font-medium">
+                    <T>{'Planning intimation'}</T>
                   </th>
                 </tr>
               </thead>
@@ -103,12 +110,12 @@ export default async function BillingPage() {
                       </Link>
                       <span className="text-muted-foreground block text-xs">{row.jobTitle}</span>
                     </td>
-                    <td className="px-3 py-3 text-right tabular-nums">{row.billableBase}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">{row.billableBase ?? '—'}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{row.invoicedQuantity}</td>
                     <td className="px-3 py-3 text-right font-semibold tabular-nums">
-                      {row.remaining}
+                      {row.remaining ?? '—'}
                     </td>
-                    <td className="text-muted-foreground px-5 py-3 text-xs">
+                    <td className="text-muted-foreground px-3 py-3 text-xs">
                       {row.estimated ? (
                         <T>{'Job quantity (no inspection counts)'}</T>
                       ) : (
@@ -118,7 +125,30 @@ export default async function BillingPage() {
                       )}
                       {row.dispatched ? null : (
                         <span className="block">
-                          <T>{'Job completed'}</T>
+                          <T>
+                            {row.status === 'COMPLETED' ? 'Job completed' : 'Not dispatched yet'}
+                          </T>
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-xs">
+                      {row.intimation ? (
+                        <>
+                          <span className="font-medium">
+                            {formatIST(row.intimation.at, 'd MMM, h:mm a')}
+                          </span>
+                          {row.intimation.by ? (
+                            <span className="text-muted-foreground"> · {row.intimation.by}</span>
+                          ) : null}
+                          {row.intimation.note ? (
+                            <span className="text-muted-foreground block">
+                              {row.intimation.note}
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          <T>{'Not sent'}</T>
                         </span>
                       )}
                     </td>

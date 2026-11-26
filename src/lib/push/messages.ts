@@ -68,6 +68,7 @@ const labels: Record<string, [string, string, string]> = {
     'கருத்தில் நீங்கள் குறிப்பிடப்பட்டுள்ளீர்கள்',
     'एक टिप्पणी में आपका उल्लेख किया गया',
   ],
+  DEPARTMENT_INTIMATION: ['New intimation', 'புதிய அறிவிப்பு', 'नई सूचना'],
   JOB_COMPLETED: ['Job completed', 'வேலை முடிக்கப்பட்டது', 'काम पूरा हो गया'],
   DAILY_DIGEST_MD: ['Daily summary ready', 'தினசரி சுருக்கம் தயார்', 'दैनिक सारांश तैयार है'],
 };

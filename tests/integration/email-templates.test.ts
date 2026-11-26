@@ -116,7 +116,7 @@ describe('a 15-minute lead', () => {
 
 describe('the whole set', () => {
   it('covers every mail template', () => {
-    expect(TEMPLATE_KINDS).toHaveLength(20);
+    expect(TEMPLATE_KINDS).toHaveLength(21);
     expect(Object.keys(SAMPLES).sort()).toEqual([...TEMPLATE_KINDS].sort());
   });
 

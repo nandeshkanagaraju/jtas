@@ -10,6 +10,7 @@ import type { SubtaskDto } from '@/lib/api/subtasks-client';
 import { cn } from '@/lib/utils';
 import { completionLabel, deadlineLabel } from '@/lib/utils/relative-time';
 import { formatIST } from '@/lib/utils/time';
+import { noDeadlineLabel, worksWithoutDeadline } from '@/lib/domain/department-rules';
 
 /**
  * Band colours — SDD section 7.3.
@@ -56,6 +57,14 @@ function commitmentLine(subtask: SubtaskDto): {
     const relative = deadlineLabel(deadline).text;
     const who = subtask.deadlineOrigin === 'MD' ? 'Set by the MD' : 'Committed';
     return { primary: when, secondary: `${who} · ${relative}`, late: false };
+  }
+
+  if (worksWithoutDeadline(subtask.department.code)) {
+    return {
+      primary: 'No deadline',
+      secondary: noDeadlineLabel(subtask.department.code),
+      late: false,
+    };
   }
 
   if (subtask.status === 'BLOCKED' || !subtask.commitmentDueAt) {

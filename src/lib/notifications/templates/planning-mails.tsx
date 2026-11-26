@@ -6,8 +6,39 @@
  * "you can start" mail is still READY_TO_START, sent only when it is their turn.
  */
 import { ActionButton, EmailLayout, FactTable, Heading, Paragraph } from './layout';
-import { myTasksLink, subtaskLink } from './links';
-import type { DepartmentLookaheadPayload, UpstreamDateUpdatePayload } from './types';
+import { jobLink, myTasksLink, subtaskLink } from './links';
+import type {
+  DepartmentIntimationPayload,
+  DepartmentLookaheadPayload,
+  UpstreamDateUpdatePayload,
+} from './types';
+
+/** Store → Production and Planning, or Planning → Accounts. */
+export function DepartmentIntimationEmail(payload: DepartmentIntimationPayload) {
+  return (
+    <EmailLayout preview={`${payload.jobCode}: ${payload.headline}`}>
+      <Heading>{payload.headline}</Heading>
+      <Paragraph>Dear {payload.readerName},</Paragraph>
+      <Paragraph>
+        {payload.fromName} sent this on {payload.sentIst} for job <strong>{payload.jobCode}</strong>
+        .
+      </Paragraph>
+
+      <FactTable
+        rows={[
+          ['Job', `${payload.jobCode} — ${payload.jobTitle}`],
+          [
+            'Part / Drawing',
+            [payload.partNumber, payload.drawingNumber].filter(Boolean).join(' / ') || null,
+          ],
+          ...payload.facts,
+        ]}
+      />
+
+      <ActionButton href={jobLink(payload.jobId)} label="Open the job" />
+    </EmailLayout>
+  );
+}
 
 function routeLine(payload: UpstreamDateUpdatePayload): string {
   return [payload.departmentName, ...payload.stepsBetween, payload.readerDepartment].join(' → ');

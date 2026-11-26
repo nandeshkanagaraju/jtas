@@ -11,7 +11,11 @@ import { plainTextSelectors, render } from '@react-email/render';
 import { formatElapsed } from '@/lib/utils/duration';
 
 import { jobLink, myTasksLink, problemInboxLink, subtaskLink } from './links';
-import { DepartmentLookaheadEmail, UpstreamDateUpdateEmail } from './planning-mails';
+import {
+  DepartmentIntimationEmail,
+  DepartmentLookaheadEmail,
+  UpstreamDateUpdateEmail,
+} from './planning-mails';
 import {
   ApprovalRequiredEmail,
   CommitmentMadeEmail,
@@ -77,6 +81,8 @@ function subjectFor(payload: TemplatePayload): string {
       return `[JTAS] Daily summary – ${payload.dateIst}`;
     case 'UPSTREAM_DATE_UPDATE':
       return `[JTAS] Plan ahead: ${payload.jobCode} – ${payload.departmentName} ${payload.previousDeadlineIst ? 'now' : 'expects'} ${payload.deadlineIst}`;
+    case 'DEPARTMENT_INTIMATION':
+      return `[JTAS] ${payload.headline}: ${payload.jobCode} – ${payload.jobTitle}`;
     case 'DEPARTMENT_LOOKAHEAD':
       return `[JTAS] Coming your way – ${payload.rows.length} job${payload.rows.length === 1 ? '' : 's'} – ${payload.dateIst}`;
   }
@@ -125,6 +131,8 @@ function elementFor(payload: TemplatePayload): React.ReactElement {
       return <UpstreamDateUpdateEmail {...payload} />;
     case 'DEPARTMENT_LOOKAHEAD':
       return <DepartmentLookaheadEmail {...payload} />;
+    case 'DEPARTMENT_INTIMATION':
+      return <DepartmentIntimationEmail {...payload} />;
   }
 }
 
@@ -172,6 +180,7 @@ function linkLine(payload: TemplatePayload): string {
     case 'DAILY_DIGEST_MD':
       return `Problem inbox: ${problemInboxLink()}`;
     case 'JOB_COMPLETED':
+    case 'DEPARTMENT_INTIMATION':
       return `Open the job: ${jobLink(payload.jobId)}`;
     case 'UPSTREAM_DATE_UPDATE':
       return `Open your task: ${subtaskLink(payload.readerSubtaskId)}`;
@@ -203,6 +212,7 @@ export const TEMPLATE_KINDS: TemplateKind[] = [
   'DAILY_DIGEST_MD',
   'UPSTREAM_DATE_UPDATE',
   'DEPARTMENT_LOOKAHEAD',
+  'DEPARTMENT_INTIMATION',
 ];
 
 export * from './types';

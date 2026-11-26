@@ -305,6 +305,9 @@ export async function buildPayload(
     case 'DEPARTMENT_LOOKAHEAD':
       return buildLookaheadPayload(notification.userId, now);
 
+    case 'DEPARTMENT_INTIMATION':
+      return buildIntimationPayload(notification.id, notification.entityId, notification.userId);
+
     case 'DAILY_DIGEST_MD':
       return buildDigestPayload(now);
 
@@ -572,4 +575,73 @@ export async function buildLookaheadPayload(
     readerDepartmentName: reader.department?.name ?? 'your department',
     rows: rows.map(({ sortKey: _sortKey, ...row }) => row),
   };
+}
+
+/**
+ * An intimation's words are written when it is sent (they describe a store line
+ * or a note that will not change), so the row's subject and body are the
+ * message: the body is "Label: value" lines, with the sender as "From".
+ */
+export async function buildIntimationPayload(
+  notificationId: string,
+  jobId: string,
+  readerId: string,
+): Promise<TemplatePayload | null> {
+  const [row, job, reader] = await Promise.all([
+    prisma.notification.findUnique({
+      where: { id: notificationId },
+      select: { subject: true, body: true, createdAt: true },
+    }),
+    prisma.job.findUnique({
+      where: { id: jobId },
+      select: { id: true, jobCode: true, title: true, partNumber: true, drawingNumber: true },
+    }),
+    prisma.user.findUnique({ where: { id: readerId }, select: { name: true } }),
+  ]);
+  if (!row || !job) return null;
+
+  const { from, facts } = parseIntimationBody(row.body);
+  return {
+    kind: 'DEPARTMENT_INTIMATION',
+    jobId: job.id,
+    jobCode: job.jobCode,
+    jobTitle: job.title,
+    partNumber: job.partNumber,
+    drawingNumber: job.drawingNumber,
+    readerName: reader?.name ?? 'there',
+    headline: row.subject,
+    facts,
+    fromName: from ?? 'A department',
+    sentIst: ist(row.createdAt),
+  };
+}
+
+/** Writes intimation facts as the body; {@link parseIntimationBody} reads them back. */
+export function intimationBody(
+  from: string,
+  facts: Array<[string, string | null | undefined]>,
+): string {
+  return [
+    `From: ${from}`,
+    ...facts
+      .filter((fact): fact is [string, string] => Boolean(fact[1]))
+      .map(([label, value]) => `${label}: ${value.replace(/\s*\n\s*/g, ' ')}`),
+  ].join('\n');
+}
+
+export function parseIntimationBody(body: string): {
+  from: string | null;
+  facts: Array<[string, string]>;
+} {
+  let from: string | null = null;
+  const facts: Array<[string, string]> = [];
+  for (const line of body.split('\n')) {
+    const at = line.indexOf(': ');
+    if (at < 0) continue;
+    const label = line.slice(0, at);
+    const value = line.slice(at + 2);
+    if (label === 'From') from = value;
+    else facts.push([label, value]);
+  }
+  return { from, facts };
 }

@@ -71,6 +71,10 @@ export const JOB_SELECT = {
   updatedAt: true,
   createdBy: { select: { id: true, name: true } },
   pointOfContact: { select: { id: true, name: true, department: { select: { name: true } } } },
+  accountsIntimatedAt: true,
+  accountsIntimationNote: true,
+  accountsIntimatedBy: { select: { id: true, name: true } },
+  _count: { select: { invoices: true } },
 } satisfies Prisma.JobSelect;
 
 export type JobRow = Prisma.JobGetPayload<{ select: typeof JOB_SELECT }>;
@@ -93,6 +97,10 @@ export interface JobSummary {
   createdBy: { id: string; name: string };
   /** The only person who contacts the customer about this job. */
   pointOfContact: { id: string; name: string; department: string | null } | null;
+  /** Planning told Accounts the job is ready to invoice; null until then. */
+  accountsIntimation: { at: Date; by: string | null; note: string | null } | null;
+  /** How many invoices Accounts has raised on the job. */
+  invoiceCount: number;
   createdAt: Date;
   updatedAt: Date;
   progress: { completed: number; total: number; percent: number };
@@ -132,6 +140,14 @@ export function toJobSummary(
           department: row.pointOfContact.department?.name ?? null,
         }
       : null,
+    accountsIntimation: row.accountsIntimatedAt
+      ? {
+          at: row.accountsIntimatedAt,
+          by: row.accountsIntimatedBy?.name ?? null,
+          note: row.accountsIntimationNote,
+        }
+      : null,
+    invoiceCount: row._count.invoices,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     ...extras,
@@ -143,6 +159,8 @@ export function jobSnapshot(row: JobRow): Prisma.InputJsonValue {
   const snapshot: Record<string, unknown> = { ...row };
   delete snapshot.createdBy;
   delete snapshot.pointOfContact;
+  delete snapshot.accountsIntimatedBy;
+  delete snapshot._count;
   return JSON.parse(JSON.stringify(snapshot)) as Prisma.InputJsonValue;
 }
 

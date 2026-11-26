@@ -130,6 +130,30 @@ export async function jobActivityFeed(
       body = `Accepted ${String(after.acceptedQty ?? 0)} · Rejected ${String(after.rejectedQty ?? 0)}${note}`;
     }
 
+    if (entry.action === 'STORE_ENTRY_RECORDED') {
+      const direction = after.direction === 'OUTWARD' ? 'Issued' : 'Received';
+      const parts = [
+        `${direction} against ${String(after.documentType ?? '')}${after.documentNumber ? ` ${String(after.documentNumber)}` : ''}`,
+        after.supplierName ? String(after.supplierName) : null,
+        after.invoiceNumber ? `Invoice ${String(after.invoiceNumber)}` : null,
+        after.material ? String(after.material) : null,
+        typeof after.quantity === 'number' ? `${after.quantity} qty` : null,
+      ];
+      body = parts.filter(Boolean).join(' · ');
+    }
+
+    if (entry.action === 'BATCHES_PLANNED' && Array.isArray(after.batches)) {
+      body = `${after.batches.length} batches planned`;
+    }
+
+    if (entry.action === 'BATCH_COMPLETED') {
+      body = `Batch ${String(after.sequence ?? '')} · Accepted ${String(after.acceptedQty ?? 0)} · Rejected ${String(after.rejectedQty ?? 0)}`;
+    }
+
+    if (entry.action === 'ACCOUNTS_INTIMATED') {
+      body = typeof after.note === 'string' && after.note ? after.note : 'Ready to invoice';
+    }
+
     if (entry.action.startsWith('ATTACHMENT_')) {
       body = String(after.fileName ?? before.fileName ?? '') || null;
     }

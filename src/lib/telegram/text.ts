@@ -375,6 +375,16 @@ export function plainTextFor(
           'Nothing to do yet. You will be told when it is your turn.',
         ),
       );
+    case 'DEPARTMENT_INTIMATION':
+      return clip(
+        lines(
+          `${payload.headline}: ${payload.jobCode}`,
+          `From ${payload.fromName}, ${payload.sentIst}.`,
+          ...payload.facts
+            .filter((fact): fact is [string, string] => Boolean(fact[1]))
+            .map(([label, value]) => `${label}: ${value}`),
+        ),
+      );
     case 'DEPARTMENT_LOOKAHEAD':
       return clip(
         lines(

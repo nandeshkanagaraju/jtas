@@ -4,7 +4,7 @@ import { LocalizedElement } from '@/lib/i18n/provider';
 
 import { T } from '@/lib/i18n/provider';
 
-import { ArrowUpRight, ClipboardList, LayoutGrid, List, Loader2, Plus } from 'lucide-react';
+import { ArrowUpRight, ClipboardList, LayoutGrid, List, Loader2, Plus, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -15,9 +15,12 @@ import { PhoneDisclosure } from '@/components/shared/phone-app';
 import { EmptyState, ErrorState } from '@/components/shared/states';
 import { ActiveFilters, Toolbar, type ActiveFilter } from '@/components/shared/toolbar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
-import { fetchJobs, type JobRowDto } from '@/lib/api/jobs-client';
+import { fetchJobs, intimateAccountsRequest, type JobRowDto } from '@/lib/api/jobs-client';
+import { toast } from '@/lib/i18n/toast';
+import { formatIST } from '@/lib/utils/time';
 import { fetchJobSubtasks } from '@/lib/api/subtasks-client';
 import type { DepartmentSummary } from '@/lib/services/department-service';
 import { cn } from '@/lib/utils';
@@ -39,10 +42,13 @@ export function JobsScreen({
   departments,
   canCreate,
   initialStatus,
+  accountsColumn = null,
 }: {
   departments: DepartmentSummary[];
   canCreate: boolean;
   initialStatus?: JobFilters['status'];
+  /** Planning sends the invoice intimation from here; Accounts sees it. */
+  accountsColumn?: 'send' | 'view' | null;
 }) {
   const [view, setView] = useState<'list' | 'grid'>('grid');
   const [rows, setRows] = useState<JobRowDto[]>([]);
@@ -295,13 +301,30 @@ export function JobsScreen({
             {rows.map((job) => (
               <li
                 key={job.id}
-                className={
+                className={cn(
                   view === 'grid'
-                    ? 'border-border bg-card rounded-2xl border'
-                    : 'border-border border-t first:border-t-0'
-                }
+                    ? 'border-border bg-card flex flex-col rounded-2xl border'
+                    : 'border-border border-t first:border-t-0',
+                  accountsColumn && view !== 'grid' && 'xl:flex xl:items-stretch',
+                )}
               >
-                <JobRow job={job} stations={relays[job.id]} card={view === 'grid'} />
+                <div className="min-w-0 flex-1">
+                  <JobRow job={job} stations={relays[job.id]} card={view === 'grid'} />
+                </div>
+                {accountsColumn ? (
+                  <AccountsCell
+                    job={job}
+                    canSend={accountsColumn === 'send'}
+                    card={view === 'grid'}
+                    onSent={(accountsIntimation) =>
+                      setRows((current) =>
+                        current.map((row) =>
+                          row.id === job.id ? { ...row, accountsIntimation } : row,
+                        ),
+                      )
+                    }
+                  />
+                ) : null}
               </li>
             ))}
           </ol>
@@ -406,6 +429,104 @@ function JobRow({
         aria-hidden
       />
     </Link>
+  );
+}
+
+/**
+ * The Accounts column: Planning sends the "ready to invoice" intimation here,
+ * and everybody who sees the column can tell whether it went and whether
+ * Accounts has invoiced. Outside the row's link, so the button is not a link.
+ */
+function AccountsCell({
+  job,
+  canSend,
+  card,
+  onSent,
+}: {
+  job: JobRowDto;
+  canSend: boolean;
+  card: boolean;
+  onSent: (value: NonNullable<JobRowDto['accountsIntimation']>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const sent = job.accountsIntimation;
+  const invoiceable = job.status !== 'DRAFT' && job.status !== 'CANCELLED';
+
+  async function send() {
+    setBusy(true);
+    try {
+      const { data } = await intimateAccountsRequest(job.id, note.trim() || undefined);
+      onSent({ at: data.at, by: data.by, note: data.note });
+      setOpen(false);
+      setNote('');
+      toast.success('Accounts has been told to invoice');
+    } catch (cause) {
+      toast.error(cause instanceof ApiError ? cause.message : 'Could not reach the server.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col justify-center gap-1.5 px-5 pb-4 text-xs',
+        card ? 'border-border mt-auto border-t pt-3' : 'xl:w-52 xl:shrink-0 xl:py-5 xl:pl-0',
+      )}
+    >
+      <span className="field-label">
+        <T>{'Accounts'}</T>
+      </span>
+      {job.invoiceCount > 0 ? (
+        <span className="text-ok font-medium">
+          <T>{'Invoiced'}</T> · {job.invoiceCount}
+        </span>
+      ) : sent ? (
+        <span className="font-medium">
+          <T>{'Sent'}</T> {formatIST(new Date(sent.at), 'd MMM, h:mm a')}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">
+          <T>{'Not sent yet'}</T>
+        </span>
+      )}
+      {sent?.note ? <span className="text-muted-foreground line-clamp-2">{sent.note}</span> : null}
+
+      {canSend && invoiceable ? (
+        open ? (
+          <div className="space-y-2">
+            <Input
+              aria-label="Note for Accounts (optional)"
+              placeholder="Qty sent, DC no. (optional)"
+              maxLength={500}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="h-8 text-xs"
+            />
+            <div className="flex gap-1.5">
+              <Button size="sm" disabled={busy} onClick={() => void send()}>
+                {busy ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Send className="size-3.5" />
+                )}
+                <T>{'Send'}</T>
+              </Button>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => setOpen(false)}>
+                <T>{'Cancel '}</T>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button size="sm" variant="outline" className="w-fit" onClick={() => setOpen(true)}>
+            <Send className="size-3.5" />
+            <T>{sent ? 'Send again' : 'Send to Accounts'}</T>
+          </Button>
+        )
+      ) : null}
+    </div>
   );
 }
 

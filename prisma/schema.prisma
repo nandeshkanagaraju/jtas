@@ -108,6 +108,11 @@ enum NotifType {
   /// The morning "coming your way" mail: every job heading towards this
   /// department, where it is now, and when it is expected to arrive.
   DEPARTMENT_LOOKAHEAD
+  /// One department tells another something they need to act on: Store has
+  /// recorded material in or out (to Production and Planning), or Planning
+  /// asks Accounts to raise the invoice. The row's subject and body are the
+  /// message.
+  DEPARTMENT_INTIMATION
 }
 
 /// Who fixed a subtask's date. A null deadline has no origin.
@@ -196,6 +201,9 @@ model User {
 
   materialCounts MaterialCount[] @relation("MaterialCountRecordedBy")
   invoices       Invoice[]       @relation("InvoiceCreatedBy")
+  storeEntries   StoreEntry[]    @relation("StoreEntryRecordedBy")
+  batchesAdded   SubtaskBatch[]  @relation("SubtaskBatchCreatedBy")
+  intimatedJobs  Job[]           @relation("JobAccountsIntimatedBy")
 
   /// For a SUPERVISOR: the book they keep. Null lets them keep both.
   productionSection         ProductionSection?
@@ -314,6 +322,13 @@ model Job {
   deletedById  String?
   deleteReason String?
 
+  /// Planning told Accounts this job is ready to invoice. Null until then.
+  accountsIntimatedAt    DateTime?
+  accountsIntimatedById  String?
+  accountsIntimatedBy    User?     @relation("JobAccountsIntimatedBy", fields: [accountsIntimatedById], references: [id])
+  /// What Planning wrote with it: quantity sent, DC number, anything Accounts needs.
+  accountsIntimationNote String?
+
   subtasks    Subtask[]
   attachments Attachment[]
   invoices    Invoice[]
@@ -376,6 +391,8 @@ model Subtask {
   comments          Comment[]
   attachments       Attachment[]
   materialCounts    MaterialCount[]
+  storeEntries      StoreEntry[]
+  batches           SubtaskBatch[]
   deadlineChanges   DeadlineChange[]
   extensionRequests ExtensionRequest[]
 
@@ -451,17 +468,88 @@ model Comment {
 /// QA task. Append-only: each row is one report (a shift, a batch); the task's
 /// totals are the sum. A wrong entry is corrected by a new one, never edited.
 model MaterialCount {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   subtaskId    String
-  subtask      Subtask  @relation(fields: [subtaskId], references: [id])
+  subtask      Subtask       @relation(fields: [subtaskId], references: [id])
+  /// The batch this report closes, on a Production or Quality task planned in
+  /// batches. Null for an ordinary (or hourly QA) report.
+  batchId      String?
+  batch        SubtaskBatch? @relation(fields: [batchId], references: [id])
   acceptedQty  Int
   rejectedQty  Int
   note         String?
   recordedById String
-  recordedBy   User     @relation("MaterialCountRecordedBy", fields: [recordedById], references: [id])
-  createdAt    DateTime @default(now())
+  recordedBy   User          @relation("MaterialCountRecordedBy", fields: [recordedById], references: [id])
+  createdAt    DateTime      @default(now())
 
   @@index([subtaskId, createdAt])
+}
+
+/// One planned lot of a Production or Quality task.
+///
+/// Production cannot make the whole quantity at once, and Quality inspects each
+/// lot on the day it goes, so these tasks carry several dates instead of one.
+/// The task's own `deadline` always mirrors the earliest open batch, which keeps
+/// the reminders and overdue chasing working batch by batch. A batch is closed by
+/// reporting its accepted and rejected pieces.
+model SubtaskBatch {
+  id          String          @id @default(cuid())
+  subtaskId   String
+  subtask     Subtask         @relation(fields: [subtaskId], references: [id])
+  /// 1, 2, 3 … in date order when planned.
+  sequence    Int
+  quantity    Int
+  deadline    DateTime
+  completedAt DateTime?
+  createdById String
+  createdBy   User            @relation("SubtaskBatchCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  counts      MaterialCount[]
+
+  @@unique([subtaskId, sequence])
+  @@index([subtaskId, completedAt])
+}
+
+enum StoreDirection {
+  /// Material received from a supplier.
+  INWARD
+  /// Material issued out of the store (to Production).
+  OUTWARD
+}
+
+/// Which purchase document the material moved against.
+enum PurchaseDocType {
+  /// Purchase requisition.
+  PR
+  /// Purchase order.
+  PO
+}
+
+/// One line of the store register: material in or out, typed in by Store
+/// instead of attaching the supplier's PDF. Append-only, like material counts.
+/// Each line is intimated to Production and Planning.
+model StoreEntry {
+  id             String          @id @default(cuid())
+  subtaskId      String
+  subtask        Subtask         @relation(fields: [subtaskId], references: [id])
+  direction      StoreDirection
+  documentType   PurchaseDocType
+  /// The PR or PO number, when there is one.
+  documentNumber String?
+  /// Required for INWARD; optional when issuing out.
+  supplierName   String?
+  invoiceNumber  String?
+  /// The invoice's own date (IST calendar date).
+  invoiceDate    DateTime?       @db.Date
+  material       String?
+  quantity       Int?
+  note           String?
+  recordedById   String
+  recordedBy     User            @relation("StoreEntryRecordedBy", fields: [recordedById], references: [id])
+  createdAt      DateTime        @default(now())
+
+  @@index([subtaskId, createdAt])
+  @@index([createdAt])
 }
 
 /// A customer invoice raised by Accounts against a job. A job may be invoiced

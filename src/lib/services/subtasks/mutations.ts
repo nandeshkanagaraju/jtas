@@ -4,6 +4,7 @@
  * Every mutation writes its audit row inside the same transaction as the change
  * (architecture rule 5).
  */
+import { worksWithoutDeadline } from '@/lib/domain/department-rules';
 import { loadDefaultReminderLeadMinutes } from '@/lib/notifications/config';
 import { prisma } from '@/lib/db/prisma';
 import { notFound } from '@/lib/errors';
@@ -13,6 +14,7 @@ import { scheduleForSubtask } from '@/lib/services/notification-service';
 import type { CreateSubtaskInput, UpdateSubtaskInput } from '@/lib/validation/subtask';
 
 import {
+  departmentCodesById,
   assertAssignable,
   assertDeadlineWithinJob,
   assertDependencyValid,
@@ -42,7 +44,12 @@ export async function createSubtask(
 ): Promise<SubtaskRow> {
   const job = await loadJobForSubtasks(prisma, jobId);
 
-  const deadline = input.deadline ? parseSubtaskDeadline(input.deadline) : null;
+  // Store, QA and Accounts work without a deadline; a date sent for them is ignored.
+  const codes = await departmentCodesById(prisma, [input.departmentId]);
+  const deadline =
+    input.deadline && !worksWithoutDeadline(codes.get(input.departmentId))
+      ? parseSubtaskDeadline(input.deadline)
+      : null;
   const exceedsJobDeadline = deadline
     ? assertDeadlineWithinJob(deadline, job.overallDeadline, input.deadlineOverrideReason)
     : false;

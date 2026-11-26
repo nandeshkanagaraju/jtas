@@ -6,6 +6,7 @@
  * same transaction as the change.
  */
 import { commitmentDueAt } from '@/lib/domain/commitment';
+import { worksWithoutDeadline } from '@/lib/domain/department-rules';
 import type { Db } from '@/lib/db/prisma';
 import { prisma } from '@/lib/db/prisma';
 import { forbidden, notFound, validationError } from '@/lib/errors';
@@ -38,9 +39,12 @@ export async function openCommitmentWindow(
       deadline: true,
       commitmentDueAt: true,
       status: true,
+      department: { select: { code: true } },
     },
   });
   if (!subtask || subtask.deadline || subtask.commitmentDueAt) return;
+  // Store, QA and Accounts never commit a date: nothing to ask, nothing to chase.
+  if (worksWithoutDeadline(subtask.department.code)) return;
   if (
     subtask.status === 'BLOCKED' ||
     subtask.status === 'COMPLETED' ||
@@ -90,6 +94,12 @@ export async function commitDeadline(
         reason: 'COMMITMENT_NOT_OPEN',
       },
     );
+  }
+
+  if (worksWithoutDeadline(subtask.department.code)) {
+    throw validationError(`${subtask.department.name} tasks do not have a deadline.`, {
+      reason: 'NO_DEADLINE_DEPARTMENT',
+    });
   }
 
   if (subtask.deadline) {

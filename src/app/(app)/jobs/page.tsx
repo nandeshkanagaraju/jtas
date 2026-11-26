@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
+import { canIntimateAccounts, seesAccountsIntimation } from '@/lib/services/accounts-intimation';
 import { listDepartments } from '@/lib/services/department-service';
 import { jobListStatusSchema } from '@/lib/validation/job';
 
@@ -31,6 +32,13 @@ export default async function JobsPage({
       key={initialStatus}
       departments={departments}
       canCreate={can(session, 'job:create', undefined)}
+      accountsColumn={
+        (await canIntimateAccounts(session))
+          ? 'send'
+          : (await seesAccountsIntimation(session))
+            ? 'view'
+            : null
+      }
       initialStatus={initialStatus}
     />
   );

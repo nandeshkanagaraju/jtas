@@ -5,6 +5,7 @@ import { T } from '@/lib/i18n/provider';
 import { Button } from '@/components/ui/button';
 import type { SubtaskDto } from '@/lib/api/subtasks-client';
 import { formatDuration } from '@/lib/utils/duration';
+import { noDeadlineLabel, worksWithoutDeadline } from '@/lib/domain/department-rules';
 
 export type ActionPanelName = 'none' | 'deadline' | 'reassign' | 'hold' | 'cancel' | 'reject';
 
@@ -53,9 +54,11 @@ export function SubtaskActions({
         </Button>
       ) : null}
 
-      <Button size="sm" variant="outline" disabled={busy} onClick={() => onPanel('deadline')}>
-        <T>{'Change deadline '}</T>
-      </Button>
+      {worksWithoutDeadline(subtask.department.code) ? null : (
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => onPanel('deadline')}>
+          <T>{'Change deadline '}</T>
+        </Button>
+      )}
       <Button size="sm" variant="outline" disabled={busy} onClick={() => onPanel('reassign')}>
         <T>{'Reassign '}</T>
       </Button>
@@ -98,6 +101,8 @@ export function SubtaskFacts({ subtask }: { subtask: SubtaskDto }) {
               timeStyle: 'short',
               timeZone: 'Asia/Kolkata',
             }).format(new Date(subtask.deadline))
+          ) : worksWithoutDeadline(subtask.department.code) ? (
+            <T>{noDeadlineLabel(subtask.department.code)}</T>
           ) : subtask.commitmentDueAt ? (
             <T>{'Awaiting commitment'}</T>
           ) : (

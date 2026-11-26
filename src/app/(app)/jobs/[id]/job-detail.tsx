@@ -33,6 +33,10 @@ import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 import { ActivityPanel } from './activity-panel';
 import { SubtaskPanel } from './subtask-panel';
 import type { UserRow } from '@/lib/api/users-client';
+import {
+  StoreEntryList,
+  type StoreEntryDto,
+} from '@/components/collaboration/store-register-panel';
 
 /** Converts a stored UTC instant back into the naive IST value the form edits. */
 function toIstFormValue(iso: string): string {
@@ -58,6 +62,7 @@ export function JobDetail({
   permissions,
   currentUserId,
   materials = [],
+  storeEntries = [],
   canBill = false,
   candidates = [],
   contacts = [],
@@ -67,6 +72,8 @@ export function JobDetail({
   currentUserId: string;
   /** Accepted/rejected totals per Production, Quality and QA task. */
   materials?: JobMaterialTotalDto[];
+  /** The store register lines on this job, newest first. */
+  storeEntries?: StoreEntryDto[];
   /** Accounts, the MD and the Deputy see invoices and amounts. */
   canBill?: boolean;
   /** Who a task can be reassigned to; empty unless the viewer manages the job. */
@@ -245,6 +252,16 @@ export function JobDetail({
               ))}
             </tbody>
           </table>
+        </Panel>
+      ) : null}
+
+      {storeEntries.length > 0 ? (
+        <Panel
+          title={<T>{'Store register'}</T>}
+          description={<T>{'Material received and issued on this job, as Store typed it in.'}</T>}
+          bodyClassName="px-4 py-1"
+        >
+          <StoreEntryList entries={storeEntries} />
         </Panel>
       ) : null}
 

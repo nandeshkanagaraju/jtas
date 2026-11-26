@@ -29,7 +29,18 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api/client';
-import { createJobSchema, type CreateJobInput, type PriorityValue } from '@/lib/validation/job';
+import {
+  createJobRequestSchema,
+  type CreateJobInput,
+  type PriorityValue,
+} from '@/lib/validation/job';
+
+/** A department person who can be the job's customer point of contact. */
+export interface ContactOption {
+  id: string;
+  name: string;
+  department: string;
+}
 
 const PRIORITIES: Array<{ value: PriorityValue; label: string }> = [
   { value: 'LOW', label: 'Low' },
@@ -51,8 +62,11 @@ export function JobForm({
   submitLabel,
   onSubmit,
   onCancel,
+  contacts,
 }: {
   defaultValues?: Partial<CreateJobInput>;
+  /** Who may be chosen as the customer point of contact. */
+  contacts: readonly ContactOption[];
   frozenFields?: readonly string[];
   submitLabel: string;
   onSubmit: (values: CreateJobInput) => Promise<void>;
@@ -64,7 +78,7 @@ export function JobForm({
   const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<CreateJobInput>({
-    resolver: zodResolver(createJobSchema),
+    resolver: zodResolver(createJobRequestSchema),
     defaultValues: {
       title: '',
       customerName: undefined,
@@ -74,6 +88,7 @@ export function JobForm({
       priority: 'NORMAL',
       description: undefined,
       overallDeadline: '',
+      pointOfContactId: undefined,
       ...defaultValues,
     },
   });
@@ -228,6 +243,41 @@ export function JobForm({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="pointOfContactId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                <T>{'Customer point of contact'}</T>
+              </FormLabel>
+              <Select
+                value={field.value ?? ''}
+                onValueChange={field.onChange}
+                disabled={isSubmitting || frozen.has('pointOfContactId')}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a department person" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {contacts.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.name}
+                      <span className="text-muted-foreground"> · {person.department}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                <T>{'Only this person contacts the customer about this job. Nobody else does.'}</T>
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField

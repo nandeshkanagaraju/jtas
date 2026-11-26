@@ -37,7 +37,14 @@ export const DRAFT_STATUSES: readonly JobStatus[] = ['DRAFT'];
  * silently under a published job would invalidate every subtask deadline
  * derived from them.
  */
-export const EDITABLE_AFTER_PUBLISH = ['title', 'description', 'customerName', 'priority'] as const;
+export const EDITABLE_AFTER_PUBLISH = [
+  'title',
+  'description',
+  'customerName',
+  'priority',
+  // Who speaks to the customer can change at any point in the job.
+  'pointOfContactId',
+] as const;
 
 export type EditableAfterPublish = (typeof EDITABLE_AFTER_PUBLISH)[number];
 
@@ -59,9 +66,11 @@ export const JOB_SELECT = {
   publishedAt: true,
   completedAt: true,
   createdById: true,
+  pointOfContactId: true,
   createdAt: true,
   updatedAt: true,
   createdBy: { select: { id: true, name: true } },
+  pointOfContact: { select: { id: true, name: true, department: { select: { name: true } } } },
 } satisfies Prisma.JobSelect;
 
 export type JobRow = Prisma.JobGetPayload<{ select: typeof JOB_SELECT }>;
@@ -82,6 +91,8 @@ export interface JobSummary {
   publishedAt: Date | null;
   completedAt: Date | null;
   createdBy: { id: string; name: string };
+  /** The only person who contacts the customer about this job. */
+  pointOfContact: { id: string; name: string; department: string | null } | null;
   createdAt: Date;
   updatedAt: Date;
   progress: { completed: number; total: number; percent: number };
@@ -114,6 +125,13 @@ export function toJobSummary(
     publishedAt: row.publishedAt,
     completedAt: row.completedAt,
     createdBy: row.createdBy,
+    pointOfContact: row.pointOfContact
+      ? {
+          id: row.pointOfContact.id,
+          name: row.pointOfContact.name,
+          department: row.pointOfContact.department?.name ?? null,
+        }
+      : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     ...extras,
@@ -124,6 +142,7 @@ export function toJobSummary(
 export function jobSnapshot(row: JobRow): Prisma.InputJsonValue {
   const snapshot: Record<string, unknown> = { ...row };
   delete snapshot.createdBy;
+  delete snapshot.pointOfContact;
   return JSON.parse(JSON.stringify(snapshot)) as Prisma.InputJsonValue;
 }
 

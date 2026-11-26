@@ -60,12 +60,31 @@ export function parseJobDeadline(value: string, now: Date = new Date()): Date {
   return deadline;
 }
 
+/**
+ * Checks the chosen point of contact is an active department person.
+ *
+ * @throws {AppError} `VALIDATION_ERROR` on `pointOfContactId`.
+ */
+async function assertPointOfContact(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isActive: true, departmentId: true },
+  });
+
+  if (!user || !user.isActive || !user.departmentId) {
+    throw validationError('The point of contact must be an active department member.', {
+      fields: { pointOfContactId: ['Choose an active department member.'] },
+    });
+  }
+}
+
 export async function createJob(
   input: CreateJobInput,
   actor: Actor,
   ctx: RequestContext,
 ): Promise<JobRow> {
   const overallDeadline = parseJobDeadline(input.overallDeadline);
+  if (input.pointOfContactId) await assertPointOfContact(input.pointOfContactId);
 
   return prisma.$transaction(async (tx) => {
     // Inside the transaction: SDD section 4.1.
@@ -85,6 +104,7 @@ export async function createJob(
         // FR-10: a job starts as a draft and is reviewed before it is published.
         status: 'DRAFT',
         createdById: actor.id,
+        pointOfContactId: input.pointOfContactId ?? null,
       },
       select: JOB_SELECT,
     });
@@ -132,7 +152,7 @@ function assertEditable(job: JobRow, input: UpdateJobInput): void {
     );
 
     throw validationError(
-      `${job.jobCode} is already published. Only the title, customer, priority and description can still be changed.`,
+      `${job.jobCode} is already published. Only the title, customer, point of contact, priority and description can still be changed.`,
       { reason: 'FROZEN_AFTER_PUBLISH', frozenFields: frozen, fields },
     );
   }
@@ -157,6 +177,10 @@ export async function updateJob(
   if (input.quantity !== undefined) data.quantity = input.quantity ?? null;
   if (input.overallDeadline !== undefined) {
     data.overallDeadline = parseJobDeadline(input.overallDeadline);
+  }
+  if (input.pointOfContactId !== undefined && input.pointOfContactId !== job.pointOfContact?.id) {
+    await assertPointOfContact(input.pointOfContactId);
+    data.pointOfContact = { connect: { id: input.pointOfContactId } };
   }
 
   return prisma.$transaction(async (tx) => {

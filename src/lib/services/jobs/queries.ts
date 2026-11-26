@@ -181,3 +181,24 @@ export async function loadJobForWrite(jobId: string) {
   if (!row) throw notFound('Job');
   return row;
 }
+
+/** Someone who can be a job's customer point of contact. */
+export interface ContactCandidate {
+  id: string;
+  name: string;
+  department: string;
+}
+
+/**
+ * Active department people, in shop-flow order, for the point-of-contact
+ * picker. The MD and the deputy have no department and are not offered.
+ */
+export async function listContactCandidates(): Promise<ContactCandidate[]> {
+  const rows = await prisma.user.findMany({
+    where: { isActive: true, isDemo: false, departmentId: { not: null } },
+    select: { id: true, name: true, department: { select: { name: true, sequenceOrder: true } } },
+    orderBy: [{ department: { sequenceOrder: 'asc' } }, { name: 'asc' }],
+  });
+
+  return rows.map((row) => ({ id: row.id, name: row.name, department: row.department!.name }));
+}

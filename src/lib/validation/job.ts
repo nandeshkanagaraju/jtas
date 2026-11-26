@@ -59,6 +59,22 @@ export const createJobSchema = z.object({
   priority: prioritySchema.default('NORMAL'),
   description: optionalText(5_000, 'description'),
   overallDeadline: istDateTimeSchema,
+  /**
+   * The department person who alone speaks to the customer about this job.
+   * Optional here so older callers and the edit form's partial schema keep
+   * working; `createJobRequestSchema` and the form make it required.
+   */
+  pointOfContactId: z.string().trim().min(1).optional(),
+});
+
+const requiredPointOfContact = z
+  .string({ required_error: 'Choose who will contact the customer.' })
+  .trim()
+  .min(1, 'Choose who will contact the customer.');
+
+/** What `POST /api/jobs` and the job form accept: a point of contact is required. */
+export const createJobRequestSchema = createJobSchema.extend({
+  pointOfContactId: requiredPointOfContact,
 });
 
 export type CreateJobInput = z.infer<typeof createJobSchema>;

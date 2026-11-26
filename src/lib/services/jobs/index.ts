@@ -4,7 +4,15 @@
  * Route handlers import from `@/lib/services/jobs` and never reach into a file
  * below it, so the internal split can change without touching the API.
  */
-export { listJobs, getJob, loadJobForWrite, visibilityFilter, type JobListResult } from './queries';
+export {
+  listJobs,
+  getJob,
+  loadJobForWrite,
+  visibilityFilter,
+  listContactCandidates,
+  type ContactCandidate,
+  type JobListResult,
+} from './queries';
 export { createJob, updateJob, parseJobDeadline } from './mutations';
 export { publishJob, holdJob, unholdJob, cancelJob, deleteJob, DELETABLE } from './lifecycle';
 export { recomputeJobStatus, type RecomputeResult } from './status';

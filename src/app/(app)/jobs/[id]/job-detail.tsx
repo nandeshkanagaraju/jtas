@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { JobForm } from '@/app/(app)/jobs/components/job-form';
+import { JobForm, type ContactOption } from '@/app/(app)/jobs/components/job-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Panel } from '@/components/shared/panel';
@@ -60,6 +60,7 @@ export function JobDetail({
   materials = [],
   canBill = false,
   candidates = [],
+  contacts = [],
 }: {
   job: JobRowDto;
   permissions: JobPermissions;
@@ -70,6 +71,8 @@ export function JobDetail({
   canBill?: boolean;
   /** Who a task can be reassigned to; empty unless the viewer manages the job. */
   candidates?: UserRow[];
+  /** Who can be the customer point of contact; empty unless the viewer manages the job. */
+  contacts?: ContactOption[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -159,6 +162,7 @@ export function JobDetail({
           }
         >
           <JobForm
+            contacts={contacts}
             submitLabel="Save changes"
             onSubmit={handleEdit}
             onCancel={() => setEditing(false)}
@@ -174,6 +178,7 @@ export function JobDetail({
               priority: job.priority,
               description: job.description ?? undefined,
               overallDeadline: toIstFormValue(job.overallDeadline),
+              pointOfContactId: job.pointOfContact?.id,
             }}
           />
         </Panel>

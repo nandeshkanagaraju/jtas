@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 import { can } from '@/lib/auth/policy';
 import { requireActiveSession } from '@/lib/auth/session';
-import { getJob } from '@/lib/services/jobs';
+import { getJob, listContactCandidates } from '@/lib/services/jobs';
 import { canManageBilling } from '@/lib/services/billing-service';
 import { jobMaterialTotals } from '@/lib/services/material-service';
 import { listUsers } from '@/lib/services/users';
@@ -44,7 +44,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   // Role-only decisions; the subtask fields are not consulted.
   const anySubtask = { id: '', jobId: job.id, assigneeId: '', departmentId: '' };
 
-  const [materials, canBill, candidates] = await Promise.all([
+  const [materials, canBill, candidates, contacts] = await Promise.all([
     jobMaterialTotals(job.id),
     canManageBilling(session),
     // Reassignment candidates, loaded here so the drawer does not need the
@@ -52,12 +52,14 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     canEdit
       ? listUsers({ page: 1, pageSize: 100, status: 'active', sort: 'name', direction: 'asc' })
       : null,
+    canEdit ? listContactCandidates() : [],
   ]);
 
   return (
     <JobDetail
       currentUserId={session.id}
       materials={materials}
+      contacts={contacts}
       canBill={canBill && job.status !== 'DRAFT'}
       candidates={(candidates?.data ?? [])
         .filter((user) => user.role !== 'ADMIN')

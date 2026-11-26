@@ -1,6 +1,14 @@
 # JTAS Runbook
 
-Operating JTAS on the VPS. Everything here assumes you are logged in on the
+> **Scope: the self-hosted `docker-compose.prod.yml` stack.** Production today runs on
+> Zoho Catalyst AppSail with Neon PostgreSQL, Stratus and a Catalyst Job Function
+> scheduler; releases there are described in the [README](../README.md#deployment). This
+> runbook remains the operating manual for the compose stack, so its `docker compose`
+> commands and its Caddy/MinIO details do not apply to the Catalyst deployment. The
+> reasoning that outlives either host — backup and restore, the scheduler heartbeat, mail
+> triage, notification retries — still holds.
+
+Operating the self-hosted stack. Everything here assumes you are logged in on the
 server, in the directory holding `docker-compose.prod.yml`, and that
 `.env.production` is present and filled in.
 

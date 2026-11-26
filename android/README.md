@@ -6,7 +6,7 @@ The application requires Android 7 or later and an updated browser that supports
 
 ## Install and test
 
-1. On Android, download `https://13-127-170-245.sslip.io/downloads/jaraa-android.apk` and approve installation when Android asks. Open the installed **Jaraa** app.
+1. On Android, download `https://jaraa-live-50047542089.catalystappsail.in/downloads/jaraa-android.apk` (the app's own route, which redirects to the signed installer) and approve installation when Android asks. Open the installed **Jaraa** app.
 2. Sign in if needed, then open **Your account → Push notifications → Enable notifications** and allow the Android prompt.
 3. Press **Send test notification**. Verify Jaraa's name/icon, sound/vibration, notification-panel display and the tap back into the account screen. Test a real workflow alert with the app closed as well.
 4. **Settings → Apps → Jaraa → Notifications → Work updates** controls banners, sound, vibration and badges. The channel initially requests high importance; the app preserves user changes. Do Not Disturb, battery/network restrictions and phone settings can affect display/delivery.
@@ -29,10 +29,14 @@ Private signing configuration defaults to `~/.jtas/android-signing/signing.json`
 
 Increment `versionCode` / `versionName` in `app/build.gradle` and the matching `appVersionCode` / `appVersion` in `twa-manifest.json` for future APK upgrades. When moving domains or using Play App Signing later, update the trusted host and published certificate fingerprints and re-verify links before distribution.
 
-## Deploy the installer
+## Publish the installer
 
-Copy only the generated `.well-known/assetlinks.json`, `downloads/jaraa-android.apk` and its `.sha256` file into `/opt/jtas/releases/android/` with matching paths. The Caddy container mounts that directory read-only and serves only those three paths. APKs contain no account credentials; all job data still requires the web application's authentication and authorization. The public association file must match the signed APK; a failed association falls back to browser chrome and prevents the intended notification attribution.
+Production is Zoho Catalyst AppSail, and the app serves the installer itself: `src/app/downloads/[file]/route.ts` presigns the object in Stratus and redirects to it, so the stable public address is `<APP_BASE_URL>/downloads/jaraa-android.apk` with the `.sha256` beside it. Upload only the built `jaraa-android.apk` and `jaraa-android.apk.sha256` to the attachments bucket under `releases/android/`. APKs contain no account credentials; all job data still requires the web application's authentication and authorization.
 
-Validate the Caddy configuration, recreate only Caddy to add the read-only mount, verify the association and installer checksum over HTTPS, and verify normal app/health routes. Preserve the Caddy certificate volumes and all application/data services.
+**Digital asset links.** The app publishes `public/.well-known/assetlinks.json`, so the association is served at `/.well-known/assetlinks.json` on the production host. `scripts/build-android.mjs` regenerates the same file in `releases/android/.well-known/`; when the signing key changes, copy it over the tracked `public/.well-known/assetlinks.json` and redeploy, then confirm the host returns 200 and the `sha256_cert_fingerprints` entry matches the APK's signing certificate. A failed association falls back to browser chrome and prevents the intended notification attribution.
+
+The self-hosted `docker-compose.prod.yml` path is different and still valid: copy only the generated `.well-known/assetlinks.json`, `downloads/jaraa-android.apk` and its `.sha256` file into `/opt/jtas/releases/android/` with matching paths. The Caddy container mounts that directory read-only and serves only those three paths. Validate the Caddy configuration, recreate only Caddy to add the read-only mount, and verify the association and installer checksum over HTTPS. Preserve the Caddy certificate volumes and all application/data services.
+
+After either route, verify the installer checksum over HTTPS, the association file and normal app/health routes.
 
 Physical-device delivery, banners and tap behaviour remain acceptance checks. A successful Web Push provider send or signed APK build does not prove that a phone displayed an alert.

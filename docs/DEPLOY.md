@@ -1,4 +1,15 @@
-# Deploy JTAS on one EC2 instance
+# Deploy JTAS on one EC2 instance — **RETIRED, do not follow**
+
+> **⚠️ RETIRED (November 2026).** The AWS EC2 instance this document provisions was
+> terminated and its Elastic IP released. Production now runs on Zoho Catalyst AppSail
+> (<https://jaraa-live-50047542089.catalystappsail.in>) with Neon PostgreSQL, Zoho Stratus for
+> attachments and the scheduler as a Catalyst Job Function. See [DEPLOY on Catalyst](../README.md#deployment)
+> and the release records in `.deploy/`.
+>
+> This page is kept only as the record of the self-hosted path. It is still accurate for
+> standing up `docker-compose.prod.yml` on any Linux host, but **do not run these steps
+> expecting to reach the live system**, and do not re-create the AWS resources listed at
+> the end of this file.
 
 One Ubuntu 24.04 instance in ap-south-1 (Mumbai), x86, running `docker-compose.prod.yml`. Caddy gets a Let's Encrypt certificate for `<dashed-elastic-ip>.sslip.io`. Postgres, Redis and MinIO never leave the Docker network.
 

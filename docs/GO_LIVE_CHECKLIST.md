@@ -6,6 +6,14 @@ cannot deliver mail is not live, however good the screens look.
 
 Tick as you go and keep the filled-in copy.
 
+> **Which deployment this is written for.** Section A describes the self-hosted
+> `docker-compose.prod.yml` stack on a VPS. Production today runs on Zoho Catalyst AppSail
+> (Neon PostgreSQL, Stratus, Brevo, Catalyst Job Function scheduler); for that path,
+> replace section A with the Catalyst release checks in the
+> [README](../README.md#deployment) — AppSail environment variables, `prisma migrate
+> deploy`, health after deploy, and the job function's schedule. Sections B–G (mail, data,
+> delivery, one real job, operations, people) apply unchanged to either host.
+
 ---
 
 ## A. Infrastructure

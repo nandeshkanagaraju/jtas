@@ -34,7 +34,7 @@ VAPID_PRIVATE_KEY=<private key>
 VAPID_SUBJECT=mailto:admin@jaraaglobal.com
 ```
 
-Use a monitored contact URI. The private key must never be committed, printed in deployment logs, or sent to a client. The app returns only the public key to authenticated users at runtime; it is not a build argument. Keep the key pair stable across releases or existing browser subscriptions will no longer authenticate. The app and worker receive these variables through `docker-compose.prod.yml`.
+Use a monitored contact URI. The private key must never be committed, printed in deployment logs, or sent to a client. The app returns only the public key to authenticated users at runtime; it is not a build argument. Keep the key pair stable across releases or existing browser subscriptions will no longer authenticate. The app and worker receive these variables from the environment of whatever host runs them: the AppSail application and job-function settings in production, or `docker-compose.prod.yml` on the self-hosted stack.
 
 The additive migration `20261023120000_web_push` adds the PUSH channel, PushSubscription, and PushDelivery. Stop the worker before migrating, deploy migrations from the new image, then restart app and worker. Never seed/reset production. The previous app can run against the additive schema for rollback; leave the new tables in place. If push is not configured, the interface says so and existing channels remain available.
 

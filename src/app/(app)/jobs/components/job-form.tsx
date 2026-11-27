@@ -201,10 +201,7 @@ export function JobForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  <T>{'Part number '}</T>
-                  <span className="text-muted-foreground font-normal">
-                    <T>{'(optional)'}</T>
-                  </span>
+                  <T>{'Part number'}</T>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -214,6 +211,9 @@ export function JobForm({
                     disabled={isSubmitting || frozen.has('partNumber')}
                   />
                 </FormControl>
+                <FormDescription>
+                  <T>{'Write it exactly as on the Stock page: stock is matched by part number.'}</T>
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

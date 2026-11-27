@@ -80,6 +80,10 @@ export type AuditAction =
   // so ATTACHMENT_DELETED records a hiding, never a removal.
   | 'COMMENT_ADDED'
   | 'MATERIAL_COUNT_RECORDED'
+  | 'STOCK_OPENING_SET'
+  | 'STOCK_PRODUCED_RECORDED'
+  | 'STOCK_DISPATCH_RECORDED'
+  | 'STOCK_MOVEMENT_REMOVED'
   | 'STORE_ENTRY_RECORDED'
   | 'BATCHES_PLANNED'
   | 'BATCH_COMPLETED'
@@ -108,7 +112,9 @@ export type AuditEntityType =
   | 'HOLIDAY'
   | 'TEMPLATE'
   | 'PRODUCTION_REPORT'
-  | 'PRODUCTION_PART';
+  | 'PRODUCTION_PART'
+  | 'STOCK_OPENING'
+  | 'STOCK_MOVEMENT';
 
 export interface AuditInput {
   /** Null for a failed login, where the actor is not yet identified. */

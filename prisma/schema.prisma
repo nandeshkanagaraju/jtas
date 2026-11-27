@@ -204,6 +204,8 @@ model User {
   storeEntries   StoreEntry[]    @relation("StoreEntryRecordedBy")
   batchesAdded   SubtaskBatch[]  @relation("SubtaskBatchCreatedBy")
   intimatedJobs  Job[]           @relation("JobAccountsIntimatedBy")
+  stockOpenings  StockOpening[]  @relation("StockOpeningSetBy")
+  stockMovements StockMovement[] @relation("StockMovementRecordedBy")
 
   /// For a SUPERVISOR: the book they keep. Null lets them keep both.
   productionSection         ProductionSection?
@@ -952,4 +954,54 @@ model ProductionChange {
   createdAt   DateTime         @default(now())
 
   @@index([reportId, createdAt])
+}
+
+/// The stock of one part on the day the app started counting it: raw material
+/// in hand and finished goods made but not dispatched. The daily stock ledger
+/// adds Store receipts and moves Production's output from RM to FG, and takes
+/// dispatches off FG, from this date on.
+model StockOpening {
+  id         String   @id @default(cuid())
+  /// Lower-cased, trimmed part number: the key jobs are matched on.
+  partKey    String   @unique
+  partNumber String
+  partName   String?
+  /// Stock at the start of this IST day.
+  asOfDate   DateTime @db.Date
+  rmQty      Int
+  fgQty      Int
+  setById    String
+  setBy      User     @relation("StockOpeningSetBy", fields: [setById], references: [id])
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+}
+
+enum StockMovementKind {
+  /// Pieces Production made: off RM, onto FG.
+  PRODUCED
+  /// Pieces sent to the customer: off FG.
+  DISPATCHED
+}
+
+/// A line Production (made) or a job manager (dispatched) types against a part
+/// for one day. Raw material in comes from the Store register instead.
+model StockMovement {
+  id           String            @id @default(cuid())
+  /// Lower-cased, trimmed part number, as on StockOpening.
+  partKey      String
+  partNumber   String
+  partName     String?
+  kind         StockMovementKind
+  quantity     Int
+  /// The IST calendar date, stored as UTC midnight of that date.
+  date         DateTime          @db.Date
+  /// DC number for a dispatch; shift or batch for production.
+  reference    String?
+  note         String?
+  recordedById String
+  recordedBy   User              @relation("StockMovementRecordedBy", fields: [recordedById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  @@index([partKey, date])
+  @@index([date])
 }

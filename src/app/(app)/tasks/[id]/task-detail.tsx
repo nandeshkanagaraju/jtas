@@ -25,6 +25,7 @@ import { formatIST } from '@/lib/utils/time';
 
 import { AttachmentPanel } from '@/components/collaboration/attachment-panel';
 import { CommentThread } from '@/components/collaboration/comment-thread';
+import { HourlyReportDownload } from '@/components/collaboration/hourly-report-download';
 import { MaterialCountPanel } from '@/components/collaboration/material-count-panel';
 import { BillingPanel } from '@/components/collaboration/billing-panel';
 import { BatchPanel } from '@/components/collaboration/batch-panel';
@@ -51,6 +52,8 @@ export interface TaskPermissions {
   countsMaterials: boolean;
   /** The holder, the MD or the Deputy may add a count. */
   recordMaterials: boolean;
+  /** Download QA's hourly report as Excel or PDF (MD, Deputy, job managers). */
+  downloadHourlyReport: boolean;
   /** An Accounts task, seen by Accounts, the MD or the Deputy: show the job's invoices. */
   billing: boolean;
   /** Production or Quality: the task runs on dated batches. */
@@ -482,6 +485,9 @@ export function TaskDetail({
                 canRecord={permissions.recordMaterials && !cancelled}
                 hourly={hourly}
               />
+              {hourly && permissions.downloadHourlyReport ? (
+                <HourlyReportDownload subtaskId={subtask.id} />
+              ) : null}
             </Panel>
           ) : null}
 

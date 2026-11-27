@@ -57,6 +57,8 @@ export async function resetAuthTables(): Promise<void> {
   await testDb.subtask.deleteMany();
   await testDb.job.updateMany({ data: { accountsIntimatedById: null } });
   await testDb.job.deleteMany();
+  await testDb.stockOpening.deleteMany();
+  await testDb.stockMovement.deleteMany();
   await testDb.user.deleteMany();
   await testDb.department.deleteMany();
 }

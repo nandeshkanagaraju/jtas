@@ -87,6 +87,7 @@ export default async function TaskPage({
     billing: subtask.department.code === 'ACCOUNTS' && (await canManageBilling(session)),
     recordMaterials:
       recordsMaterials(subtask.department.code) && can(session, 'materials:record', resource),
+    downloadHourlyReport: can(session, 'shopReport:view', undefined),
     // Production and Quality work to dated batches instead of one date.
     batches: plansInBatches(subtask.department.code),
     planBatches: can(session, 'subtask:commit', resource),

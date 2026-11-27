@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Boxes,
   BarChart3,
   Briefcase,
   ClipboardList,
@@ -28,6 +29,7 @@ export interface NavItem {
     | 'audit'
     | 'updates'
     | 'billing'
+    | 'stock'
     | 'shift-reports'
     | 'sign-in';
   /** Open-problem count. Omitted or zero shows nothing. */
@@ -47,6 +49,7 @@ export const NAV_ICONS: Record<NavItem['icon'], LucideIcon> = {
   audit: ScrollText,
   updates: Radio,
   billing: ReceiptIndianRupee,
+  stock: Boxes,
   'shift-reports': ClipboardList,
   'sign-in': KeyRound,
 };
@@ -57,6 +60,7 @@ export const PRIMARY_ORDER = [
   '/jobs',
   '/production',
   '/billing',
+  '/stock',
   '/updates',
   '/problems',
   '/my-tasks',
@@ -87,6 +91,7 @@ export const NAV_LABELS: Record<string, string> = {
   '/notifications': 'Notifications',
   '/updates': 'Live updates',
   '/billing': 'Billing',
+  '/stock': 'Stock',
   '/production': 'Shift reports',
   '/sign-in-requests': 'Sign-in requests',
 };

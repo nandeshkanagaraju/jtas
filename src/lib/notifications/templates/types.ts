@@ -201,7 +201,25 @@ export interface DepartmentLookaheadPayload {
   rows: LookaheadRow[];
 }
 
+/**
+ * One department telling another something to act on: a store register line
+ * (to Production and Planning), or Planning asking Accounts to invoice.
+ */
+export interface DepartmentIntimationPayload extends JobContext {
+  kind: 'DEPARTMENT_INTIMATION';
+  jobId: string;
+  readerName: string;
+  /** "Store: material received" — also the subject. */
+  headline: string;
+  /** Label/value pairs, in the order Store or Planning typed them. */
+  facts: Array<[string, string | null]>;
+  /** Who sent it, e.g. "Hari (Store)". */
+  fromName: string;
+  sentIst: string;
+}
+
 export type TemplatePayload =
+  | DepartmentIntimationPayload
   | UpstreamDateUpdatePayload
   | DepartmentLookaheadPayload
   | AssignedPayload

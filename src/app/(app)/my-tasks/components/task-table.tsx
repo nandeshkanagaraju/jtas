@@ -25,6 +25,7 @@ import { formatIST } from '@/lib/utils/time';
 
 import { ProblemForm, type Severity } from './problem-form';
 import { stampFor } from './task-card';
+import { noDeadlineLabel, worksWithoutDeadline } from '@/lib/domain/department-rules';
 
 type ActionHandler = (
   task: MyTaskDto,
@@ -278,7 +279,11 @@ function Row({
           </p>
         ) : (
           <p className="text-muted-foreground text-xs">
-            <T>{'No date yet'}</T>
+            <T>
+              {worksWithoutDeadline(task.department.code)
+                ? noDeadlineLabel(task.department.code)
+                : 'No date yet'}
+            </T>
           </p>
         )}
       </td>

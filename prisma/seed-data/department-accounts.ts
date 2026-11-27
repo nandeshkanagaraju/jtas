@@ -66,7 +66,14 @@ export const DEPARTMENT_ACCOUNTS: DepartmentAccount[] = [
     departmentCode: 'STORE',
     passwordName: 'Store',
   },
-  { name: 'Sundaramurthy', email: 'qa@jaraaglobal.in', departmentCode: 'QA', passwordName: 'QA' },
+  { name: 'Mahadev', email: 'qa@jaraaglobal.in', departmentCode: 'QA', passwordName: 'QA' },
+  {
+    name: 'Sundaramurthy',
+    email: 'quality@jaraaglobal.in',
+    departmentCode: 'QUALITY',
+    passwordName: 'Quality',
+    replaces: 'quality@jaraaglobal.com',
+  },
   {
     name: 'Kumar',
     email: 'maintenance@jaraaglobal.in',

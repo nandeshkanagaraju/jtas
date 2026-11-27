@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { formatIST } from '@/lib/utils/time';
 
 import { ProblemForm, type Severity } from './problem-form';
+import { noDeadlineLabel, worksWithoutDeadline } from '@/lib/domain/department-rules';
 
 /* Shop-floor sizing: a gloved thumb, not a mouse. */
 const ACTION =
@@ -100,6 +101,8 @@ export function TaskCard({
                   `Due ${formatIST(new Date(task.deadline), 'd MMM, h:mm a')}`
                 ) : task.commitmentDueAt ? (
                   `Commit by ${formatIST(new Date(task.commitmentDueAt), 'd MMM, h:mm a')}`
+                ) : worksWithoutDeadline(task.department.code) ? (
+                  <T>{noDeadlineLabel(task.department.code)}</T>
                 ) : (
                   <T>{'Waiting for your turn'}</T>
                 )}
@@ -194,6 +197,8 @@ export function TaskCard({
                     className="!text-foreground text-base font-semibold"
                   />
                 </>
+              ) : worksWithoutDeadline(task.department.code) ? (
+                <T>{'No deadline'}</T>
               ) : (
                 <T>{'Not your turn yet'}</T>
               )}
@@ -203,6 +208,8 @@ export function TaskCard({
                 formatIST(new Date(task.deadline))
               ) : task.commitmentDueAt ? (
                 `Commit by ${formatIST(new Date(task.commitmentDueAt))}`
+              ) : worksWithoutDeadline(task.department.code) ? (
+                <T>{noDeadlineLabel(task.department.code)}</T>
               ) : (
                 <T>{'No date yet'}</T>
               )}

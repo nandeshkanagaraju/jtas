@@ -12,15 +12,41 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError, apiFetch, apiPost } from '@/lib/api/client';
 import { addMaterialCountSchema } from '@/lib/validation/materials';
-import { formatIST } from '@/lib/utils/time';
+import { formatIST, IST_DATE_PATTERN, istDateKey } from '@/lib/utils/time';
 
 export interface MaterialCountDto {
   id: string;
   acceptedQty: number;
   rejectedQty: number;
   note: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
   createdAt: string;
   recordedBy: { id: string; name: string };
+}
+
+/** "HH:mm" in IST, `minutes` after `base`'s minute. */
+function istTime(base: Date, minutes = 0): string {
+  return formatIST(new Date(base.getTime() + minutes * 60_000), 'HH:mm');
+}
+
+/**
+ * The next slot to report: on from where today's last slot ended, otherwise the
+ * hour that has just finished (at 5:45 PM, 4:00–5:00 PM).
+ */
+function nextSlot(entries: MaterialCountDto[], now: Date): { from: string; to: string } {
+  const lastEnd = entries.find((entry) => entry.periodEnd)?.periodEnd;
+  if (lastEnd && istDateKey(new Date(lastEnd)) === istDateKey(now)) {
+    const from = new Date(lastEnd);
+    return { from: istTime(from), to: istTime(from, 60) };
+  }
+  const hourStart = new Date(now.getTime() - Number(formatIST(now, 'm')) * 60_000);
+  return { from: istTime(hourStart, -60), to: istTime(hourStart) };
+}
+
+function slotLabel(entry: MaterialCountDto): string | null {
+  if (!entry.periodStart || !entry.periodEnd) return null;
+  return `${formatIST(new Date(entry.periodStart), 'h:mm a')} – ${formatIST(new Date(entry.periodEnd), 'h:mm a')}`;
 }
 
 interface MaterialsDto {
@@ -47,21 +73,34 @@ function Total({ label, value, tone }: { label: string; value: number; tone: str
 export function MaterialCountPanel({
   subtaskId,
   canRecord,
+  hourly = false,
 }: {
   subtaskId: string;
   canRecord: boolean;
+  /** QA: one report every hour, so show when the last one went in. */
+  hourly?: boolean;
 }) {
   const [materials, setMaterials] = useState<MaterialsDto | null>(null);
   const [accepted, setAccepted] = useState('');
   const [rejected, setRejected] = useState('');
   const [note, setNote] = useState('');
+  const [timeFrom, setTimeFrom] = useState('');
+  const [timeTo, setTimeTo] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let live = true;
     apiFetch<{ data: MaterialsDto }>(`/api/subtasks/${subtaskId}/materials`)
-      .then((result) => live && setMaterials(result.data))
+      .then((result) => {
+        if (!live) return;
+        setMaterials(result.data);
+        if (hourly) {
+          const slot = nextSlot(result.data.entries, new Date());
+          setTimeFrom(slot.from);
+          setTimeTo(slot.to);
+        }
+      })
       .catch(
         () =>
           live &&
@@ -70,7 +109,7 @@ export function MaterialCountPanel({
     return () => {
       live = false;
     };
-  }, [subtaskId]);
+  }, [subtaskId, hourly]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -78,7 +117,12 @@ export function MaterialCountPanel({
       acceptedQty: accepted.trim() === '' ? 0 : accepted,
       rejectedQty: rejected.trim() === '' ? 0 : rejected,
       note,
+      ...(hourly ? { timeFrom, timeTo } : {}),
     });
+    if (hourly && (!timeFrom || !timeTo)) {
+      setError('Enter the from and to time this report covers.');
+      return;
+    }
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Check the quantities.');
       return;
@@ -106,6 +150,11 @@ export function MaterialCountPanel({
       setAccepted('');
       setRejected('');
       setNote('');
+      if (hourly && data.periodEnd) {
+        const from = new Date(data.periodEnd);
+        setTimeFrom(istTime(from));
+        setTimeTo(istTime(from, 60));
+      }
       toast.success('Material count recorded');
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Could not record the count.');
@@ -125,6 +174,9 @@ export function MaterialCountPanel({
 
   const { totals, jobQuantity, entries } = materials;
   const inspected = totals.accepted + totals.rejected;
+  const last = entries[0] ? new Date(entries[0].createdAt) : null;
+  const minutesSince = last ? Math.floor((Date.now() - last.getTime()) / 60_000) : null;
+  const hourDue = minutesSince === null || minutesSince >= 60;
 
   return (
     <div className="space-y-4">
@@ -138,8 +190,65 @@ export function MaterialCountPanel({
         />
       </div>
 
+      {hourly ? (
+        <p
+          className={`text-sm ${hourDue && canRecord ? 'text-late font-medium' : 'text-muted-foreground'}`}
+        >
+          {last ? (
+            <>
+              <T>{'Last report'}</T> {formatIST(last, 'h:mm a')} (
+              {minutesSince! < 60
+                ? `${minutesSince} min ago`
+                : `${Math.floor(minutesSince! / 60)} h ${minutesSince! % 60} min ago`}
+              ).{' '}
+              <T>
+                {hourDue ? 'The next hourly report is due now.' : 'Next one due within the hour.'}
+              </T>
+            </>
+          ) : (
+            <T>{'No hourly report yet today. Send the first one now.'}</T>
+          )}
+        </p>
+      ) : null}
+
       {canRecord ? (
         <form onSubmit={submit} className="space-y-3" aria-label="Record material count">
+          {hourly ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label>
+                  <T>{'Date'}</T>
+                </Label>
+                <p className="border-border bg-muted/40 flex h-9 items-center rounded-md border px-3 text-sm">
+                  {formatIST(new Date(), IST_DATE_PATTERN)}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`time-from-${subtaskId}`}>
+                  <T>{'From'}</T>
+                </Label>
+                <Input
+                  id={`time-from-${subtaskId}`}
+                  type="time"
+                  required
+                  value={timeFrom}
+                  onChange={(event) => setTimeFrom(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`time-to-${subtaskId}`}>
+                  <T>{'To'}</T>
+                </Label>
+                <Input
+                  id={`time-to-${subtaskId}`}
+                  type="time"
+                  required
+                  value={timeTo}
+                  onChange={(event) => setTimeTo(event.target.value)}
+                />
+              </div>
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor={`accepted-${subtaskId}`}>
@@ -191,7 +300,7 @@ export function MaterialCountPanel({
             ) : (
               <PackageCheck className="size-4" />
             )}
-            <T>{'Record count'}</T>
+            <T>{hourly ? 'Send hourly report' : 'Record count'}</T>
           </Button>
         </form>
       ) : null}
@@ -201,6 +310,9 @@ export function MaterialCountPanel({
           {entries.map((entry) => (
             <li key={entry.id} className="py-2">
               <p>
+                {slotLabel(entry) ? (
+                  <span className="font-medium">{slotLabel(entry)} · </span>
+                ) : null}
                 <span className="text-ok font-medium">
                   <T>{'Accepted'}</T> {entry.acceptedQty}
                 </span>

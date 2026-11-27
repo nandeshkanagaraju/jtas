@@ -47,6 +47,8 @@ export interface PolicySubject {
    * Set for the addresses in `JOB_MANAGER_EMAILS` (see `job-managers.ts`).
    */
   managesJobs?: boolean;
+  /** The user's department code ("STORE", "PRODUCTION"…), when the session knows it. */
+  departmentCode?: string | null;
 }
 
 /**
@@ -174,7 +176,14 @@ export type Action =
   // Analytics (M8)
   | 'dashboard:md'
   | 'dashboard:department'
-  | 'report:export';
+  | 'report:export'
+  /** The QA hourly report file. */
+  | 'shopReport:view'
+  // The daily stock ledger
+  | 'stock:view'
+  | 'stock:setOpening'
+  | 'stock:recordProduced'
+  | 'stock:recordDispatch';
 
 /** The resource each action is decided against. */
 export interface ResourceFor {
@@ -223,6 +232,11 @@ export interface ResourceFor {
   'dashboard:md': undefined;
   'dashboard:department': undefined;
   'report:export': undefined;
+  'shopReport:view': undefined;
+  'stock:view': undefined;
+  'stock:setOpening': undefined;
+  'stock:recordProduced': undefined;
+  'stock:recordDispatch': undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +255,10 @@ function isCommand(user: PolicySubject): boolean {
  */
 function canManageJobs(user: PolicySubject): boolean {
   return isCommand(user) || user.managesJobs === true;
+}
+
+function inDepartment(user: PolicySubject, ...codes: string[]): boolean {
+  return user.role === 'MEMBER' && codes.includes(user.departmentCode ?? '');
 }
 
 /** True when the user holds this subtask. */
@@ -506,6 +524,24 @@ export function can<A extends Action>(
     // SDD section 6.2 grants export to ADMIN as well as MD and Deputy.
     case 'report:export':
       return isCommand(user) || user.role === 'ADMIN';
+
+    // The MD, the Deputy and the job managers (Dhiyaneswar in Planning).
+    case 'shopReport:view':
+      return canManageJobs(user);
+
+    /**
+     * The stock ledger. Store adds RM (through its register), Production says
+     * what it made, the job managers (Dhiyaneswar) enter dispatches, and all of
+     * them, with the MD and Deputy, read the balance.
+     */
+    case 'stock:view':
+      return canManageJobs(user) || inDepartment(user, 'STORE', 'PRODUCTION');
+    case 'stock:setOpening':
+      return canManageJobs(user) || inDepartment(user, 'STORE');
+    case 'stock:recordProduced':
+      return isCommand(user) || inDepartment(user, 'PRODUCTION');
+    case 'stock:recordDispatch':
+      return canManageJobs(user);
 
     default: {
       // Exhaustiveness guard: a new Action that nobody decided on fails to

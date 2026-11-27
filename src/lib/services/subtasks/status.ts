@@ -15,6 +15,7 @@ import {
   type SubtaskAction,
   type TransitionActor,
 } from '@/lib/domain/subtask-state-machine';
+import { plansInBatches } from '@/lib/domain/department-rules';
 import { dependentsToUnblock } from '@/lib/domain/subtask-dependencies';
 import { AppError, invalidTransition, notFound, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
@@ -38,16 +39,39 @@ export interface StatusChangeResult {
   unblocked: string[];
 }
 
-/** Loads the dependency's status in the shape the state machine expects. */
-async function dependencyState(db: Db, dependsOnId: string | null) {
+/**
+ * Loads the dependency's status in the shape the state machine expects.
+ *
+ * A step that plans in batches (Production, Quality) hands over batch by batch:
+ * once its first batch is closed, the next step may start on it. Finishing
+ * still needs the whole earlier step done, so completion asks strictly.
+ */
+async function dependencyState(
+  db: Db,
+  dependsOnId: string | null,
+  options: { forCompletion?: boolean } = {},
+) {
   if (!dependsOnId) return 'NONE' as const;
 
   const dependency = await db.subtask.findUnique({
     where: { id: dependsOnId },
-    select: { status: true },
+    select: {
+      status: true,
+      department: { select: { code: true } },
+      _count: { select: { batches: { where: { completedAt: { not: null } } } } },
+    },
   });
 
-  return dependency?.status === 'COMPLETED' ? ('COMPLETE' as const) : ('INCOMPLETE' as const);
+  if (dependency?.status === 'COMPLETED') return 'COMPLETE' as const;
+  if (
+    !options.forCompletion &&
+    dependency &&
+    plansInBatches(dependency.department.code) &&
+    dependency._count.batches > 0
+  ) {
+    return 'COMPLETE' as const;
+  }
+  return 'INCOMPLETE' as const;
 }
 
 /**
@@ -88,7 +112,9 @@ export async function changeStatus(
     managesJobs: actor.managesJobs === true,
     isAssignee: subtask.assigneeId === actor.id,
     requiresApproval: subtask.requiresApproval,
-    dependency: await dependencyState(prisma, subtask.dependsOnId),
+    dependency: await dependencyState(prisma, subtask.dependsOnId, {
+      forCompletion: input.action === 'COMPLETE' || input.action === 'APPROVE',
+    }),
     problemDescriptionLength: note.length,
     problemSeverityProvided: input.severity !== undefined,
     minProblemDescriptionLength: minProblemDescription,
@@ -192,7 +218,7 @@ export async function changeStatus(
  * stays the one place — and an unexpected status is skipped rather than
  * trampled.
  */
-async function unblockDependents(
+export async function unblockDependents(
   tx: Db,
   jobId: string,
   completedId: string,

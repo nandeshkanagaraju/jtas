@@ -141,5 +141,6 @@ async function loadSessionUser(userId: string): Promise<SessionUser | null> {
     ...rest,
     readsAllJobs: department ? READ_ALL_JOBS_DEPARTMENTS.has(department.code) : false,
     managesJobs: isJobManager(rest),
+    departmentCode: department?.code ?? null,
   };
 }

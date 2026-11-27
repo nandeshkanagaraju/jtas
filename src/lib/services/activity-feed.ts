@@ -13,6 +13,7 @@
  */
 import { prisma } from '@/lib/db/prisma';
 import { jobAuditTrail, type AuditEntry, type JobTrailOptions } from '@/lib/services/audit-query';
+import { formatIST } from '@/lib/utils/time';
 
 export interface ActivityItem {
   id: string;
@@ -120,14 +121,45 @@ export async function jobActivityFeed(
       body = commentById.get(String(after.commentId ?? '')) ?? null;
     }
 
-    // Invoice number and quantity only: the feed is read by every department.
+    // Kind, number and quantity only: the feed is read by every department.
     if (entry.action === 'INVOICE_RECORDED') {
-      body = `Invoice ${String(after.invoiceNumber ?? '')} · ${String(after.quantity ?? 0)} pcs`;
+      const kind = after.billType === 'PURCHASE' ? 'Purchase bill' : 'Sales bill';
+      const party =
+        after.billType === 'PURCHASE' && after.partyName ? ` · ${String(after.partyName)}` : '';
+      body = `${kind} ${String(after.invoiceNumber ?? '')}${party} · ${String(after.quantity ?? 0)} pcs`;
     }
 
     if (entry.action === 'MATERIAL_COUNT_RECORDED') {
       const note = typeof after.note === 'string' && after.note ? ` · ${after.note}` : '';
-      body = `Accepted ${String(after.acceptedQty ?? 0)} · Rejected ${String(after.rejectedQty ?? 0)}${note}`;
+      const slot =
+        typeof after.periodStart === 'string' && typeof after.periodEnd === 'string'
+          ? `${formatIST(new Date(after.periodStart), 'h:mm a')}–${formatIST(new Date(after.periodEnd), 'h:mm a')} · `
+          : '';
+      body = `${slot}Accepted ${String(after.acceptedQty ?? 0)} · Rejected ${String(after.rejectedQty ?? 0)}${note}`;
+    }
+
+    if (entry.action === 'STORE_ENTRY_RECORDED') {
+      const direction = after.direction === 'OUTWARD' ? 'Issued' : 'Received';
+      const parts = [
+        `${direction} against ${String(after.documentType ?? '')}${after.documentNumber ? ` ${String(after.documentNumber)}` : ''}`,
+        after.supplierName ? String(after.supplierName) : null,
+        after.invoiceNumber ? `Invoice ${String(after.invoiceNumber)}` : null,
+        after.material ? String(after.material) : null,
+        typeof after.quantity === 'number' ? `${after.quantity} qty` : null,
+      ];
+      body = parts.filter(Boolean).join(' · ');
+    }
+
+    if (entry.action === 'BATCHES_PLANNED' && Array.isArray(after.batches)) {
+      body = `${after.batches.length} batches planned`;
+    }
+
+    if (entry.action === 'BATCH_COMPLETED') {
+      body = `Batch ${String(after.sequence ?? '')} · Accepted ${String(after.acceptedQty ?? 0)} · Rejected ${String(after.rejectedQty ?? 0)}`;
+    }
+
+    if (entry.action === 'ACCOUNTS_INTIMATED') {
+      body = typeof after.note === 'string' && after.note ? after.note : 'Ready to invoice';
     }
 
     if (entry.action.startsWith('ATTACHMENT_')) {

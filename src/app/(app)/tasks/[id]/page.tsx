@@ -10,6 +10,8 @@ import { recordsMaterials } from '@/lib/services/material-service';
 import { getSubtask } from '@/lib/services/subtasks';
 
 import { TaskDetail } from './task-detail';
+import { plansInBatches } from '@/lib/domain/department-rules';
+import { keepsStoreRegister } from '@/lib/services/store-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +87,15 @@ export default async function TaskPage({
     billing: subtask.department.code === 'ACCOUNTS' && (await canManageBilling(session)),
     recordMaterials:
       recordsMaterials(subtask.department.code) && can(session, 'materials:record', resource),
+    downloadHourlyReport: can(session, 'shopReport:view', undefined),
+    // Production and Quality work to dated batches instead of one date.
+    batches: plansInBatches(subtask.department.code),
+    planBatches: can(session, 'subtask:commit', resource),
+    replanBatches: can(session, 'subtask:changeDeadline', resource),
+    // Store types each receipt and issue into the register.
+    storeRegister: keepsStoreRegister(subtask.department.code),
+    recordStore:
+      keepsStoreRegister(subtask.department.code) && can(session, 'materials:record', resource),
   };
 
   const extensionRequests = permissions.requestExtension ? await listExtensionRequests(id) : [];

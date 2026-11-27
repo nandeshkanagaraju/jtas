@@ -14,7 +14,14 @@ import { recomputeJobStatus } from '@/lib/services/jobs';
 import { scheduleForSubtask } from '@/lib/services/notification-service';
 import type { BulkCreateSubtasksInput } from '@/lib/validation/subtask';
 
-import { assertAssignable, assertDeadlineWithinJob, parseSubtaskDeadline } from './invariants';
+import { worksWithoutDeadline } from '@/lib/domain/department-rules';
+
+import {
+  assertAssignable,
+  assertDeadlineWithinJob,
+  departmentCodesById,
+  parseSubtaskDeadline,
+} from './invariants';
 import { loadJobForSubtasks } from './job-guard';
 import {
   SUBTASK_SELECT,
@@ -45,13 +52,19 @@ export async function bulkCreateSubtasks(
 
   // Validate everything before writing anything: a half-built set of subtasks
   // is worse than none.
+  // Store, QA and Accounts work without a deadline; a date sent for them is ignored.
+  const codes = await departmentCodesById(
+    prisma,
+    input.subtasks.map((draft) => draft.departmentId),
+  );
   const prepared = await Promise.all(
     input.subtasks.map(async (draft, index) => {
-      const deadline = draft.deadline
-        ? parseSubtaskDeadline(draft.deadline, {
-            field: `subtasks.${index}.deadline`,
-          })
-        : null;
+      const deadline =
+        draft.deadline && !worksWithoutDeadline(codes.get(draft.departmentId))
+          ? parseSubtaskDeadline(draft.deadline, {
+              field: `subtasks.${index}.deadline`,
+            })
+          : null;
 
       if (deadline) {
         assertDeadlineWithinJob(

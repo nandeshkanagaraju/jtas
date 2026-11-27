@@ -193,3 +193,18 @@ export async function assertDependencyValid(
     );
   }
 }
+
+/**
+ * The department codes for a set of department ids, so a creation path can
+ * drop the date on a department that works without one.
+ */
+export async function departmentCodesById(
+  db: Db,
+  departmentIds: readonly string[],
+): Promise<Map<string, string>> {
+  const rows = await db.department.findMany({
+    where: { id: { in: [...new Set(departmentIds)] } },
+    select: { id: true, code: true },
+  });
+  return new Map(rows.map((row) => [row.id, row.code]));
+}

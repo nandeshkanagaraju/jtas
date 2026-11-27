@@ -15,6 +15,7 @@ import type { UserRow } from '@/lib/api/users-client';
 import { formatIST } from '@/lib/utils/time';
 
 import { SubtaskDrawer } from './subtask-drawer';
+import { worksWithoutDeadline } from '@/lib/domain/department-rules';
 
 /**
  * The subtask timeline and its action drawer.
@@ -143,6 +144,7 @@ function withDates(subtasks: SubtaskDto[]) {
 
 function whenOf(subtask: SubtaskDto): string {
   if (subtask.deadline) return formatIST(new Date(subtask.deadline), 'dd MMM, hh:mm a');
+  if (worksWithoutDeadline(subtask.department.code)) return 'No deadline';
   if (subtask.status === 'BLOCKED' || !subtask.commitmentDueAt) return 'No date yet';
   return 'Awaiting a commitment';
 }

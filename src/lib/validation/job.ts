@@ -72,9 +72,23 @@ const requiredPointOfContact = z
   .trim()
   .min(1, 'Choose who will contact the customer.');
 
-/** What `POST /api/jobs` and the job form accept: a point of contact is required. */
+/**
+ * The part number is how the Stock page finds a job's raw material and output,
+ * so a new job must name it.
+ */
+const requiredPartNumber = z
+  .string({ required_error: 'Enter the part number. Stock is tracked by it.' })
+  .trim()
+  .min(1, 'Enter the part number. Stock is tracked by it.')
+  .max(100, 'Use at most 100 characters.');
+
+/**
+ * What `POST /api/jobs` and the job form accept: a point of contact and a part
+ * number are required.
+ */
 export const createJobRequestSchema = createJobSchema.extend({
   pointOfContactId: requiredPointOfContact,
+  partNumber: requiredPartNumber,
 });
 
 export type CreateJobInput = z.infer<typeof createJobSchema>;

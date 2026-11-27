@@ -4,6 +4,7 @@
  * Both are MD/Deputy-only, both require a reason, and both reschedule
  * notifications inside the same transaction as the change.
  */
+import { plansInBatches, worksWithoutDeadline } from '@/lib/domain/department-rules';
 import { prisma } from '@/lib/db/prisma';
 import { notFound, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
@@ -57,6 +58,12 @@ export async function changeDeadline(
     );
   }
 
+  if (worksWithoutDeadline(subtask.department.code)) {
+    throw validationError(`${subtask.department.name} tasks do not have a deadline.`, {
+      reason: 'NO_DEADLINE_DEPARTMENT',
+    });
+  }
+
   const newDeadline = parseSubtaskDeadline(input.newDeadline, { field: 'newDeadline' });
 
   const nextLead = input.reminderLeadMinutes;
@@ -93,6 +100,22 @@ export async function changeDeadline(
       },
       select: SUBTASK_SELECT,
     });
+
+    // On a task planned in batches the deadline is the current batch's date,
+    // so moving the deadline (or granting more time) moves that batch.
+    if (plansInBatches(subtask.department.code)) {
+      const current = await tx.subtaskBatch.findFirst({
+        where: { subtaskId, completedAt: null },
+        orderBy: [{ deadline: 'asc' }, { sequence: 'asc' }],
+        select: { id: true },
+      });
+      if (current) {
+        await tx.subtaskBatch.update({
+          where: { id: current.id },
+          data: { deadline: newDeadline },
+        });
+      }
+    }
 
     await tx.deadlineChange.create({
       data: {

@@ -53,6 +53,7 @@ const TYPE_LABELS: Record<string, string> = {
   DAILY_DIGEST_MD: 'Daily summary',
   UPSTREAM_DATE_UPDATE: 'Plan ahead',
   DEPARTMENT_LOOKAHEAD: 'Coming your way',
+  DEPARTMENT_INTIMATION: 'Intimation',
 };
 
 export function NotificationsScreen({

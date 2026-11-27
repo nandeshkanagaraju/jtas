@@ -49,11 +49,16 @@ export async function resetAuthTables(): Promise<void> {
   await testDb.extensionRequest.deleteMany();
   await testDb.comment.deleteMany();
   await testDb.materialCount.deleteMany();
+  await testDb.subtaskBatch.deleteMany();
+  await testDb.storeEntry.deleteMany();
   await testDb.invoice.deleteMany();
   await testDb.attachment.deleteMany();
   await testDb.subtask.updateMany({ data: { dependsOnId: null } });
   await testDb.subtask.deleteMany();
+  await testDb.job.updateMany({ data: { accountsIntimatedById: null } });
   await testDb.job.deleteMany();
+  await testDb.stockOpening.deleteMany();
+  await testDb.stockMovement.deleteMany();
   await testDb.user.deleteMany();
   await testDb.department.deleteMany();
 }

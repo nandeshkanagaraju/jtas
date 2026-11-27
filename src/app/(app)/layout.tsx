@@ -103,6 +103,12 @@ async function buildNav(
     nav.push({ href: '/billing', label: 'Billing', icon: 'billing' });
   }
 
+  // The daily RM / FG balance per part: the MD, the Deputy, the job managers,
+  // Store (adds RM) and Production (says what it made).
+  if (can(session, 'stock:view', undefined)) {
+    nav.push({ href: '/stock', label: 'Stock', icon: 'stock' });
+  }
+
   nav.push({ href: '/my-tasks', label: 'My tasks', icon: 'my-tasks' });
   nav.push({ href: '/updates', label: 'Live updates', icon: 'updates' });
 

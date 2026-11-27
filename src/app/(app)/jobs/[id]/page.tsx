@@ -8,6 +8,7 @@ import { jobMaterialTotals } from '@/lib/services/material-service';
 import { listUsers } from '@/lib/services/users';
 
 import { JobDetail } from './job-detail';
+import { listJobStoreEntries } from '@/lib/services/store-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,8 +45,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   // Role-only decisions; the subtask fields are not consulted.
   const anySubtask = { id: '', jobId: job.id, assigneeId: '', departmentId: '' };
 
-  const [materials, canBill, candidates, contacts] = await Promise.all([
+  const [materials, storeEntries, canBill, candidates, contacts] = await Promise.all([
     jobMaterialTotals(job.id),
+    listJobStoreEntries(job.id),
     canManageBilling(session),
     // Reassignment candidates, loaded here so the drawer does not need the
     // Users API, which a job manager (or the deputy) may not call.
@@ -59,6 +61,11 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     <JobDetail
       currentUserId={session.id}
       materials={materials}
+      storeEntries={storeEntries.map((entry) => ({
+        ...entry,
+        invoiceDate: entry.invoiceDate?.toISOString() ?? null,
+        createdAt: entry.createdAt.toISOString(),
+      }))}
       contacts={contacts}
       canBill={canBill && job.status !== 'DRAFT'}
       candidates={(candidates?.data ?? [])
@@ -76,6 +83,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         completedAt: job.completedAt?.toISOString() ?? null,
         createdAt: job.createdAt.toISOString(),
         updatedAt: job.updatedAt.toISOString(),
+        accountsIntimation: job.accountsIntimation
+          ? { ...job.accountsIntimation, at: job.accountsIntimation.at.toISOString() }
+          : null,
       }}
       permissions={{
         edit: canEdit,

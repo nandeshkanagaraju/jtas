@@ -1,6 +1,11 @@
 /**
- * Accounts billing: invoices raised against jobs, the quantity still billable,
+ * Accounts billing: the bills booked against jobs, the quantity still billable,
  * and the dashboard that shows what is ready to invoice.
+ *
+ * Two kinds of bill: a sales bill is raised to the customer for accepted
+ * pieces, and only sales bills count towards what is invoiced; a purchase bill
+ * is a supplier's bill booked against the job, numbered in that supplier's own
+ * series.
  *
  * Money is shown only to Accounts, the MD and the Deputy (`canManageBilling`).
  * The billable quantity comes from the final inspection step's accepted count
@@ -11,7 +16,11 @@ import { invoiceAmounts, type InvoiceAmounts } from '@/lib/domain/money';
 import { conflict, validationError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit-service';
 import { fromISTInput, startOfISTDay } from '@/lib/utils/time';
-import type { AddInvoiceInput } from '@/lib/validation/invoice';
+import {
+  BILL_TYPE_LABEL,
+  type AddInvoiceInput,
+  type BillTypeValue,
+} from '@/lib/validation/invoice';
 
 /** Final inspection, most authoritative first. */
 const INSPECTION_ORDER = ['QA', 'QUALITY', 'PRODUCTION'] as const;
@@ -34,6 +43,8 @@ export async function canManageBilling(user: BillingSubject): Promise<boolean> {
 
 export interface InvoiceRow extends InvoiceAmounts {
   id: string;
+  billType: BillTypeValue;
+  partyName: string | null;
   invoiceNumber: string;
   invoiceDate: Date;
   quantity: number;
@@ -56,12 +67,17 @@ export interface JobBilling {
   invoicedQuantity: number;
   /** What is accepted but not yet invoiced; never negative. */
   remaining: number | null;
+  /** Sales bills only. */
   totals: InvoiceAmounts;
+  purchaseTotals: InvoiceAmounts;
+  /** Both kinds, newest first. */
   invoices: InvoiceRow[];
 }
 
 const INVOICE_SELECT = {
   id: true,
+  billType: true,
+  partyName: true,
   invoiceNumber: true,
   invoiceDate: true,
   quantity: true,
@@ -74,6 +90,8 @@ const INVOICE_SELECT = {
 
 type InvoiceRecord = {
   id: string;
+  billType: BillTypeValue;
+  partyName: string | null;
   invoiceNumber: string;
   invoiceDate: Date;
   quantity: number;
@@ -158,9 +176,10 @@ type BillingJobRecord = {
 
 function toJobBilling(job: BillingJobRecord): JobBilling {
   const invoices = job.invoices.map(toRow);
+  const sales = invoices.filter((row) => row.billType === 'SALES');
   const inspection = finalInspection(job.subtasks);
   const billableBase = billableFrom(inspection, job.quantity);
-  const invoicedQuantity = invoices.reduce((sum, row) => sum + row.quantity, 0);
+  const invoicedQuantity = sales.reduce((sum, row) => sum + row.quantity, 0);
   return {
     jobId: job.id,
     jobCode: job.jobCode,
@@ -170,7 +189,8 @@ function toJobBilling(job: BillingJobRecord): JobBilling {
     billableBase,
     invoicedQuantity,
     remaining: billableBase === null ? null : Math.max(0, billableBase - invoicedQuantity),
-    totals: sumAmounts(invoices),
+    totals: sumAmounts(sales),
+    purchaseTotals: sumAmounts(invoices.filter((row) => row.billType === 'PURCHASE')),
     invoices,
   };
 }
@@ -184,11 +204,17 @@ export async function jobBilling(jobId: string): Promise<JobBilling> {
   return toJobBilling(job);
 }
 
+/** The scope a bill number must be unique in: our own series, or the supplier's. */
+export function billPartyKey(billType: BillTypeValue, partyName: string | undefined): string {
+  return billType === 'PURCHASE' ? (partyName ?? '').trim().toLowerCase().replace(/\s+/g, ' ') : '';
+}
+
 /**
- * Records one invoice. The caller has checked `canManageBilling`.
+ * Records one sales or purchase bill. The caller has checked `canManageBilling`.
  *
- * @throws {AppError} `CONFLICT` for a duplicate invoice number or a draft or
- *   cancelled job; `VALIDATION_ERROR` for an unreadable date.
+ * @throws {AppError} `CONFLICT` for a number already used (in our sales series,
+ *   or in that supplier's) or a draft or cancelled job; `VALIDATION_ERROR` for
+ *   an unreadable date.
  */
 export async function addInvoice(
   jobId: string,
@@ -203,8 +229,8 @@ export async function addInvoice(
   if (job.status === 'DRAFT' || job.status === 'CANCELLED') {
     throw conflict(
       job.status === 'DRAFT'
-        ? 'This job has not been published, so it cannot be invoiced yet.'
-        : 'This job is cancelled, so it cannot be invoiced.',
+        ? 'This job has not been published, so no bill can be booked on it yet.'
+        : 'This job is cancelled, so no bill can be booked on it.',
     );
   }
 
@@ -212,25 +238,35 @@ export async function addInvoice(
   try {
     invoiceDate = fromISTInput(`${input.invoiceDate}T00:00`);
   } catch {
-    throw validationError('Enter a valid invoice date.', {
+    throw validationError('Enter a valid bill date.', {
       fields: { invoiceDate: ['Invalid date'] },
     });
   }
 
+  const billType = input.billType;
+  const partyKey = billPartyKey(billType, input.partyName);
   const existing = await prisma.invoice.findUnique({
-    where: { invoiceNumber: input.invoiceNumber },
+    where: {
+      billType_partyKey_invoiceNumber: { billType, partyKey, invoiceNumber: input.invoiceNumber },
+    },
     select: { id: true },
   });
   if (existing) {
-    throw conflict(`Invoice ${input.invoiceNumber} is already recorded.`, {
-      fields: { invoiceNumber: ['Already used'] },
-    });
+    throw conflict(
+      billType === 'PURCHASE'
+        ? `Purchase bill ${input.invoiceNumber} from ${input.partyName} is already recorded.`
+        : `Sales bill ${input.invoiceNumber} is already recorded.`,
+      { fields: { invoiceNumber: ['Already used'] } },
+    );
   }
 
   return prisma.$transaction(async (tx) => {
     const created = await tx.invoice.create({
       data: {
         jobId,
+        billType,
+        partyName: input.partyName ?? null,
+        partyKey,
         invoiceNumber: input.invoiceNumber,
         invoiceDate,
         quantity: input.quantity,
@@ -243,7 +279,7 @@ export async function addInvoice(
     });
 
     // The job's activity feed is read by every department on the job, so the
-    // audit row records the invoice number and quantity, never the money.
+    // audit row records the kind, number and quantity, never the money.
     await writeAudit(tx, {
       actorId: actor.id,
       action: 'INVOICE_RECORDED',
@@ -251,6 +287,9 @@ export async function addInvoice(
       entityId: jobId,
       after: {
         invoiceId: created.id,
+        billType: created.billType,
+        billLabel: BILL_TYPE_LABEL[created.billType],
+        partyName: created.partyName,
         invoiceNumber: created.invoiceNumber,
         quantity: created.quantity,
       },
@@ -270,9 +309,12 @@ export interface ReadyToInvoice {
   inspectionDepartment: string | null;
   /** True when the billable figure is the job quantity because no counts were recorded. */
   estimated: boolean;
-  billableBase: number;
+  /** Null when the job has no quantity and nothing was counted. */
+  billableBase: number | null;
   invoicedQuantity: number;
-  remaining: number;
+  remaining: number | null;
+  /** Planning's "ready to invoice" intimation, when it was sent. */
+  intimation: { at: Date; by: string | null; note: string | null } | null;
 }
 
 export interface RecentInvoice extends InvoiceRow {
@@ -283,8 +325,12 @@ export interface RecentInvoice extends InvoiceRow {
 
 export interface BillingDashboard {
   ready: ReadyToInvoice[];
+  /** Both kinds, newest first. */
   recent: RecentInvoice[];
+  /** Sales bills dated this month. */
   month: { invoices: number; quantity: number } & InvoiceAmounts;
+  /** Purchase bills dated this month. */
+  purchaseMonth: { invoices: number; quantity: number } & InvoiceAmounts;
   invoicedJobs: number;
 }
 
@@ -307,13 +353,19 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
     prisma.job.findMany({
       where: {
         status: { notIn: ['DRAFT', 'CANCELLED'] },
+        deletedAt: null,
         OR: [
           { status: 'COMPLETED' },
           { subtasks: { some: { status: 'COMPLETED', department: { code: 'DISPATCH' } } } },
+          // Planning has told Accounts to invoice, whatever Dispatch shows.
+          { accountsIntimatedAt: { not: null } },
         ],
       },
       select: {
         ...BILLING_JOB_SELECT,
+        accountsIntimatedAt: true,
+        accountsIntimationNote: true,
+        accountsIntimatedBy: { select: { name: true } },
         subtasks: {
           select: {
             status: true,
@@ -322,7 +374,10 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
           },
         },
       },
-      orderBy: { overallDeadline: 'asc' },
+      orderBy: [
+        { accountsIntimatedAt: { sort: 'desc', nulls: 'last' } },
+        { overallDeadline: 'asc' },
+      ],
     }),
     prisma.invoice.findMany({
       orderBy: [{ invoiceDate: 'desc' }, { createdAt: 'desc' }],
@@ -331,14 +386,26 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
     }),
     prisma.invoice.findMany({
       where: { invoiceDate: { gte: startOfISTMonth(now) } },
-      select: { quantity: true, ratePaise: true, gstBasisPoints: true, jobId: true },
+      select: {
+        billType: true,
+        quantity: true,
+        ratePaise: true,
+        gstBasisPoints: true,
+        jobId: true,
+      },
     }),
   ]);
 
   const ready: ReadyToInvoice[] = [];
   for (const job of jobs) {
     const billing = toJobBilling(job);
-    if (billing.billableBase === null || !billing.remaining) continue;
+    // Planning's intimation puts a job on the list until something is invoiced,
+    // even when there is no quantity to work the remainder out from.
+    const intimatedOnly =
+      job.accountsIntimatedAt !== null &&
+      billing.billableBase === null &&
+      billing.invoicedQuantity === 0;
+    if (!intimatedOnly && (billing.billableBase === null || !billing.remaining)) continue;
     ready.push({
       jobId: job.id,
       jobCode: job.jobCode,
@@ -352,12 +419,24 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
       billableBase: billing.billableBase,
       invoicedQuantity: billing.invoicedQuantity,
       remaining: billing.remaining,
+      intimation: job.accountsIntimatedAt
+        ? {
+            at: job.accountsIntimatedAt,
+            by: job.accountsIntimatedBy?.name ?? null,
+            note: job.accountsIntimationNote,
+          }
+        : null,
     });
   }
 
-  const monthAmounts = monthRecords.map((row) =>
-    invoiceAmounts(row.quantity, row.ratePaise, row.gstBasisPoints),
-  );
+  const monthFigures = (rows: typeof monthRecords) => ({
+    invoices: rows.length,
+    quantity: rows.reduce((sum, row) => sum + row.quantity, 0),
+    ...sumAmounts(
+      rows.map((row) => invoiceAmounts(row.quantity, row.ratePaise, row.gstBasisPoints)),
+    ),
+  });
+  const monthSales = monthRecords.filter((row) => row.billType === 'SALES');
 
   return {
     ready,
@@ -367,11 +446,8 @@ export async function billingDashboard(now: Date = new Date()): Promise<BillingD
       jobCode: job.jobCode,
       jobTitle: job.title,
     })),
-    month: {
-      invoices: monthRecords.length,
-      quantity: monthRecords.reduce((sum, row) => sum + row.quantity, 0),
-      ...sumAmounts(monthAmounts),
-    },
-    invoicedJobs: new Set(monthRecords.map((row) => row.jobId)).size,
+    month: monthFigures(monthSales),
+    purchaseMonth: monthFigures(monthRecords.filter((row) => row.billType === 'PURCHASE')),
+    invoicedJobs: new Set(monthSales.map((row) => row.jobId)).size,
   };
 }

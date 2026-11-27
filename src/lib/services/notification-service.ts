@@ -386,3 +386,45 @@ export async function problemRecipientIds(db: Db): Promise<string[]> {
 }
 
 export { enqueue } from '@/lib/notifications/notification-service';
+
+/**
+ * One department tells others something they need to act on — a store register
+ * line to Production and Planning, or Planning asking Accounts to invoice.
+ *
+ * Sent to every active person in the named departments, not only the ones who
+ * hold a task on the job: a store receipt matters to Planning whether or not
+ * Planning's own step on this job is still open. The sender is never told
+ * about their own message.
+ */
+export async function notifyDepartments(
+  db: Db,
+  input: {
+    jobId: string;
+    departmentCodes: readonly string[];
+    senderId: string;
+    subject: string;
+    body: string;
+    /** Unique per message, e.g. `store-entry:<id>`; the recipient is appended. */
+    dedupeBase: string;
+  },
+): Promise<number> {
+  const recipients = await db.user.findMany({
+    where: {
+      isActive: true,
+      role: { not: 'SUPERVISOR' },
+      id: { not: input.senderId },
+      department: { code: { in: [...input.departmentCodes] } },
+    },
+    select: { id: true },
+  });
+
+  return enqueue(db, {
+    type: 'DEPARTMENT_INTIMATION',
+    userIds: recipients.map((row) => row.id),
+    entityType: 'JOB',
+    entityId: input.jobId,
+    subject: input.subject,
+    body: input.body,
+    dedupeKeyFor: (userId) => `${input.dedupeBase}:INTIMATION:${userId}`,
+  });
+}

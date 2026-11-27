@@ -23,6 +23,7 @@ import type { UserRow } from '@/lib/api/users-client';
 import { reminderLeadMinutesProblem } from '@/lib/domain/reminder-lead';
 import { cn } from '@/lib/utils';
 import { fromISTInput } from '@/lib/utils/time';
+import { noDeadlineLabel, worksWithoutDeadline } from '@/lib/domain/department-rules';
 
 /** One editable row in the builder. `key` is local and becomes `dependsOnKey`. */
 export interface SubtaskRowDraft {
@@ -172,6 +173,8 @@ export function SubtaskBuilder({
           const leadProblem = reminderLeadMinutesProblem(row.reminderLeadMinutes);
           const otherProblems = problems.filter((problem) => problem !== leadProblem);
           const late = row.deadline !== '' && jobDeadline !== '' && row.deadline > jobDeadline;
+          const departmentCode = departments.find((d) => d.id === row.departmentId)?.code;
+          const noDeadline = worksWithoutDeadline(departmentCode);
 
           return (
             <div
@@ -246,16 +249,27 @@ export function SubtaskBuilder({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1.5 lg:col-span-2">
-                  <Label htmlFor={`subtask-deadline-${index}`} className="text-xs">
-                    <T>{'Deadline (IST) '}</T>
-                  </Label>
-                  <IstDateTimePicker
-                    id={`subtask-deadline-${index}`}
-                    value={row.deadline}
-                    onChange={(value) => update(index, { deadline: value })}
-                  />
-                </div>
+                {noDeadline ? (
+                  <div className="space-y-1.5 lg:col-span-2">
+                    <p className="text-xs font-medium">
+                      <T>{'Deadline'}</T>
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      <T>{noDeadlineLabel(departmentCode)}</T>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 lg:col-span-2">
+                    <Label htmlFor={`subtask-deadline-${index}`} className="text-xs">
+                      <T>{'Deadline (IST) '}</T>
+                    </Label>
+                    <IstDateTimePicker
+                      id={`subtask-deadline-${index}`}
+                      value={row.deadline}
+                      onChange={(value) => update(index, { deadline: value })}
+                    />
+                  </div>
+                )}
 
                 <ReminderLeadField
                   id={`reminder-lead-${index}`}

@@ -108,6 +108,11 @@ enum NotifType {
   /// The morning "coming your way" mail: every job heading towards this
   /// department, where it is now, and when it is expected to arrive.
   DEPARTMENT_LOOKAHEAD
+  /// One department tells another something they need to act on: Store has
+  /// recorded material in or out (to Production and Planning), or Planning
+  /// asks Accounts to raise the invoice. The row's subject and body are the
+  /// message.
+  DEPARTMENT_INTIMATION
 }
 
 /// Who fixed a subtask's date. A null deadline has no origin.
@@ -196,6 +201,11 @@ model User {
 
   materialCounts MaterialCount[] @relation("MaterialCountRecordedBy")
   invoices       Invoice[]       @relation("InvoiceCreatedBy")
+  storeEntries   StoreEntry[]    @relation("StoreEntryRecordedBy")
+  batchesAdded   SubtaskBatch[]  @relation("SubtaskBatchCreatedBy")
+  intimatedJobs  Job[]           @relation("JobAccountsIntimatedBy")
+  stockOpenings  StockOpening[]  @relation("StockOpeningSetBy")
+  stockMovements StockMovement[] @relation("StockMovementRecordedBy")
 
   /// For a SUPERVISOR: the book they keep. Null lets them keep both.
   productionSection         ProductionSection?
@@ -314,6 +324,13 @@ model Job {
   deletedById  String?
   deleteReason String?
 
+  /// Planning told Accounts this job is ready to invoice. Null until then.
+  accountsIntimatedAt    DateTime?
+  accountsIntimatedById  String?
+  accountsIntimatedBy    User?     @relation("JobAccountsIntimatedBy", fields: [accountsIntimatedById], references: [id])
+  /// What Planning wrote with it: quantity sent, DC number, anything Accounts needs.
+  accountsIntimationNote String?
+
   subtasks    Subtask[]
   attachments Attachment[]
   invoices    Invoice[]
@@ -376,6 +393,8 @@ model Subtask {
   comments          Comment[]
   attachments       Attachment[]
   materialCounts    MaterialCount[]
+  storeEntries      StoreEntry[]
+  batches           SubtaskBatch[]
   deadlineChanges   DeadlineChange[]
   extensionRequests ExtensionRequest[]
 
@@ -451,27 +470,115 @@ model Comment {
 /// QA task. Append-only: each row is one report (a shift, a batch); the task's
 /// totals are the sum. A wrong entry is corrected by a new one, never edited.
 model MaterialCount {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   subtaskId    String
-  subtask      Subtask  @relation(fields: [subtaskId], references: [id])
+  subtask      Subtask       @relation(fields: [subtaskId], references: [id])
+  /// The batch this report closes, on a Production or Quality task planned in
+  /// batches. Null for an ordinary (or hourly QA) report.
+  batchId      String?
+  batch        SubtaskBatch? @relation(fields: [batchId], references: [id])
   acceptedQty  Int
   rejectedQty  Int
   note         String?
+  /// The time slot a report covers (QA's hourly inspection). The date is the
+  /// IST day it was recorded on; null for reports without a slot.
+  periodStart  DateTime?
+  periodEnd    DateTime?
   recordedById String
-  recordedBy   User     @relation("MaterialCountRecordedBy", fields: [recordedById], references: [id])
-  createdAt    DateTime @default(now())
+  recordedBy   User          @relation("MaterialCountRecordedBy", fields: [recordedById], references: [id])
+  createdAt    DateTime      @default(now())
 
   @@index([subtaskId, createdAt])
+}
+
+/// One planned lot of a Production or Quality task.
+///
+/// Production cannot make the whole quantity at once, and Quality inspects each
+/// lot on the day it goes, so these tasks carry several dates instead of one.
+/// The task's own `deadline` always mirrors the earliest open batch, which keeps
+/// the reminders and overdue chasing working batch by batch. A batch is closed by
+/// reporting its accepted and rejected pieces.
+model SubtaskBatch {
+  id          String          @id @default(cuid())
+  subtaskId   String
+  subtask     Subtask         @relation(fields: [subtaskId], references: [id])
+  /// 1, 2, 3 … in date order when planned.
+  sequence    Int
+  quantity    Int
+  deadline    DateTime
+  completedAt DateTime?
+  createdById String
+  createdBy   User            @relation("SubtaskBatchCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  counts      MaterialCount[]
+
+  @@unique([subtaskId, sequence])
+  @@index([subtaskId, completedAt])
+}
+
+enum StoreDirection {
+  /// Material received from a supplier.
+  INWARD
+  /// Material issued out of the store (to Production).
+  OUTWARD
+}
+
+/// Which purchase document the material moved against.
+enum PurchaseDocType {
+  /// Purchase requisition.
+  PR
+  /// Purchase order.
+  PO
+}
+
+/// One line of the store register: material in or out, typed in by Store
+/// instead of attaching the supplier's PDF. Append-only, like material counts.
+/// Each line is intimated to Production and Planning.
+model StoreEntry {
+  id             String          @id @default(cuid())
+  subtaskId      String
+  subtask        Subtask         @relation(fields: [subtaskId], references: [id])
+  direction      StoreDirection
+  documentType   PurchaseDocType
+  /// The PR or PO number, when there is one.
+  documentNumber String?
+  /// Required for INWARD; optional when issuing out.
+  supplierName   String?
+  invoiceNumber  String?
+  /// The invoice's own date (IST calendar date).
+  invoiceDate    DateTime?       @db.Date
+  material       String?
+  quantity       Int?
+  note           String?
+  recordedById   String
+  recordedBy     User            @relation("StoreEntryRecordedBy", fields: [recordedById], references: [id])
+  createdAt      DateTime        @default(now())
+
+  @@index([subtaskId, createdAt])
+  @@index([createdAt])
 }
 
 /// A customer invoice raised by Accounts against a job. A job may be invoiced
 /// in parts (partial dispatches). Money is stored in paise and GST in basis
 /// points (1800 = 18%) so totals never pick up floating-point error.
+/// A sales bill is raised to the customer against the job's accepted pieces; a
+/// purchase bill is a supplier's bill Accounts books against the job.
+enum BillType {
+  SALES
+  PURCHASE
+}
+
 model Invoice {
   id             String   @id @default(cuid())
   jobId          String
   job            Job      @relation(fields: [jobId], references: [id])
-  invoiceNumber  String   @unique
+  billType       BillType @default(SALES)
+  /// The supplier on a purchase bill; the customer (optional) on a sales bill.
+  partyName      String?
+  /// Uniqueness scope for the number: '' for sales bills (our own series), the
+  /// lower-cased supplier for purchase bills (each supplier has its own series).
+  partyKey       String   @default("")
+  invoiceNumber  String
   invoiceDate    DateTime
   quantity       Int
   ratePaise      Int
@@ -481,6 +588,7 @@ model Invoice {
   createdBy      User     @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
   createdAt      DateTime @default(now())
 
+  @@unique([billType, partyKey, invoiceNumber])
   @@index([jobId, invoiceDate])
   @@index([invoiceDate])
 }
@@ -846,4 +954,54 @@ model ProductionChange {
   createdAt   DateTime         @default(now())
 
   @@index([reportId, createdAt])
+}
+
+/// The stock of one part on the day the app started counting it: raw material
+/// in hand and finished goods made but not dispatched. The daily stock ledger
+/// adds Store receipts and moves Production's output from RM to FG, and takes
+/// dispatches off FG, from this date on.
+model StockOpening {
+  id         String   @id @default(cuid())
+  /// Lower-cased, trimmed part number: the key jobs are matched on.
+  partKey    String   @unique
+  partNumber String
+  partName   String?
+  /// Stock at the start of this IST day.
+  asOfDate   DateTime @db.Date
+  rmQty      Int
+  fgQty      Int
+  setById    String
+  setBy      User     @relation("StockOpeningSetBy", fields: [setById], references: [id])
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+}
+
+enum StockMovementKind {
+  /// Pieces Production made: off RM, onto FG.
+  PRODUCED
+  /// Pieces sent to the customer: off FG.
+  DISPATCHED
+}
+
+/// A line Production (made) or a job manager (dispatched) types against a part
+/// for one day. Raw material in comes from the Store register instead.
+model StockMovement {
+  id           String            @id @default(cuid())
+  /// Lower-cased, trimmed part number, as on StockOpening.
+  partKey      String
+  partNumber   String
+  partName     String?
+  kind         StockMovementKind
+  quantity     Int
+  /// The IST calendar date, stored as UTC midnight of that date.
+  date         DateTime          @db.Date
+  /// DC number for a dispatch; shift or batch for production.
+  reference    String?
+  note         String?
+  recordedById String
+  recordedBy   User              @relation("StockMovementRecordedBy", fields: [recordedById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  @@index([partKey, date])
+  @@index([date])
 }
